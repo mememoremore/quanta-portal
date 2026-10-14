@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtMaterialMapper">
+
+    <resultMap id="QtMaterialResult" type="QtMaterial">
+        <id property="materialId" column="material_id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="storedName" column="stored_name"/>
+        <result property="filePath" column="file_path"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="category" column="category"/>
+        <result property="visibility" column="visibility"/>
+        <result property="uploaderId" column="uploader_id"/>
+        <result property="uploaderName" column="uploader_name"/>
+        <result property="uploaderDepartment" column="uploader_department"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="uploadTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectMaterialById" resultMap="QtMaterialResult">
+        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.visibility,
+               m.uploader_id, m.create_by, m.create_time, m.update_by, m.update_time, m.remark,
+               u.nick_name as uploader_name, u.member_department as uploader_department
+        from qt_material m
+        left join sys_user u on m.uploader_id = u.user_id
+        where m.material_id = #{materialId}
+    </select>
+
+    <select id="selectMaterialList" parameterType="QtMaterial" resultMap="QtMaterialResult">
+        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.visibility,
+               m.uploader_id, m.create_by, m.create_time, m.update_by, m.update_time, m.remark,
+               u.nick_name as uploader_name, u.member_department as uploader_department
+        from qt_material m
+        left join sys_user u on m.uploader_id = u.user_id
+        <where>
+            <if test="category != null and category != ''">and m.category = #{category}</if>
+            <if test="visibility != null and visibility != ''">and m.visibility = #{visibility}</if>
+            <if test="fileName != null and fileName != ''">and m.file_name like concat('%', #{fileName}, '%')</if>
+            <if test="params.admin != null and params.admin == '1'">
+            </if>
+            <if test="params.admin == null or params.admin != '1'">
+                and (
+                    m.visibility = 'ALL'
+                    or (m.visibility = 'MEMBER' and #{params.isMember} = '1')
+                    or (m.visibility = 'DEPT' and u.member_department = #{params.dept})
+                    or m.uploader_id = #{params.userId}
+                )
+            </if>
+        </where>
+        order by m.create_time desc
+    </select>
+
+    <insert id="insertMaterial" parameterType="QtMaterial" useGeneratedKeys="true" keyProperty="materialId">
+        insert into qt_material
+        (file_name, stored_name, file_path, file_size, category, visibility, uploader_id, create_by, create_time, remark)
+        values
+        (#{fileName}, #{storedName}, #{filePath}, #{fileSize}, #{category}, #{visibility}, #{uploaderId}, #{createBy}, now(), #{remark})
+    </insert>
+
+    <update id="updateMaterial" parameterType="QtMaterial">
+        update qt_material
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="fileName != null and fileName != ''">file_name = #{fileName},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="visibility != null and visibility != ''">visibility = #{visibility},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = now(),
+        </trim>
+        where material_id = #{materialId}
+    </update>
+
+    <delete id="deleteMaterialById" parameterType="Long">
+        delete from qt_material where material_id = #{materialId}
+    </delete>
+</mapper>

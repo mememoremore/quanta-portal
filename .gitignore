@@ -1,2 +1,17 @@
 # Old project planning and backend-integration notes are not part of this frontend repository.
 /Quanta-admin-web/docs/
+
+# Maven output and local development files
+target/
+*.log
+.idea/
+application-local.yml
+.env
+.env.local
+.env.*.local
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.jks

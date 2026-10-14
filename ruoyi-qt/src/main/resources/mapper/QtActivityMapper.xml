@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtActivityMapper">
+    
+    <resultMap type="QtActivity" id="QtActivityResult">
+        <result property="activityId"    column="activity_id"    />
+        <result property="title"    column="title"    />
+        <result property="description"    column="description"    />
+        <result property="signupStart"    column="signup_start"    />
+        <result property="signupEnd"    column="signup_end"    />
+        <result property="activityStart"    column="activity_start"    />
+        <result property="activityEnd"    column="activity_end"    />
+        <result property="locationDesc"    column="location_desc"    />
+        <result property="capacity"    column="capacity"    />
+        <result property="status"    column="status"    />
+        <result property="creatorUserId"    column="creator_user_id"    />
+        <result property="activityType"    column="activity_type"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectQtActivityVo">
+        select activity_id, title, description, signup_start, signup_end, activity_start, activity_end, location_desc, capacity, status, creator_user_id, activity_type, create_by, create_time, update_by, update_time from qt_activity
+    </sql>
+
+    <select id="selectQtActivityList" parameterType="QtActivity" resultMap="QtActivityResult">
+        <include refid="selectQtActivityVo"/>
+        <where>  
+            <if test="title != null  and title != ''"> and title like concat('%', #{title}, '%')</if>
+            <if test="description != null  and description != ''"> and description = #{description}</if>
+            <if test="signupStart != null "> and signup_start = #{signupStart}</if>
+            <if test="signupEnd != null "> and signup_end = #{signupEnd}</if>
+            <if test="activityStart != null "> and activity_start = #{activityStart}</if>
+            <if test="activityEnd != null "> and activity_end = #{activityEnd}</if>
+            <if test="locationDesc != null  and locationDesc != ''"> and location_desc = #{locationDesc}</if>
+            <if test="capacity != null "> and capacity = #{capacity}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="creatorUserId != null "> and creator_user_id = #{creatorUserId}</if>
+            <if test="activityType != null and activityType != ''"> and activity_type = #{activityType}</if>
+        </where>
+    </select>
+    
+    <select id="selectQtActivityByActivityId" parameterType="Long" resultMap="QtActivityResult">
+        <include refid="selectQtActivityVo"/>
+        where activity_id = #{activityId}
+    </select>
+
+    <insert id="insertQtActivity" parameterType="QtActivity" useGeneratedKeys="true" keyProperty="activityId">
+        insert into qt_activity
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">title,</if>
+            <if test="description != null">description,</if>
+            <if test="signupStart != null">signup_start,</if>
+            <if test="signupEnd != null">signup_end,</if>
+            <if test="activityStart != null">activity_start,</if>
+            <if test="activityEnd != null">activity_end,</if>
+            <if test="locationDesc != null">location_desc,</if>
+            <if test="capacity != null">capacity,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="creatorUserId != null">creator_user_id,</if>
+            <if test="activityType != null and activityType != ''">activity_type,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="title != null and title != ''">#{title},</if>
+            <if test="description != null">#{description},</if>
+            <if test="signupStart != null">#{signupStart},</if>
+            <if test="signupEnd != null">#{signupEnd},</if>
+            <if test="activityStart != null">#{activityStart},</if>
+            <if test="activityEnd != null">#{activityEnd},</if>
+            <if test="locationDesc != null">#{locationDesc},</if>
+            <if test="capacity != null">#{capacity},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="creatorUserId != null">#{creatorUserId},</if>
+            <if test="activityType != null and activityType != ''">#{activityType},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtActivity" parameterType="QtActivity">
+        update qt_activity
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="signupStart != null">signup_start = #{signupStart},</if>
+            <if test="signupEnd != null">signup_end = #{signupEnd},</if>
+            <if test="activityStart != null">activity_start = #{activityStart},</if>
+            <if test="activityEnd != null">activity_end = #{activityEnd},</if>
+            <if test="locationDesc != null">location_desc = #{locationDesc},</if>
+            <if test="capacity != null">capacity = #{capacity},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="creatorUserId != null">creator_user_id = #{creatorUserId},</if>
+            <if test="activityType != null and activityType != ''">activity_type = #{activityType},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where activity_id = #{activityId}
+    </update>
+
+    <delete id="deleteQtActivityByActivityId" parameterType="Long">
+        delete from qt_activity where activity_id = #{activityId}
+    </delete>
+
+    <delete id="deleteQtActivityByActivityIds" parameterType="String">
+        delete from qt_activity where activity_id in 
+        <foreach item="activityId" collection="array" open="(" separator="," close=")">
+            #{activityId}
+        </foreach>
+    </delete>
+</mapper>

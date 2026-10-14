@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtAccessMetricMapper">
+
+    <resultMap type="QtAccessMetric" id="QtAccessMetricResult">
+        <result property="id"            column="id" />
+        <result property="snapshotTime"  column="snapshot_time" />
+        <result property="windowMs"      column="window_ms" />
+        <result property="uri"           column="uri" />
+        <result property="method"        column="method" />
+        <result property="requestCount"  column="request_count" />
+        <result property="error4xx"      column="error_4xx" />
+        <result property="error5xx"      column="error_5xx" />
+        <result property="avgCostMs"     column="avg_cost_ms" />
+        <result property="maxCostMs"     column="max_cost_ms" />
+        <result property="qps"           column="qps" />
+        <result property="inFlightMax"   column="in_flight_max" />
+        <result property="jvmUsedMb"     column="jvm_used_mb" />
+        <result property="jvmMaxMb"      column="jvm_max_mb" />
+        <result property="dbActive"      column="db_active" />
+        <result property="dbMax"         column="db_max" />
+    </resultMap>
+
+    <insert id="insertBatch">
+        insert into qt_access_metric (
+            snapshot_time, window_ms, uri, method, request_count, error_4xx, error_5xx,
+            avg_cost_ms, max_cost_ms, qps, in_flight_max, jvm_used_mb, jvm_max_mb, db_active, db_max
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.snapshotTime}, #{item.windowMs}, #{item.uri}, #{item.method}, #{item.requestCount},
+                #{item.error4xx}, #{item.error5xx}, #{item.avgCostMs}, #{item.maxCostMs}, #{item.qps},
+                #{item.inFlightMax}, #{item.jvmUsedMb}, #{item.jvmMaxMb}, #{item.dbActive}, #{item.dbMax}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectGlobalList" resultMap="QtAccessMetricResult">
+        select id, snapshot_time, window_ms, uri, method, request_count, error_4xx, error_5xx,
+               avg_cost_ms, max_cost_ms, qps, in_flight_max, jvm_used_mb, jvm_max_mb, db_active, db_max
+        from qt_access_metric
+        where uri = '*'
+        <if test="beginTime != null">and snapshot_time &gt;= #{beginTime}</if>
+        <if test="endTime != null">and snapshot_time &lt;= #{endTime}</if>
+        order by snapshot_time desc
+    </select>
+
+    <select id="selectUriAgg" resultMap="QtAccessMetricResult">
+        select uri, method,
+               sum(request_count) as request_count,
+               sum(error_4xx) as error_4xx,
+               sum(error_5xx) as error_5xx,
+               case when sum(request_count) = 0 then 0
+                    else round(sum(avg_cost_ms * request_count) / sum(request_count))
+               end as avg_cost_ms,
+               max(max_cost_ms) as max_cost_ms,
+               round(sum(request_count) * 1000 / nullif(sum(window_ms), 0), 2) as qps
+        from qt_access_metric
+        where uri &lt;&gt; '*'
+        <if test="beginTime != null">and snapshot_time &gt;= #{beginTime}</if>
+        <if test="endTime != null">and snapshot_time &lt;= #{endTime}</if>
+        group by uri, method
+        order by request_count desc
+        limit 50
+    </select>
+
+    <delete id="deleteBefore">
+        delete from qt_access_metric where snapshot_time &lt; #{before}
+    </delete>
+
+</mapper>

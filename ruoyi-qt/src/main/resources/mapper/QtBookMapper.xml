@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtBookMapper">
+    
+    <resultMap type="QtBook" id="QtBookResult">
+        <result property="bookId"    column="book_id"    />
+        <result property="isbn"    column="isbn"    />
+        <result property="bookName"    column="book_name"    />
+        <result property="author"    column="author"    />
+        <result property="publisher"    column="publisher"    />
+        <result property="publishDate"    column="publish_date"    />
+        <result property="totalCount"    column="total_count"    />
+        <result property="availableCount"    column="available_count"    />
+        <result property="locationDesc"    column="location_desc"    />
+        <result property="status"    column="status"    />
+        <result property="bookType"    column="book_type"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectQtBookVo">
+        select book_id, isbn, book_name, author, publisher, publish_date, total_count, available_count, location_desc, status, book_type, create_by, create_time, update_by, update_time from qt_book
+    </sql>
+
+    <select id="selectQtBookList" parameterType="QtBook" resultMap="QtBookResult">
+        <include refid="selectQtBookVo"/>
+        <where>  
+            <if test="isbn != null  and isbn != ''"> and isbn = #{isbn}</if>
+            <if test="bookName != null  and bookName != ''"> and book_name like concat('%', #{bookName}, '%')</if>
+            <if test="author != null  and author != ''"> and author = #{author}</if>
+            <if test="publisher != null  and publisher != ''"> and publisher = #{publisher}</if>
+            <if test="publishDate != null "> and publish_date = #{publishDate}</if>
+            <if test="totalCount != null "> and total_count = #{totalCount}</if>
+            <if test="availableCount != null "> and available_count = #{availableCount}</if>
+            <if test="locationDesc != null  and locationDesc != ''"> and location_desc = #{locationDesc}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="bookType != null and bookType != ''"> and book_type = #{bookType}</if>
+        </where>
+    </select>
+    
+    <select id="selectQtBookByBookId" parameterType="Long" resultMap="QtBookResult">
+        <include refid="selectQtBookVo"/>
+        where book_id = #{bookId}
+    </select>
+
+    <select id="selectQtBookByBookIdForUpdate" parameterType="Long" resultMap="QtBookResult">
+        <include refid="selectQtBookVo"/>
+        where book_id = #{bookId}
+        for update
+    </select>
+
+    <update id="decrementAvailableCount">
+        update qt_book set available_count = available_count - 1
+        where book_id = #{bookId} and available_count &gt; 0
+    </update>
+
+    <update id="incrementAvailableCount">
+        update qt_book set available_count = available_count + 1
+        where book_id = #{bookId} and available_count &lt; total_count
+    </update>
+
+    <insert id="insertQtBook" parameterType="QtBook" useGeneratedKeys="true" keyProperty="bookId">
+        insert into qt_book
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="isbn != null">isbn,</if>
+            <if test="bookName != null and bookName != ''">book_name,</if>
+            <if test="author != null">author,</if>
+            <if test="publisher != null">publisher,</if>
+            <if test="publishDate != null">publish_date,</if>
+            <if test="totalCount != null">total_count,</if>
+            <if test="availableCount != null">available_count,</if>
+            <if test="locationDesc != null">location_desc,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="bookType != null">book_type,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="isbn != null">#{isbn},</if>
+            <if test="bookName != null and bookName != ''">#{bookName},</if>
+            <if test="author != null">#{author},</if>
+            <if test="publisher != null">#{publisher},</if>
+            <if test="publishDate != null">#{publishDate},</if>
+            <if test="totalCount != null">#{totalCount},</if>
+            <if test="availableCount != null">#{availableCount},</if>
+            <if test="locationDesc != null">#{locationDesc},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="bookType != null">#{bookType},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtBook" parameterType="QtBook">
+        update qt_book
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="isbn != null">isbn = #{isbn},</if>
+            <if test="bookName != null and bookName != ''">book_name = #{bookName},</if>
+            <if test="author != null">author = #{author},</if>
+            <if test="publisher != null">publisher = #{publisher},</if>
+            <if test="publishDate != null">publish_date = #{publishDate},</if>
+            <if test="totalCount != null">total_count = #{totalCount},</if>
+            <if test="availableCount != null">available_count = #{availableCount},</if>
+            <if test="locationDesc != null">location_desc = #{locationDesc},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="bookType != null">book_type = #{bookType},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where book_id = #{bookId}
+    </update>
+
+    <delete id="deleteQtBookByBookId" parameterType="Long">
+        delete from qt_book where book_id = #{bookId}
+    </delete>
+
+    <delete id="deleteQtBookByBookIds" parameterType="String">
+        delete from qt_book where book_id in 
+        <foreach item="bookId" collection="array" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+    </delete>
+</mapper>

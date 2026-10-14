@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtClothingItemMapper">
+    
+    <resultMap type="QtClothingItem" id="QtClothingItemResult">
+        <result property="itemId"    column="item_id"    />
+        <result property="itemName"    column="item_name"    />
+        <result property="effectImagePath"    column="effect_image_path"    />
+        <result property="colorOptionsJson"    column="color_options_json"    />
+        <result property="sizeOptionsJson"    column="size_options_json"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectQtClothingItemVo">
+        select item_id, item_name, effect_image_path, color_options_json, size_options_json, status, create_by, create_time, update_by, update_time from qt_clothing_item
+    </sql>
+
+    <select id="selectQtClothingItemList" parameterType="QtClothingItem" resultMap="QtClothingItemResult">
+        <include refid="selectQtClothingItemVo"/>
+        <where>  
+            <if test="itemName != null  and itemName != ''"> and item_name like concat('%', #{itemName}, '%')</if>
+            <if test="effectImagePath != null  and effectImagePath != ''"> and effect_image_path = #{effectImagePath}</if>
+            <if test="colorOptionsJson != null  and colorOptionsJson != ''"> and color_options_json = #{colorOptionsJson}</if>
+            <if test="sizeOptionsJson != null  and sizeOptionsJson != ''"> and size_options_json = #{sizeOptionsJson}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectQtClothingItemByItemId" parameterType="Long" resultMap="QtClothingItemResult">
+        <include refid="selectQtClothingItemVo"/>
+        where item_id = #{itemId}
+    </select>
+
+    <insert id="insertQtClothingItem" parameterType="QtClothingItem" useGeneratedKeys="true" keyProperty="itemId">
+        insert into qt_clothing_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="itemName != null and itemName != ''">item_name,</if>
+            <if test="effectImagePath != null">effect_image_path,</if>
+            <if test="colorOptionsJson != null and colorOptionsJson != ''">color_options_json,</if>
+            <if test="sizeOptionsJson != null and sizeOptionsJson != ''">size_options_json,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="itemName != null and itemName != ''">#{itemName},</if>
+            <if test="effectImagePath != null">#{effectImagePath},</if>
+            <if test="colorOptionsJson != null and colorOptionsJson != ''">#{colorOptionsJson},</if>
+            <if test="sizeOptionsJson != null and sizeOptionsJson != ''">#{sizeOptionsJson},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtClothingItem" parameterType="QtClothingItem">
+        update qt_clothing_item
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="itemName != null and itemName != ''">item_name = #{itemName},</if>
+            <if test="effectImagePath != null">effect_image_path = #{effectImagePath},</if>
+            <if test="colorOptionsJson != null and colorOptionsJson != ''">color_options_json = #{colorOptionsJson},</if>
+            <if test="sizeOptionsJson != null and sizeOptionsJson != ''">size_options_json = #{sizeOptionsJson},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where item_id = #{itemId}
+    </update>
+
+    <delete id="deleteQtClothingItemByItemId" parameterType="Long">
+        delete from qt_clothing_item where item_id = #{itemId}
+    </delete>
+
+    <delete id="deleteQtClothingItemByItemIds" parameterType="String">
+        delete from qt_clothing_item where item_id in 
+        <foreach item="itemId" collection="array" open="(" separator="," close=")">
+            #{itemId}
+        </foreach>
+    </delete>
+</mapper>

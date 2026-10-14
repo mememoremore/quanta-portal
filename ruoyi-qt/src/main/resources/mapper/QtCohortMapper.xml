@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtCohortMapper">
+
+    <resultMap id="QtCohortResult" type="QtCohort">
+        <id property="cohortId" column="cohort_id"/>
+        <result property="cohortName" column="cohort_name"/>
+        <result property="cohortYear" column="cohort_year"/>
+        <result property="isCurrent" column="is_current"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <resultMap id="QtMemberRecordResult" type="QtMemberRecord">
+        <id property="recordId" column="record_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="cohortId" column="cohort_id"/>
+        <result property="roleCategory" column="role_category"/>
+        <result property="memberStatus" column="member_status"/>
+        <result property="joinTime" column="join_time"/>
+        <result property="retainFlag" column="retain_flag"/>
+        <result property="cohortName" column="cohort_name"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectCohortList" resultMap="QtCohortResult">
+        select cohort_id, cohort_name, cohort_year, is_current, status, create_by, create_time, update_by, update_time, remark
+        from qt_cohort
+        <where>
+            <if test="status != null and status != ''">and status = #{status}</if>
+            <if test="cohortYear != null">and cohort_year = #{cohortYear}</if>
+        </where>
+        order by is_current desc, cohort_year desc, cohort_id desc
+    </select>
+
+    <select id="selectCohortById" resultMap="QtCohortResult">
+        select cohort_id, cohort_name, cohort_year, is_current, status, create_by, create_time, update_by, update_time, remark
+        from qt_cohort where cohort_id = #{cohortId}
+    </select>
+
+    <select id="selectCurrentCohort" resultMap="QtCohortResult">
+        select cohort_id, cohort_name, cohort_year, is_current, status, create_by, create_time, update_by, update_time, remark
+        from qt_cohort where is_current = '1' limit 1
+    </select>
+
+    <select id="selectCohortByName" resultMap="QtCohortResult">
+        select cohort_id, cohort_name, cohort_year, is_current, status, create_by, create_time, update_by, update_time, remark
+        from qt_cohort where cohort_name = #{cohortName} limit 1
+    </select>
+
+    <insert id="insertCohort" parameterType="QtCohort" useGeneratedKeys="true" keyProperty="cohortId">
+        insert into qt_cohort (cohort_name, cohort_year, is_current, status, create_by, create_time, remark)
+        values (#{cohortName}, #{cohortYear}, #{isCurrent}, #{status}, #{createBy}, now(), #{remark})
+    </insert>
+
+    <update id="updateCohort" parameterType="QtCohort">
+        update qt_cohort
+        <set>
+            <if test="cohortName != null">cohort_name = #{cohortName},</if>
+            <if test="cohortYear != null">cohort_year = #{cohortYear},</if>
+            <if test="isCurrent != null">is_current = #{isCurrent},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = now()
+        </set>
+        where cohort_id = #{cohortId}
+    </update>
+
+    <update id="clearCurrentFlag">
+        update qt_cohort set is_current = '0' where is_current = '1'
+    </update>
+
+    <select id="selectRecord" resultMap="QtMemberRecordResult">
+        select r.record_id, r.user_id, r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
+               r.create_by, r.create_time, r.update_by, r.update_time, c.cohort_name
+        from qt_member_record r
+        left join qt_cohort c on r.cohort_id = c.cohort_id
+        where r.user_id = #{userId} and r.cohort_id = #{cohortId}
+        limit 1
+    </select>
+
+    <select id="selectRecordsByCohort" resultMap="QtMemberRecordResult">
+        select r.record_id, r.user_id, r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
+               r.create_by, r.create_time, r.update_by, r.update_time, c.cohort_name
+        from qt_member_record r
+        left join qt_cohort c on r.cohort_id = c.cohort_id
+        where r.cohort_id = #{cohortId}
+    </select>
+
+    <insert id="insertRecord" parameterType="QtMemberRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into qt_member_record (user_id, cohort_id, role_category, member_status, join_time, retain_flag, create_by, create_time)
+        values (#{userId}, #{cohortId}, #{roleCategory}, #{memberStatus}, #{joinTime}, #{retainFlag}, #{createBy}, now())
+    </insert>
+
+    <update id="updateRecord" parameterType="QtMemberRecord">
+        update qt_member_record
+        <set>
+            <if test="roleCategory != null">role_category = #{roleCategory},</if>
+            <if test="memberStatus != null">member_status = #{memberStatus},</if>
+            <if test="joinTime != null">join_time = #{joinTime},</if>
+            <if test="retainFlag != null">retain_flag = #{retainFlag},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = now()
+        </set>
+        where record_id = #{recordId}
+    </update>
+</mapper>

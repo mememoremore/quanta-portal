@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtPaymentConfigMapper">
+    
+    <resultMap type="QtPaymentConfig" id="QtPaymentConfigResult">
+        <result property="configId"    column="config_id"    />
+        <result property="paymentName"    column="payment_name"    />
+        <result property="qrImagePath"    column="qr_image_path"    />
+        <result property="enabled"    column="enabled"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectQtPaymentConfigVo">
+        select config_id, payment_name, qr_image_path, enabled, create_by, create_time, update_by, update_time from qt_payment_config
+    </sql>
+
+    <select id="selectQtPaymentConfigList" parameterType="QtPaymentConfig" resultMap="QtPaymentConfigResult">
+        <include refid="selectQtPaymentConfigVo"/>
+        <where>  
+            <if test="paymentName != null  and paymentName != ''"> and payment_name like concat('%', #{paymentName}, '%')</if>
+            <if test="qrImagePath != null  and qrImagePath != ''"> and qr_image_path = #{qrImagePath}</if>
+            <if test="enabled != null  and enabled != ''"> and enabled = #{enabled}</if>
+        </where>
+    </select>
+    
+    <select id="selectQtPaymentConfigByConfigId" parameterType="Long" resultMap="QtPaymentConfigResult">
+        <include refid="selectQtPaymentConfigVo"/>
+        where config_id = #{configId}
+    </select>
+
+    <insert id="insertQtPaymentConfig" parameterType="QtPaymentConfig" useGeneratedKeys="true" keyProperty="configId">
+        insert into qt_payment_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="paymentName != null and paymentName != ''">payment_name,</if>
+            <if test="qrImagePath != null and qrImagePath != ''">qr_image_path,</if>
+            <if test="enabled != null and enabled != ''">enabled,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="paymentName != null and paymentName != ''">#{paymentName},</if>
+            <if test="qrImagePath != null and qrImagePath != ''">#{qrImagePath},</if>
+            <if test="enabled != null and enabled != ''">#{enabled},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtPaymentConfig" parameterType="QtPaymentConfig">
+        update qt_payment_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="paymentName != null and paymentName != ''">payment_name = #{paymentName},</if>
+            <if test="qrImagePath != null">qr_image_path = #{qrImagePath},</if>
+            <if test="enabled != null and enabled != ''">enabled = #{enabled},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where config_id = #{configId}
+    </update>
+
+    <delete id="deleteQtPaymentConfigByConfigId" parameterType="Long">
+        delete from qt_payment_config where config_id = #{configId}
+    </delete>
+
+    <delete id="deleteQtPaymentConfigByConfigIds" parameterType="String">
+        delete from qt_payment_config where config_id in 
+        <foreach item="configId" collection="array" open="(" separator="," close=")">
+            #{configId}
+        </foreach>
+    </delete>
+</mapper>

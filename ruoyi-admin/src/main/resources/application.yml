@@ -1,0 +1,186 @@
+# 项目相关配置
+ruoyi:
+  # 名称
+  name: RuoYi
+  # 版本
+  version: 3.9.2
+  # 版权年份
+  copyrightYear: 2026
+  # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
+  profile: D:/ruoyi/uploadPath
+  # 获取ip地址开关
+  addressEnabled: false
+  # 验证码类型 math 数字计算 char 字符验证
+  captchaType: math
+  # 跨域来源，逗号分隔。本地默认 * ；生产用 CORS_ALLOWED_ORIGINS 收紧
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+
+# Quanta 业务配置
+qt:
+  cache:
+    # 业务查询缓存总开关；出问题时改成 false 即刻退回全部直查，无需回滚代码
+    enabled: true
+  metrics:
+    # 访问指标总开关；只做内存计数，每 window-seconds 落库一行全局 + Top URI
+    enabled: true
+    window-seconds: 60
+    top-uris: 20
+    retain-days: 30
+  upload:
+    # 图片类（证件照/头像/收款码/效果图/支付凭证）上限 MB，与 FileValidator.SIZE_IMAGE 对应
+    image-max-mb: 5
+    # 文档类（学习资料）上限 MB，需同时不超过 spring.servlet.multipart.max-file-size
+    document-max-mb: 20
+
+# 开发环境配置
+server:
+  # 服务器的HTTP端口，默认为8080
+  port: 8080
+  servlet:
+    # 应用的访问路径
+    context-path: /
+  # 解析反代注入的 X-Forwarded-Proto/Host：不开时 ServerConfig.getUrl() 会把图片 URL
+  # 拼成 http:// 前缀，小程序正式版拒绝加载、https 页面混合内容。本地直连无这些头，行为不变
+  forward-headers-strategy: framework
+  tomcat:
+    # tomcat的URI编码
+    uri-encoding: UTF-8
+    # 排队数：2C 机器上 1000 只是把过载往后推，快速失败比长时间排队更好
+    accept-count: 200
+    threads:
+      # 上游默认 800，但数据库连接池只有 50，线程开再多也只是互相抢连接；2C 上 200 已足够
+      max: 200
+      # Tomcat启动初始化的线程数
+      min-spare: 20
+
+# 日志配置
+logging:
+  level:
+    com.ruoyi: ${LOG_LEVEL:info}
+    org.springframework: warn
+
+# 用户配置
+user:
+  password:
+    # 密码最大错误次数
+    maxRetryCount: 5
+    # 密码锁定时间（默认10分钟）
+    lockTime: 10
+
+# Spring配置
+spring:
+  # 资源信息
+  messages:
+    # 国际化资源文件路径
+    basename: i18n/messages
+  profiles:
+    active: druid
+  # 文件上传
+  servlet:
+    multipart:
+      # 单个文件大小（学习资料档；图片类另有 5MB 档，由 FileValidator 按场景收紧）
+      max-file-size: 20MB
+      # 设置总上传的文件大小
+      max-request-size: 25MB
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+  # 服务模块
+  devtools:
+    restart:
+      # 热部署开关
+      enabled: true
+  data:
+    # redis 配置
+    redis:
+      # 地址
+      host: ${REDIS_HOST:127.0.0.1}
+      # 端口，默认为6379
+      port: 6379
+      # 数据库索引
+      database: 0
+      # 密码
+      password:
+      # 连接超时时间
+      timeout: 10s
+      lettuce:
+        pool:
+          # 连接池中的最小空闲连接
+          min-idle: 0
+          # 连接池中的最大空闲连接
+          max-idle: 8
+          # 连接池的最大数据库连接数
+          max-active: 8
+          # #连接池最大阻塞等待时间（使用负值表示没有限制）
+          max-wait: -1ms
+  # SMTP：生产由 deploy/aliyun/.env 注入 MAIL_*，密码不进仓库
+  mail:
+    host: ${MAIL_HOST:smtpdm.aliyun.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            required: true
+
+# token配置
+token:
+  # 令牌自定义标识
+  header: Authorization
+  # 令牌密钥。绝不把真实值写进仓库（本仓库是公开 fork）：
+  #   生产由 deploy/aliyun/run.sh 从 .env 注入 TOKEN_SECRET（≥32 位随机串）
+  #   本地未配置时 TokenService 会随机生成并打告警，重启即失效
+  secret: ${TOKEN_SECRET:}
+  # 令牌有效期（默认30分钟）
+  expireTime: 30
+
+# MyBatis配置
+mybatis:
+  # 搜索指定包别名
+  typeAliasesPackage: com.ruoyi.**.domain
+  # 配置mapper的扫描，找到所有的mapper.xml映射文件
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  # 加载全局的配置文件
+  configLocation: classpath:mybatis/mybatis-config.xml
+
+# PageHelper分页插件
+pagehelper:
+  helperDialect: mysql
+  supportMethodsArguments: true
+  params: count=countSql
+
+# Springdoc配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  group-configs:
+    - group: 'default'
+      display-name: '测试模块'
+      paths-to-match: '/**'
+      packages-to-scan: com.ruoyi.web.controller.tool
+
+# 防盗链配置
+referer:
+  # 防盗链开关
+  enabled: false
+  # 允许的域名列表
+  allowed-domains: localhost,127.0.0.1,ruoyi.vip,www.ruoyi.vip
+
+# 防止XSS攻击
+xss:
+  # 过滤开关
+  enabled: true
+  # 排除链接（多个用逗号分隔）
+  excludes: /system/notice
+  # 匹配链接
+  urlPatterns: /system/*,/monitor/*,/tool/*,/qt/*

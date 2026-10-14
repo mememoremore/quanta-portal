@@ -1,0 +1,10 @@
+# Enable with SPRING_PROFILES_ACTIVE=druid,prod
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    com.ruoyi: info

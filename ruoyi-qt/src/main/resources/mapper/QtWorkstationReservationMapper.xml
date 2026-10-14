@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtWorkstationReservationMapper">
+    
+    <resultMap type="QtWorkstationReservation" id="QtWorkstationReservationResult">
+        <result property="reservationId"    column="reservation_id"    />
+        <result property="workstationId"    column="workstation_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="reserveStart"    column="reserve_start"    />
+        <result property="reserveEnd"    column="reserve_end"    />
+        <result property="status"    column="status"    />
+        <result property="purpose"    column="purpose"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="workstationCode"    column="workstation_code"    />
+        <result property="locationDesc"    column="location_desc"    />
+        <result property="userName"    column="user_name"    />
+        <result property="nickName"    column="nick_name"    />
+        <result property="memberNo"    column="member_no"    />
+        <result property="memberDepartment"    column="member_department"    />
+        <result property="memberTitle"    column="member_title"    />
+        <result property="memberCohort"    column="member_cohort"    />
+    </resultMap>
+
+    <sql id="selectQtWorkstationReservationVo">
+        select reservation_id, workstation_id, user_id, reserve_start, reserve_end, status, purpose, create_by, create_time, update_by, update_time from qt_workstation_reservation
+    </sql>
+
+    <select id="selectQtWorkstationReservationList" parameterType="QtWorkstationReservation" resultMap="QtWorkstationReservationResult">
+        <include refid="selectQtWorkstationReservationVo"/>
+        <where>  
+            <if test="workstationId != null "> and workstation_id = #{workstationId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="reserveStart != null "> and reserve_start = #{reserveStart}</if>
+            <if test="reserveEnd != null "> and reserve_end = #{reserveEnd}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="purpose != null  and purpose != ''"> and purpose = #{purpose}</if>
+        </where>
+    </select>
+
+    <select id="selectQtWorkstationReservationDetailList" parameterType="QtWorkstationReservation" resultMap="QtWorkstationReservationResult">
+        select r.reservation_id, r.workstation_id, r.user_id, r.reserve_start, r.reserve_end, r.status, r.purpose,
+               r.create_by, r.create_time, r.update_by, r.update_time,
+               w.workstation_code, w.location_desc,
+               u.user_name, u.nick_name, u.member_no, u.member_department, u.member_title, u.member_cohort
+        from qt_workstation_reservation r
+        left join qt_workstation w on r.workstation_id = w.workstation_id
+        left join sys_user u on r.user_id = u.user_id
+        <where>
+            <if test="workstationId != null "> and r.workstation_id = #{workstationId}</if>
+            <if test="userId != null "> and r.user_id = #{userId}</if>
+            <if test="reserveStart != null "> and r.reserve_start = #{reserveStart}</if>
+            <if test="reserveEnd != null "> and r.reserve_end = #{reserveEnd}</if>
+            <if test="status != null  and status != ''"> and r.status = #{status}</if>
+            <if test="purpose != null  and purpose != ''"> and r.purpose = #{purpose}</if>
+            <if test="workstationCode != null and workstationCode != ''"> and w.workstation_code like concat('%', #{workstationCode}, '%')</if>
+            <if test="locationDesc != null and locationDesc != ''"> and w.location_desc like concat('%', #{locationDesc}, '%')</if>
+            <if test="userName != null and userName != ''"> and u.user_name like concat('%', #{userName}, '%')</if>
+            <if test="nickName != null and nickName != ''"> and u.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="memberNo != null and memberNo != ''"> and u.member_no like concat('%', #{memberNo}, '%')</if>
+            <if test="memberDepartment != null and memberDepartment != ''"> and u.member_department like concat('%', #{memberDepartment}, '%')</if>
+            <if test="memberTitle != null and memberTitle != ''"> and u.member_title like concat('%', #{memberTitle}, '%')</if>
+            <if test="memberCohort != null and memberCohort != ''"> and u.member_cohort like concat('%', #{memberCohort}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectQtWorkstationReservationByReservationId" parameterType="Long" resultMap="QtWorkstationReservationResult">
+        <include refid="selectQtWorkstationReservationVo"/>
+        where reservation_id = #{reservationId}
+    </select>
+
+    <select id="countOverlapping" resultType="int">
+        select count(*) from qt_workstation_reservation
+        where workstation_id = #{workstationId}
+        <if test="excludeId != null">
+            and reservation_id != #{excludeId}
+        </if>
+        and status not in ('CANCELED', 'FINISHED')
+        and reserve_start &lt; #{reserveEnd}
+        and reserve_end &gt; #{reserveStart}
+    </select>
+
+    <insert id="insertQtWorkstationReservation" parameterType="QtWorkstationReservation" useGeneratedKeys="true" keyProperty="reservationId">
+        insert into qt_workstation_reservation
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="workstationId != null">workstation_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="reserveStart != null">reserve_start,</if>
+            <if test="reserveEnd != null">reserve_end,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="purpose != null">purpose,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="workstationId != null">#{workstationId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="reserveStart != null">#{reserveStart},</if>
+            <if test="reserveEnd != null">#{reserveEnd},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="purpose != null">#{purpose},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtWorkstationReservation" parameterType="QtWorkstationReservation">
+        update qt_workstation_reservation
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="workstationId != null">workstation_id = #{workstationId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="reserveStart != null">reserve_start = #{reserveStart},</if>
+            <if test="reserveEnd != null">reserve_end = #{reserveEnd},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="purpose != null">purpose = #{purpose},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where reservation_id = #{reservationId}
+    </update>
+
+    <delete id="deleteQtWorkstationReservationByReservationId" parameterType="Long">
+        delete from qt_workstation_reservation where reservation_id = #{reservationId}
+    </delete>
+
+    <delete id="deleteQtWorkstationReservationByReservationIds" parameterType="String">
+        delete from qt_workstation_reservation where reservation_id in 
+        <foreach item="reservationId" collection="array" open="(" separator="," close=")">
+            #{reservationId}
+        </foreach>
+    </delete>
+</mapper>

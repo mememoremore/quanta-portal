@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtWorkstationMapper">
+    
+    <resultMap type="QtWorkstation" id="QtWorkstationResult">
+        <result property="workstationId"    column="workstation_id"    />
+        <result property="workstationCode"    column="workstation_code"    />
+        <result property="locationDesc"    column="location_desc"    />
+        <result property="capacity"    column="capacity"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectQtWorkstationVo">
+        select workstation_id, workstation_code, location_desc, capacity, status, create_by, create_time, update_by, update_time, remark from qt_workstation
+    </sql>
+
+    <select id="selectQtWorkstationList" parameterType="QtWorkstation" resultMap="QtWorkstationResult">
+        <include refid="selectQtWorkstationVo"/>
+        <where>  
+            <if test="workstationCode != null  and workstationCode != ''"> and workstation_code = #{workstationCode}</if>
+            <if test="locationDesc != null  and locationDesc != ''"> and location_desc = #{locationDesc}</if>
+            <if test="capacity != null "> and capacity = #{capacity}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+    
+    <select id="selectQtWorkstationByWorkstationId" parameterType="Long" resultMap="QtWorkstationResult">
+        <include refid="selectQtWorkstationVo"/>
+        where workstation_id = #{workstationId}
+    </select>
+
+    <insert id="insertQtWorkstation" parameterType="QtWorkstation" useGeneratedKeys="true" keyProperty="workstationId">
+        insert into qt_workstation
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="workstationCode != null and workstationCode != ''">workstation_code,</if>
+            <if test="locationDesc != null and locationDesc != ''">location_desc,</if>
+            <if test="capacity != null">capacity,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="workstationCode != null and workstationCode != ''">#{workstationCode},</if>
+            <if test="locationDesc != null and locationDesc != ''">#{locationDesc},</if>
+            <if test="capacity != null">#{capacity},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtWorkstation" parameterType="QtWorkstation">
+        update qt_workstation
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="workstationCode != null and workstationCode != ''">workstation_code = #{workstationCode},</if>
+            <if test="locationDesc != null and locationDesc != ''">location_desc = #{locationDesc},</if>
+            <if test="capacity != null">capacity = #{capacity},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where workstation_id = #{workstationId}
+    </update>
+
+    <delete id="deleteQtWorkstationByWorkstationId" parameterType="Long">
+        delete from qt_workstation where workstation_id = #{workstationId}
+    </delete>
+
+    <delete id="deleteQtWorkstationByWorkstationIds" parameterType="String">
+        delete from qt_workstation where workstation_id in 
+        <foreach item="workstationId" collection="array" open="(" separator="," close=")">
+            #{workstationId}
+        </foreach>
+    </delete>
+</mapper>

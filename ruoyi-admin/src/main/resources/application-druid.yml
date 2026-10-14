@@ -1,0 +1,63 @@
+# 数据源配置
+spring:
+    datasource:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        druid:
+            # 主库数据源
+            master:
+                url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/ry-vue?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+                username: ${MYSQL_USERNAME:root}
+                password: ${MYSQL_PASSWORD:123456}
+            # 从库数据源
+            slave:
+                # 从数据源开关/默认关闭
+                enabled: false
+                url: 
+                username: 
+                password: 
+            # 初始连接数
+            initialSize: 5
+            # 最小连接池数量
+            minIdle: 10
+            # 最大连接池数量（Tomcat 200 线程下的合理上限；瓶颈是 2 核 CPU，再高只会加剧连接争抢）
+            maxActive: 50
+            # 配置获取连接等待超时的时间
+            maxWait: 10000
+            # 配置连接超时时间
+            connectTimeout: 30000
+            # 配置网络超时时间
+            socketTimeout: 60000
+            # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+            timeBetweenEvictionRunsMillis: 60000
+            # 配置一个连接在池中最小生存的时间，单位是毫秒
+            minEvictableIdleTimeMillis: 300000
+            # 配置一个连接在池中最大生存的时间，单位是毫秒
+            maxEvictableIdleTimeMillis: 900000
+            # 配置检测连接是否有效
+            validationQuery: SELECT 1 FROM DUAL
+            testWhileIdle: true
+            testOnBorrow: false
+            testOnReturn: false
+            webStatFilter: 
+                enabled: true
+            statViewServlet:
+                # 生产默认关闭：控制台含 SQL/会话信息，曾以 permitAll + ruoyi/123456 暴露公网。
+                # 需要排查时临时开：环境变量 DRUID_STAT_ENABLED=true，且只允许 127.0.0.1（配合 SSH 隧道）
+                enabled: ${DRUID_STAT_ENABLED:false}
+                # 白名单，仅本机
+                allow: ${DRUID_STAT_ALLOW:127.0.0.1}
+                url-pattern: /druid/*
+                # 控制台管理用户名和密码（生产请在 .env 里覆盖，勿用默认值）
+                login-username: ${DRUID_STAT_USER:ruoyi}
+                login-password: ${DRUID_STAT_PASSWORD:}
+            filter:
+                stat:
+                    enabled: true
+                    # 慢SQL记录
+                    log-slow-sql: true
+                    slow-sql-millis: 1000
+                    merge-sql: true
+                wall:
+                    config:
+                        multi-statement-allow: true

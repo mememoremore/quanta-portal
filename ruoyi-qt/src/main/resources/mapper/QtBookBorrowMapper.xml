@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtBookBorrowMapper">
+    
+    <resultMap type="QtBookBorrow" id="QtBookBorrowResult">
+        <result property="borrowId"    column="borrow_id"    />
+        <result property="bookId"    column="book_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="borrowTime"    column="borrow_time"    />
+        <result property="dueTime"    column="due_time"    />
+        <result property="returnTime"    column="return_time"    />
+        <result property="status"    column="status"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="bookName"    column="book_name"    />
+        <result property="isbn"    column="isbn"    />
+        <result property="author"    column="author"    />
+        <result property="userName"    column="user_name"    />
+        <result property="nickName"    column="nick_name"    />
+        <result property="memberNo"    column="member_no"    />
+        <result property="memberDepartment"    column="member_department"    />
+        <result property="memberTitle"    column="member_title"    />
+        <result property="memberCohort"    column="member_cohort"    />
+        <result property="bookType"    column="book_type"    />
+    </resultMap>
+
+    <sql id="selectQtBookBorrowVo">
+        select borrow_id, book_id, user_id, borrow_time, due_time, return_time, status, remark, create_by, create_time, update_by, update_time from qt_book_borrow
+    </sql>
+
+    <select id="selectQtBookBorrowList" parameterType="QtBookBorrow" resultMap="QtBookBorrowResult">
+        <include refid="selectQtBookBorrowVo"/>
+        <where>  
+            <if test="bookId != null "> and book_id = #{bookId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="borrowTime != null "> and borrow_time = #{borrowTime}</if>
+            <if test="dueTime != null "> and due_time = #{dueTime}</if>
+            <if test="returnTime != null "> and return_time = #{returnTime}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="selectQtBookBorrowDetailList" parameterType="QtBookBorrow" resultMap="QtBookBorrowResult">
+        select b.borrow_id, b.book_id, b.user_id, b.borrow_time, b.due_time, b.return_time, b.status, b.remark,
+               b.create_by, b.create_time, b.update_by, b.update_time,
+               bk.book_name, bk.isbn, bk.author, bk.book_type,
+               u.user_name, u.nick_name, u.member_no, u.member_department, u.member_title, u.member_cohort
+        from qt_book_borrow b
+        left join qt_book bk on b.book_id = bk.book_id
+        left join sys_user u on b.user_id = u.user_id
+        <where>
+            <if test="bookId != null "> and b.book_id = #{bookId}</if>
+            <if test="userId != null "> and b.user_id = #{userId}</if>
+            <if test="borrowTime != null "> and b.borrow_time = #{borrowTime}</if>
+            <if test="dueTime != null "> and b.due_time = #{dueTime}</if>
+            <if test="returnTime != null "> and b.return_time = #{returnTime}</if>
+            <if test="status != null  and status != ''"> and b.status = #{status}</if>
+            <if test="bookName != null and bookName != ''"> and bk.book_name like concat('%', #{bookName}, '%')</if>
+            <if test="isbn != null and isbn != ''"> and bk.isbn like concat('%', #{isbn}, '%')</if>
+            <if test="author != null and author != ''"> and bk.author like concat('%', #{author}, '%')</if>
+            <if test="userName != null and userName != ''"> and u.user_name like concat('%', #{userName}, '%')</if>
+            <if test="nickName != null and nickName != ''"> and u.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="memberNo != null and memberNo != ''"> and u.member_no like concat('%', #{memberNo}, '%')</if>
+            <if test="memberDepartment != null and memberDepartment != ''"> and u.member_department like concat('%', #{memberDepartment}, '%')</if>
+            <if test="memberTitle != null and memberTitle != ''"> and u.member_title like concat('%', #{memberTitle}, '%')</if>
+            <if test="memberCohort != null and memberCohort != ''"> and u.member_cohort like concat('%', #{memberCohort}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectQtBookBorrowByBorrowId" parameterType="Long" resultMap="QtBookBorrowResult">
+        <include refid="selectQtBookBorrowVo"/>
+        where borrow_id = #{borrowId}
+    </select>
+
+    <insert id="insertQtBookBorrow" parameterType="QtBookBorrow" useGeneratedKeys="true" keyProperty="borrowId">
+        insert into qt_book_borrow
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="bookId != null">book_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="borrowTime != null">borrow_time,</if>
+            <if test="dueTime != null">due_time,</if>
+            <if test="returnTime != null">return_time,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="bookId != null">#{bookId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="borrowTime != null">#{borrowTime},</if>
+            <if test="dueTime != null">#{dueTime},</if>
+            <if test="returnTime != null">#{returnTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateQtBookBorrow" parameterType="QtBookBorrow">
+        update qt_book_borrow
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="bookId != null">book_id = #{bookId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="borrowTime != null">borrow_time = #{borrowTime},</if>
+            <if test="dueTime != null">due_time = #{dueTime},</if>
+            <if test="returnTime != null">return_time = #{returnTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where borrow_id = #{borrowId}
+    </update>
+
+    <delete id="deleteQtBookBorrowByBorrowId" parameterType="Long">
+        delete from qt_book_borrow where borrow_id = #{borrowId}
+    </delete>
+
+    <delete id="deleteQtBookBorrowByBorrowIds" parameterType="String">
+        delete from qt_book_borrow where borrow_id in 
+        <foreach item="borrowId" collection="array" open="(" separator="," close=")">
+            #{borrowId}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtLabMemberMapper">
+
+    <resultMap id="QtLabMemberResult" type="QtLabMember">
+        <id property="userId" column="user_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="userName" column="user_name"/>
+        <result property="avatar" column="avatar"/>
+        <result property="phonenumber" column="phonenumber"/>
+        <result property="sex" column="sex"/>
+        <result property="memberNo" column="member_no"/>
+        <result property="memberDepartment" column="member_department"/>
+        <result property="memberTitle" column="member_title"/>
+        <result property="memberCohort" column="member_cohort"/>
+        <result property="studentNo" column="student_no"/>
+        <result property="className" column="class_name"/>
+        <result property="isQuantaMember" column="is_quanta_member"/>
+        <result property="cohortId" column="cohort_id"/>
+        <result property="roleCategory" column="role_category"/>
+        <result property="memberStatus" column="member_status"/>
+        <result property="joinTime" column="join_time"/>
+        <result property="canRetain" column="can_retain"/>
+        <result property="retainFlag" column="retain_flag"/>
+        <result property="major" column="major"/>
+    </resultMap>
+
+    <select id="selectLabMemberList" parameterType="QtLabMember" resultMap="QtLabMemberResult">
+        select u.user_id, u.nick_name, u.user_name, u.avatar, u.sex,
+               u.member_no, u.member_department, u.member_title, u.member_cohort,
+               u.student_no, u.class_name, u.is_quanta_member
+        from sys_user u
+        where u.del_flag = '0'
+          and u.status = '0'
+          and u.is_quanta_member = '1'
+        <if test="nickName != null and nickName != ''">
+            and (
+                u.nick_name like concat('%', #{nickName}, '%')
+                or u.user_name like concat('%', #{nickName}, '%')
+                or u.member_department like concat('%', #{nickName}, '%')
+                or u.member_no like concat('%', #{nickName}, '%')
+            )
+        </if>
+        <if test="memberDepartment != null and memberDepartment != ''">
+            and u.member_department like concat('%', #{memberDepartment}, '%')
+        </if>
+        <if test="memberCohort != null and memberCohort != ''">
+            and u.member_cohort = #{memberCohort}
+        </if>
+        order by u.member_cohort desc, u.member_no asc, u.user_id asc
+    </select>
+
+    <select id="selectAdminMemberList" parameterType="QtLabMember" resultMap="QtLabMemberResult">
+        select u.user_id, u.nick_name, u.user_name, u.avatar, u.phonenumber, u.sex,
+               u.member_no, u.member_department, u.member_title, u.member_cohort,
+               u.student_no, u.class_name, u.is_quanta_member, u.major,
+               r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
+               case when r.role_category in ('MANAGER','INTERN') and ifnull(r.retain_flag,'0') = '0'
+                         and c.is_current = '1' and r.member_status = 'ACTIVE' then '1' else '0' end as can_retain
+        from sys_user u
+        left join qt_member_record r on u.user_id = r.user_id
+        left join qt_cohort c on r.cohort_id = c.cohort_id
+        where u.del_flag = '0'
+          and u.is_quanta_member = '1'
+        <if test="cohortId != null">
+            and r.cohort_id = #{cohortId}
+        </if>
+        <if test="memberStatus != null and memberStatus != ''">
+            and r.member_status = #{memberStatus}
+        </if>
+        <if test="roleCategory != null and roleCategory != ''">
+            and r.role_category = #{roleCategory}
+        </if>
+        <if test="nickName != null and nickName != ''">
+            and (
+                u.nick_name like concat('%', #{nickName}, '%')
+                or u.user_name like concat('%', #{nickName}, '%')
+                or u.member_department like concat('%', #{nickName}, '%')
+                or u.member_no like concat('%', #{nickName}, '%')
+            )
+        </if>
+        <if test="memberDepartment != null and memberDepartment != ''">
+            and u.member_department like concat('%', #{memberDepartment}, '%')
+        </if>
+        <if test="memberCohort != null and memberCohort != ''">
+            and u.member_cohort = #{memberCohort}
+        </if>
+        order by u.member_cohort desc, u.member_no asc, u.user_id asc
+    </select>
+</mapper>
