@@ -13,6 +13,12 @@ function safeUrl(value, image = false) {
   return ''
 }
 
+export function markdownImagePreviews(source) {
+  return [...String(source || '').matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)]
+    .map(([, alt, url]) => ({ alt: alt.trim() || '帖子配图', src: safeUrl(url, true) }))
+    .filter((image) => image.src)
+}
+
 function inline(text) {
   const sentinel = String.fromCharCode(0)
   const tokens = []

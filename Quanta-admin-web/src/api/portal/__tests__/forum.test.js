@@ -16,6 +16,12 @@ describe('member forum API contract', () => {
     expect(request).toHaveBeenCalledWith({ url: '/qt/forum/posts/5/comments', method: 'get', params: { pageNum: 1, pageSize: 100 } })
   })
 
+  it('keeps fenced code out of the feed excerpt when no summary is returned', async () => {
+    request.mockResolvedValueOnce({ rows: [{ postId: 5, content: '现场笔记\n\n```js\nconst secret = 1\n```\n欢迎讨论' }], total: 1 })
+    const result = await listForumPosts()
+    expect(result.rows[0].summary).toBe('现场笔记 欢迎讨论')
+  })
+
   it('creates a post and a reply without local-only success', async () => {
     request.mockResolvedValueOnce({ data: { postId: 8, title: '分享', content: '内容' } })
     await expect(createForumPost({ title: '分享', content: '内容', category: 'TECH' })).resolves.toMatchObject({ postId: 8 })

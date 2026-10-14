@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { markdownToHtml } from '../markdown'
+import { markdownImagePreviews, markdownToHtml } from '../markdown'
 
 describe('forum Markdown renderer', () => {
   it('renders headings, code fences, links and images', () => {
@@ -16,5 +16,13 @@ describe('forum Markdown renderer', () => {
     expect(html).not.toContain('<script>')
     expect(html).not.toContain('src="javascript:')
     expect(html).not.toContain('href="javascript:')
+  })
+
+  it('uses only safe Markdown images in feed previews', () => {
+    const images = markdownImagePreviews('![现场照片](https://example.com/a.png)\n![bad](javascript:alert(1))\n![笔记](/files/note.webp)')
+    expect(images).toEqual([
+      { alt: '现场照片', src: 'https://example.com/a.png' },
+      { alt: '笔记', src: '/files/note.webp' },
+    ])
   })
 })

@@ -16,7 +16,7 @@ export function mapForumPost(row = {}) {
     postId: Number(row.postId || row.id),
     title: row.title || '',
     content: row.content || '',
-    summary: row.summary || row.content?.replace(/[#*`![\]()]/g, '').slice(0, 140) || '',
+    summary: row.summary || row.content?.replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]+\)/g, ' ').replace(/[#*`![\]()]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140) || '',
     authorId: Number(row.authorId || row.userId),
     authorName: row.authorName || row.nickName || '塔员',
     authorDepartment: row.authorDepartment || row.department || '',

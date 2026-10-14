@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'node:path'
 import Components from 'unplugin-vue-components/vite'
@@ -31,5 +32,6 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     css: true,
     setupFiles: ['./src/test/setup.js'],
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 }))

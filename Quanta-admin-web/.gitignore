@@ -6,6 +6,8 @@ coverage/
 .superpowers/brainstorm/
 .worktrees/
 .playwright-cli/
+playwright-report/
+test-results/
 quanta-*-preview*.png
 *.log
 .DS_Store

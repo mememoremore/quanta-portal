@@ -34,6 +34,28 @@ describe('member community pages', () => {
     expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10, scope: 'mine' })
   })
 
+  it('filters the feed by category without changing the current scope', async () => {
+    const wrapper = mount(CommunityFeed, { global: { stubs } })
+    await flushPromises()
+    await wrapper.get('[data-category="TECH"]').trigger('click')
+    await flushPromises()
+    expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10, category: 'TECH' })
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+    expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10, scope: 'mine', category: 'TECH' })
+  })
+
+  it('shows a safe uploaded image preview when a post contains Markdown images', async () => {
+    listForumPosts.mockResolvedValue({
+      rows: [{ postId: 7, title: '活动记录', authorName: '小王', category: 'TECH', commentCount: 0, content: '![现场](/files/photo.webp)\n![bad](javascript:alert(1))' }],
+      total: 1,
+    })
+    const wrapper = mount(CommunityFeed, { global: { stubs } })
+    await flushPromises()
+    expect(wrapper.get('.community-post-card__media img').attributes('src')).toBe('/files/photo.webp')
+    expect(wrapper.get('.community-post-card__media').text()).toContain('1 张图片')
+  })
+
   it('does not claim success when loading the feed fails', async () => {
     listForumPosts.mockRejectedValue(new Error('服务不可用'))
     const wrapper = mount(CommunityFeed, { global: { stubs } })
@@ -68,5 +90,17 @@ describe('member community pages', () => {
     await wrapper.get('input[type="file"]').trigger('change')
     await flushPromises()
     expect(wrapper.get('textarea[aria-label="帖子正文"]').element.value).toBe('## 预览标题')
+  })
+
+  it('keeps the styled category selector and list toolbar functional', async () => {
+    const wrapper = mount(CommunityEditor, { global: { stubs } })
+    await wrapper.get('select[aria-label="帖子分类"]').setValue('TECH')
+    await wrapper.get('[data-tool="list"]').trigger('click')
+    expect(wrapper.get('textarea[aria-label="帖子正文"]').element.value).toContain('- 列表项')
+    await wrapper.get('input[maxlength="80"]').setValue('技术分享')
+    createForumPost.mockResolvedValue({ postId: 8 })
+    await wrapper.findAll('button').find((button) => button.text().includes('发布帖子')).trigger('click')
+    await flushPromises()
+    expect(createForumPost).toHaveBeenCalledWith({ title: '技术分享', category: 'TECH', content: '- 列表项' })
   })
 })

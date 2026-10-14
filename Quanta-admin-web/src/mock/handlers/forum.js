@@ -21,9 +21,12 @@ export const forumHandlers = [
   { method: 'get', path: '/qt/forum/posts', handle(config) {
     const current = account(config)
     if (!current) return unauthenticated
-    const rows = config.params?.scope === 'mine'
+    const scoped = config.params?.scope === 'mine'
       ? mockForumPosts.filter((item) => item.authorId === current.user.userId)
       : mockForumPosts
+    const rows = config.params?.category
+      ? scoped.filter((item) => item.category === config.params.category)
+      : scoped
     return scopedRows(rows, config.params)
   } },
   { method: 'post', path: '/qt/forum/posts', handle(config) {

@@ -17,6 +17,12 @@ describe('forum mock business rules', () => {
     expect(call('get', '/qt/forum/posts', 'mock-token-viewer').total).toBe(3)
   })
 
+  it('filters categories before paginating the forum feed', () => {
+    const result = call('get', '/qt/forum/posts', 'mock-token-viewer', undefined, { category: 'TECH', pageNum: 1, pageSize: 10 })
+    expect(result.total).toBe(1)
+    expect(result.rows[0].category).toBe('TECH')
+  })
+
   it('blocks edits by other users while letting them reply', () => {
     expect(call('put', '/qt/forum/posts/101', 'mock-token-viewer', { title: '改名', content: '内容', category: 'TECH' }).code).toBe(403)
     expect(call('post', '/qt/forum/posts/101/comments', 'mock-token-viewer', { parentId: 201, content: '回复' }).code).toBe(200)

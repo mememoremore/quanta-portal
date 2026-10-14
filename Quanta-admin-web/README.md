@@ -3,7 +3,7 @@
 Vue 3 + Vite 单站点，包含三类入口：
 
 - `/login/freshman`：新生门户，招新、面试进度、活动和账号安全。
-- `/login/member`：塔员门户，通讯录、社区论坛、学习资料、个人名片和自助服务。
+- `/login/member`：塔员门户，通讯录、通知、资料、个人名片和自助服务。
 - `/admin/login`：原管理后台，成员、招新、活动、资料及运营管理。
 - `/login`：兼容旧地址，自动跳转到管理端登录。
 
@@ -24,7 +24,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8080
 VITE_APP_TITLE=Quanta 统一门户
 ```
 
-开发和生产默认都应连接真实后端。完整 Mock 只用于独立 UI 开发；局部 Mock 仅限 `src/config/mock-api.js` 中的显式白名单。
+开发和生产默认都应连接真实后端。完整 Mock 只用于独立 UI 开发；局部 Mock 仅限 `src/config/mock-api.js` 中的显式白名单。门户允许的本地数据只有浏览器电子名片和品牌静态内容，详见 `../docs/Quanta门户Web端接口Mock清单.md`。
 
 接口失败不会自动回退为 Mock 成功。写接口、文件下载及身份授权必须使用真实后端结果。
 
@@ -34,17 +34,17 @@ VITE_APP_TITLE=Quanta 统一门户
 - 塔员和管理登录发送 `loginType: "1"`。
 - 门户身份以 `/getInfo.user.isQuantaMember` 为准；本地 audience 仅用于记住登录入口。
 - 管理动态路由统一位于 `/admin/*`，由服务端角色、权限和 `/getRouters` 决定。
-- 后端对通讯录、论坛、资料、图书和塔服接口再次校验塔员身份，前端路由不代替服务端授权。
+- 后端对通讯录、资料、图书、工位和塔服接口再次校验塔员身份，前端路由不代替服务端授权。
 
 ## 真实接口范围
 
 - 认证：`/login`、`/logout`、`/captchaImage`、`/getInfo`、`/getRouters`。
 - 新生：`/qt/interview/*`、`/qt/activity/list`、`/qt/signup/*`。
-- 塔员内容：`/qt/member/list`、`/system/notice/*`、`/qt/materials/*`、`/qt/forum/*`。
-- 塔员服务：`/qt/book/*`、`/qt/borrow/*`、`/qt/item/*`、`/qt/order/*`。
+- 塔员内容：`/qt/member/list`、`/system/notice/*`、`/qt/materials/*`。
+- 塔员服务：`/qt/book/*`、`/qt/borrow/*`、`/qt/workstation/*`、`/qt/reservation/*`、`/qt/item/*`、`/qt/order/*`。
 - 管理端：`/dashboard/*`、`/qt/*`、`/system/*` 及文件上传下载接口。
 
-塔服缺少可信价格时只保存 `DRAFT`；电子名片只保存在当前浏览器。论坛和资料分类等新页面需要后端提供对应接口，前端 Mock 不代表后端已经上线。
+塔服缺少可信价格时只保存 `DRAFT`；电子名片只保存在当前浏览器。详见中文 Mock 清单。
 
 ## 质量检查
 
@@ -53,6 +53,25 @@ npm run test:run
 npm run lint
 npm run build
 ```
+
+### Playwright 浏览器冒烟测试
+
+首次在本机或 CI 安装依赖与 Chromium：
+
+```bash
+npm ci
+npx playwright install chromium
+```
+
+运行 Web 端到端测试：
+
+```bash
+npm run test:e2e
+```
+
+测试配置在 `playwright.config.js`，用例在 `e2e/`。运行时会构建并预览本地 Web 页面（`127.0.0.1:5177`），API 指向不会启动服务的测试地址，由 Playwright 拦截并返回固定数据；未声明的 API 或外部请求会让测试失败。当前覆盖入口和移动端滚动、三种身份的登录跳转、注册校验、新生报名、塔员论坛及管理端招新权限。测试账号是夹具里的虚构账号，不是线上账号，也不会发送真实邮件或提交真实报名。
+
+失败截图与 trace 位于 `test-results/`；CI 的 HTML 报告位于 `playwright-report/`，这两个目录都不提交 Git。此套测试验证前端交互和请求形状，不代替真实后端联调；Vitest 仍负责组件、API 适配和工具函数测试。
 
 ## 目录
 
