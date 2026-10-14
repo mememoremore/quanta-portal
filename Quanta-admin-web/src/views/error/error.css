@@ -1,0 +1,43 @@
+.error-page {
+  display: grid;
+  min-height: 100vh;
+  padding: 32px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 173, 47, 0.13), transparent 22%),
+    var(--quanta-page-bg);
+  place-content: center;
+  justify-items: center;
+}
+
+.error-page__logo {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  color: white;
+  font-size: 28px;
+  font-weight: 800;
+  background: var(--quanta-primary);
+  border-radius: 16px;
+  place-items: center;
+}
+
+.error-page__code {
+  margin: 28px 0 0;
+  color: var(--quanta-primary);
+  font-size: clamp(72px, 12vw, 132px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.error-page h1 {
+  margin: 18px 0 8px;
+  font-size: 28px;
+}
+
+.error-page p:not(.error-page__code) {
+  max-width: 520px;
+  margin: 0 0 24px;
+  color: var(--quanta-text-secondary);
+}
+

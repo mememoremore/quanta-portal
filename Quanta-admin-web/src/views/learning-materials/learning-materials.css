@@ -1,0 +1,29 @@
+.learning-materials-view { display: grid; min-width: 950px; gap: 24px; font-size: 12px; }
+.learning-upload-card, .learning-list-card { overflow: hidden; }
+.learning-upload-card header, .learning-list-card header { display: flex; min-height: 62px; padding: 0 24px; border-bottom: 1px solid var(--quanta-border); align-items: center; justify-content: space-between; gap: 12px; }
+.learning-upload-card h2, .learning-list-card h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.learning-upload-card header span, .learning-list-card header span { color: #8791a1; font-size: 11px; }
+.learning-upload-card__category { display: flex; padding: 22px 30px 0; align-items: center; gap: 14px; }
+.learning-upload-card__category > span { color: #5d6675; font-weight: 700; }
+.learning-upload-card__category .el-select { width: 220px; }
+.learning-upload-card__category strong { padding: 8px 13px; border-radius: 9px; background: #fff1e7; color: #f36a00; }
+.learning-upload-warning { margin: 0; padding: 14px 18px; border-radius: 12px; background: #fff5e9; color: #ab5000; }
+.learning-list-card__filters { display: flex; padding: 18px 24px; align-items: center; gap: 10px; }
+.learning-list-card__filters .el-select { width: 140px; }
+.learning-list-card__filters .el-input { width: min(300px, 45%); }
+.learning-list-card__pagination { padding: 20px 24px; justify-content: flex-end; }
+.learning-upload-card .el-upload { display: block; padding: 30px; }
+.learning-upload-card .el-upload-dragger { display: flex; height: 188px; padding: 0; color: #727b8e; background: #fff9ee; border: 2px dashed #fdaf32; align-items: center; flex-direction: column; justify-content: center; }
+.learning-upload-card__icon { margin-bottom: 10px; color: #fdaf32; font-size: 38px; }
+.learning-upload-card p { margin: 0 0 7px; font-size: 13px; }
+.learning-upload-card span { color: #a3aaba; font-size: 11px; }
+.learning-materials-table { --el-table-header-bg-color: #f7f8fb; --el-table-header-text-color: #747b8e; width: 100%; font-size: 12px; }
+.learning-materials-table .el-table__header-wrapper .el-table__cell { height: 40px; font-size: 12px; }
+.learning-materials-table .el-table__body-wrapper .el-table__cell { height: 54px; font-size: 12px; }
+.learning-materials-table .el-table__header-wrapper th:first-child .cell, .learning-materials-table .el-table__body-wrapper td:first-child .cell { padding-left: 18px; }
+.learning-materials-table__tag { display: inline-flex; padding: 3px 9px; color: #60758d; background: #f0f4f8; border-radius: 6px; }
+.learning-materials-table__download { color: var(--quanta-text-primary); font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.learning-materials-table__visibility { display: inline-flex; padding: 3px 9px; color: #159b56; background: #eaf9f0; border-radius: 999px; }
+.learning-materials-table__visibility.is-restricted { color: #59708c; background: #f0f4f8; }
+.learning-list-card__error { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 8px; color: var(--quanta-text-secondary); }
+@media (max-width: 700px) { .learning-materials-view { min-width: 0; } .learning-list-card__filters { flex-wrap: wrap; } .learning-list-card__filters .el-input { width: calc(100% - 150px); } }

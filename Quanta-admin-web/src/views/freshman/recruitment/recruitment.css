@@ -1,0 +1,641 @@
+.freshman-recruitment,
+.freshman-events,
+.freshman-home {
+  display: grid;
+  gap: 24px;
+}
+
+.freshman-page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 20px 4px 8px;
+}
+
+.freshman-page-heading h1 {
+  margin: 6px 0 12px;
+  color: var(--portal-ink);
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.08;
+}
+
+.freshman-page-heading span {
+  color: var(--portal-muted);
+}
+
+.freshman-eyebrow {
+  margin: 0;
+  color: var(--portal-orange);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.freshman-recruitment__step {
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--portal-orange-soft);
+  color: var(--portal-muted);
+  white-space: nowrap;
+}
+
+.freshman-recruitment__step strong {
+  color: var(--portal-orange);
+}
+
+.freshman-recruitment__step.is-closed {
+  background: #f3f4f6;
+}
+
+.freshman-recruitment__step.is-closed strong {
+  color: var(--portal-ink);
+}
+
+.freshman-recruitment__closed {
+  display: grid;
+  gap: 8px;
+  padding: 28px 8px 12px;
+}
+
+.freshman-recruitment__closed h2 {
+  margin: 0;
+  color: var(--portal-ink);
+  font-size: 22px;
+}
+
+.freshman-recruitment__closed p {
+  margin: 0;
+  color: var(--portal-muted);
+  line-height: 1.6;
+}
+
+.freshman-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--portal-line);
+  border-radius: 18px;
+  background: var(--portal-surface);
+  width: fit-content;
+}
+
+.freshman-tabs button {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--portal-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.freshman-tabs button.active {
+  background: var(--portal-ink);
+  color: #fff;
+}
+
+.freshman-form-shell,
+.freshman-about {
+  padding: clamp(24px, 4vw, 48px);
+}
+
+.application-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.application-grid > label,
+.application-grid > .application-form__field {
+  display: grid;
+  gap: 9px;
+  color: var(--portal-ink);
+  font-weight: 700;
+}
+
+.application-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.application-form__deadline {
+  display: flex;
+  min-width: 0;
+  padding: 17px 20px;
+  color: var(--portal-ink);
+  background: linear-gradient(135deg, #fff7ef 0%, #fffaf6 100%);
+  border: 1px solid #ffd2b3;
+  border-radius: 16px;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 10px 28px rgb(255 103 0 / 8%);
+}
+
+.application-form__deadline-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  color: #fff;
+  background: var(--portal-orange);
+  border-radius: 13px;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.application-form__deadline-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.application-form__deadline > div:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.application-form__deadline strong {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.application-form__deadline span {
+  color: var(--portal-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.application-form__text-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.application-form__text-label small,
+.application-form__text-count {
+  color: var(--portal-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.application-form__text-count {
+  justify-self: end;
+  margin-top: -3px;
+}
+
+.application-form input:not([type='radio']):not([type='file']),
+.application-form select,
+.application-form textarea {
+  width: 100%;
+  border: 1px solid var(--portal-line);
+  border-radius: 13px;
+  background: #fff;
+  color: var(--portal-ink);
+  font: inherit;
+}
+
+.application-form input:not([type='radio']):not([type='file']),
+.application-form select,
+.application-form textarea {
+  padding: 12px 14px;
+}
+
+.application-form input:focus,
+.application-form select:focus,
+.application-form textarea:focus {
+  border-color: var(--portal-orange);
+  outline: 3px solid rgb(255 103 0 / 12%);
+}
+
+.department-select {
+  position: relative;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.department-select__trigger {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 14px 11px 16px;
+  border: 1px solid var(--portal-line);
+  border-radius: 13px;
+  background: #fff;
+  color: var(--portal-ink);
+  font: inherit;
+  text-align: left;
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.department-select__trigger:hover {
+  border-color: #ffc39b;
+  background: #fffdfb;
+}
+
+.department-select__trigger:focus-visible,
+.department-select.is-open .department-select__trigger {
+  border-color: var(--portal-orange);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(255 103 0 / 12%);
+}
+
+.department-select__trigger .is-placeholder {
+  color: #84878d;
+  font-weight: 500;
+}
+
+.department-select__trigger svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: transform .18s ease;
+}
+
+.department-select.is-open .department-select__trigger svg {
+  color: var(--portal-orange);
+  transform: rotate(180deg);
+}
+
+.department-select__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  display: grid;
+  overflow: hidden;
+  padding: 7px;
+  border: 1px solid rgb(255 103 0 / 13%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 98%);
+  box-shadow: 0 20px 48px rgb(32 33 36 / 16%), 0 5px 14px rgb(255 103 0 / 8%);
+  backdrop-filter: blur(12px);
+  gap: 3px;
+}
+
+.department-select__option {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--portal-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.department-select__option:hover,
+.department-select__option.is-active {
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange-strong);
+}
+
+.department-select__option.is-selected {
+  color: var(--portal-orange-strong);
+  font-weight: 800;
+}
+
+.department-select__option svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.department-select.is-invalid .department-select__trigger {
+  border-color: #dc4c4c;
+  box-shadow: 0 0 0 3px rgb(220 76 76 / 9%);
+}
+
+.department-select-menu-enter-active,
+.department-select-menu-leave-active {
+  transition: opacity .16s ease, transform .16s ease;
+  transform-origin: top center;
+}
+
+.department-select-menu-enter-from,
+.department-select-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(.985);
+}
+
+.application-form small {
+  color: var(--portal-muted);
+  font-weight: 400;
+}
+
+.application-form fieldset {
+  padding: 18px;
+  border: 1px solid var(--portal-line);
+  border-radius: 14px;
+}
+
+.application-form__radio {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 24px 0 0;
+}
+
+.application-form__photo-field { display: grid; gap: 10px; }
+.application-form__field-label { color: var(--portal-ink); font-weight: 700; }
+.application-form__field-label em { margin-left: 6px; color: var(--portal-orange); font-size: 11px; font-style: normal; font-weight: 800; }
+.application-form .is-invalid > input,
+.application-form .is-invalid > select,
+.application-form .is-invalid > textarea,
+.application-form fieldset.is-invalid,
+.application-form__photo-field.is-invalid .application-form__photo-card,
+.application-form__resume-field.is-invalid .application-form__resume-card { border-color: #dc4c4c; box-shadow: 0 0 0 3px rgb(220 76 76 / 9%); }
+.application-form__field-error { display: block; margin-top: 3px; color: #cf3f3f; font-size: 12px; font-weight: 600; }
+.application-form__photo-card { display: grid; padding: 22px; border: 1px solid var(--portal-line); border-radius: 20px; background: linear-gradient(135deg, #fff 0%, #fffaf6 100%); box-shadow: 0 14px 36px rgb(32 33 36 / 6%); grid-template-columns: 152px minmax(0, 1fr); gap: 26px; align-items: stretch; }
+.application-form__photo-preview { display: grid; overflow: hidden; min-height: 202px; border: 1px dashed #ffc59d; border-radius: 16px; background: #fff4ea; aspect-ratio: 3 / 4; place-items: center; }
+.application-form__photo-preview.has-photo { border-style: solid; background: #f3f4f6; }
+.application-form__photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.application-form__photo-placeholder { display: grid; color: var(--portal-orange-strong); text-align: center; place-items: center; }
+.application-form__photo-placeholder svg { width: 52px; height: 52px; margin-bottom: 10px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; opacity: .75; }
+.application-form__photo-placeholder strong { font-size: 15px; letter-spacing: .08em; }
+.application-form__photo-placeholder span { margin-top: 4px; color: var(--portal-muted); font-size: 11px; font-weight: 600; }
+.application-form__photo-copy { display: flex; min-width: 0; flex-direction: column; justify-content: center; align-items: flex-start; }
+.application-form__photo-kicker { margin: 0 0 7px; color: var(--portal-orange); font-size: 10px; font-weight: 850; letter-spacing: .18em; }
+.application-form__photo-copy h3 { margin: 0; color: var(--portal-ink); font-size: 20px; }
+.application-form__photo-copy > div:first-child > p:last-child { margin: 8px 0 0; color: var(--portal-muted); font-size: 13px; font-weight: 400; line-height: 1.65; }
+.application-form__photo-rules { display: flex; flex-wrap: wrap; margin-top: 16px; gap: 8px; }
+.application-form__photo-rules span { padding: 6px 10px; border-radius: 999px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-size: 11px; font-weight: 750; }
+.application-form__photo-name { display: flex; max-width: 100%; margin: 16px 0 0; color: var(--portal-ink-soft); font-size: 12px; font-weight: 650; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.application-form__photo-name i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: #b7bac1; }
+.application-form__photo-name.is-ready i { background: #18a957; box-shadow: 0 0 0 3px rgb(24 169 87 / 12%); }
+.application-form__photo-error { margin: 9px 0 0; color: #b63a2b; font-size: 12px; font-weight: 650; }
+.application-form__photo-button { display: inline-flex; min-height: 42px; margin-top: 18px; padding: 0 17px; border: 1px solid var(--portal-orange); border-radius: 12px; background: var(--portal-orange); color: #fff; cursor: pointer; font: inherit; font-size: 13px; font-weight: 800; align-items: center; gap: 6px; box-shadow: 0 9px 22px rgb(255 103 0 / 20%); transition: transform .18s ease, box-shadow .18s ease; }
+.application-form__photo-button:hover { box-shadow: 0 12px 26px rgb(255 103 0 / 28%); transform: translateY(-1px); }
+.application-form__photo-button:focus-visible { outline: 3px solid rgb(255 103 0 / 22%); outline-offset: 3px; }
+
+.application-form__resume-field { display: grid; gap: 10px; }
+.application-form__field-label small { margin-left: 6px; color: var(--portal-muted); font-size: 11px; font-weight: 600; }
+.application-form__resume-card { display: grid; padding: 22px; border: 1px solid var(--portal-line); border-radius: 20px; background: linear-gradient(135deg, #fff 0%, #fffaf6 100%); grid-template-columns: 116px minmax(0, 1fr); gap: 24px; align-items: center; }
+.application-form__resume-icon { display: grid; min-height: 132px; color: var(--portal-orange-strong); border: 1px dashed #ffc59d; border-radius: 16px; background: #fff4ea; place-items: center; align-content: center; gap: 5px; }
+.application-form__resume-icon svg { width: 48px; height: 48px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.application-form__resume-icon strong { font-size: 12px; letter-spacing: .12em; }
+.application-form__resume-copy { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; }
+.application-form__resume-copy h3 { margin: 0; color: var(--portal-ink); font-size: 18px; }
+.application-form__resume-copy > div:first-child p { margin: 7px 0 0; color: var(--portal-muted); font-size: 13px; font-weight: 400; }
+.application-form__resume-button { display: inline-flex; min-height: 40px; margin-top: 16px; padding: 0 16px; color: var(--portal-orange-strong); cursor: pointer; background: #fff; border: 1px solid var(--portal-orange); border-radius: 12px; font: inherit; font-size: 13px; font-weight: 800; align-items: center; }
+.application-form__resume-button:hover { color: #fff; background: var(--portal-orange); }
+.application-form__resume-button:focus-visible { outline: 3px solid rgb(255 103 0 / 22%); outline-offset: 3px; }
+
+.application-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.portal-primary-button,
+.portal-secondary-button {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 13px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.portal-primary-button {
+  border: 1px solid var(--portal-orange);
+  background: var(--portal-orange);
+  color: #fff;
+}
+
+.portal-secondary-button {
+  border: 1px solid var(--portal-line);
+  background: #fff;
+  color: var(--portal-ink);
+}
+
+.portal-primary-button:disabled,
+.portal-secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.freshman-feedback {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+}
+
+.freshman-feedback.is-success {
+  background: #eaf8ef;
+  color: #257143;
+}
+
+.freshman-feedback.is-error {
+  background: #fff0ed;
+  color: #b63a2b;
+}
+
+.freshman-loading,
+.portal-empty {
+  padding: 44px;
+  color: var(--portal-muted);
+  text-align: center;
+}
+
+.freshman-about h2 {
+  max-width: 620px;
+  margin: 10px 0 30px;
+  font-size: clamp(28px, 3vw, 42px);
+}
+
+.freshman-about__grid,
+.interview-processes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.freshman-about article {
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--portal-canvas);
+}
+
+.freshman-about article > strong {
+  color: var(--portal-orange);
+}
+
+.freshman-about article p {
+  color: var(--portal-muted);
+  line-height: 1.7;
+}
+
+.interview-process {
+  padding: 26px;
+}
+
+.interview-process header p {
+  margin: 0 0 4px;
+  color: var(--portal-muted);
+  font-size: 12px;
+}
+
+.interview-process header h3 {
+  margin: 0 0 24px;
+}
+
+.interview-process ol {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interview-process li {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 12px;
+}
+
+.interview-process li i {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #d7d9df;
+}
+
+.interview-process li.is-passed i,
+.interview-process li.is-offered i {
+  background: #28a565;
+}
+
+.interview-process li.is-invited i,
+.interview-process li.is-pending i {
+  background: var(--portal-orange);
+}
+
+.interview-process li.is-rejected i {
+  background: #d95040;
+}
+
+.interview-process li div {
+  display: grid;
+  gap: 4px;
+}
+
+.interview-process li span,
+.interview-process li time,
+.interview-process li small {
+  color: var(--portal-muted);
+}
+
+.interview-process__accept {
+  min-height: 44px;
+  margin-top: 24px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--portal-orange);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.interview-process__accept:disabled { cursor: wait; opacity: .55; }
+.offer-acceptance-dialog__warning { padding: 12px 14px; border-radius: 12px; background: #fff1e8; color: #ab4700; line-height: 1.6; }
+.offer-acceptance-dialog { max-width: calc(100vw - 28px); }
+
+@media (max-width: 900px) {
+  .freshman-about__grid,
+  .interview-processes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .freshman-page-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .freshman-tabs {
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .freshman-tabs button {
+    flex: 1 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .freshman-form-shell,
+  .freshman-about { padding: 24px 20px; }
+
+  .application-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .application-grid__wide {
+    grid-column: auto;
+  }
+
+  .application-form__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .application-form__photo-card { grid-template-columns: 116px minmax(0, 1fr); gap: 18px; }
+  .application-form__photo-preview { min-height: 154px; }
+  .application-form__resume-card { grid-template-columns: 96px minmax(0, 1fr); gap: 18px; }
+}
+
+@media (max-width: 520px) {
+  .freshman-recruitment__step { width: 100%; padding: 10px 14px; border-radius: 14px; white-space: normal; }
+  .freshman-tabs { padding: 4px; border-radius: 14px; }
+  .freshman-tabs button { padding: 10px 14px; }
+  .application-grid { gap: 18px; }
+  .application-form__deadline { padding: 15px; align-items: flex-start; }
+  .application-form__deadline-icon { width: 38px; height: 38px; border-radius: 11px; }
+  .application-form fieldset { padding: 15px; }
+  .application-form__radio { margin-right: 18px; }
+  .application-form__photo-card { padding: 16px; grid-template-columns: 1fr; }
+  .application-form__photo-preview { width: min(152px, 100%); min-height: 176px; justify-self: center; }
+  .application-form__photo-copy { align-items: stretch; }
+  .application-form__photo-button { justify-content: center; }
+  .application-form__resume-card { padding: 16px; grid-template-columns: 1fr; }
+  .application-form__resume-icon { width: min(132px, 100%); min-height: 112px; justify-self: center; }
+  .application-form__resume-copy { align-items: stretch; }
+  .application-form__resume-button { justify-content: center; }
+  .freshman-about h2 { margin-bottom: 22px; font-size: 28px; }
+  .freshman-about article,
+  .interview-process { padding: 20px; }
+}

@@ -1,0 +1,12 @@
+.book-borrows-card { min-width: 1100px; overflow: hidden; font-size: 12px; }
+.book-borrows-card__header { display: flex; min-height: 62px; padding: 0 24px; border-bottom: 1px solid var(--quanta-border); align-items: center; }
+.book-borrows-card__header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.book-borrows-table { --el-table-header-bg-color: #f7f8fb; --el-table-header-text-color: #747b8e; width: 100%; font-size: 12px; }
+.book-borrows-table .el-table__header-wrapper .el-table__cell { height: 40px; font-size: 12px; }
+.book-borrows-table .el-table__body-wrapper .el-table__cell { height: 50px; font-size: 12px; }
+.book-borrows-table .el-table__header-wrapper th:first-child .cell, .book-borrows-table .el-table__body-wrapper td:first-child .cell { padding-left: 18px; }
+.book-borrows-table .book-borrows-table__row--overdue td.el-table__cell { background: #fff1f1; }
+.book-borrows-table__type { display: inline-flex; padding: 3px 9px; color: #59708c; background: #f0f4f8; border-radius: 6px; }
+.book-borrows-table__type.is-textbook { color: #d77910; background: #fff4e4; }
+.book-borrows-table .status-tag { padding: 3px 9px; font-size: 11px; }
+.book-borrows-card__error { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 8px; color: var(--quanta-text-secondary); }

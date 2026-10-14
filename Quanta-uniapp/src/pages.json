@@ -1,0 +1,158 @@
+{
+	"pages": [
+		{
+		"path": "pages/login/select-role",
+		"style": {
+			"navigationBarTitleText": "身份选择",
+			"navigationStyle": "custom"
+		}
+	},
+	{
+		"path": "pages/login/freshman",
+		"style": {
+			"navigationBarTitleText": "新生登录",
+			"navigationStyle": "custom"
+		}
+	},
+	{
+		"path": "pages/login/tower",
+		"style": {
+			"navigationBarTitleText": "塔员登录",
+			"navigationStyle": "custom"
+		}
+	},
+	{
+		"path": "pages/freshman/home",
+		"style": {
+			"navigationBarTitleText": "新生首页",
+			"navigationStyle": "custom"
+		}
+	},
+	{
+		"path": "pages/freshman/function",
+		"style": {
+			"navigationBarTitleText": "新生功能",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/freshman/join-us/join-us",
+		"style": {
+			"navigationBarTitleText": "Join us",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/freshman/talk/talk",
+		"style": {
+			"navigationBarTitleText": "宣讲会",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/freshman/elite-share/elite-share",
+		"style": {
+			"navigationBarTitleText": "精英分享会",
+			"navigationStyle": "custom",
+			"backgroundColor": "#F7F7F7"
+		}
+	},
+	{
+		"path": "pages/member/home/home",
+		"style": {
+			"navigationBarTitleText": "塔员首页",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/contact/contact",
+		"style": {
+			"navigationBarTitleText": "通讯录",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/function/function",
+		"style": {
+			"navigationBarTitleText": "塔员功能",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/profile/profile",
+		"style": {
+			"navigationBarTitleText": "个人中心",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/shirt-order/shirt-order",
+		"style": {
+			"navigationBarTitleText": "塔服订购",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/business-card/view",
+		"style": {
+			"navigationBarTitleText": "个人名片",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/business-card/edit",
+		"style": {
+			"navigationBarTitleText": "创建名片",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/security/security",
+		"style": {
+			"navigationBarTitleText": "账号与安全",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/services/services",
+		"style": {
+			"navigationBarTitleText": "我的服务",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFF9F2"
+		}
+	},
+	{
+		"path": "pages/member/library/library",
+		"style": {
+			"navigationBarTitleText": "图书借阅",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	},
+	{
+		"path": "pages/member/workstation/workstation",
+		"style": {
+			"navigationBarTitleText": "工位预约",
+			"navigationStyle": "custom",
+			"backgroundColor": "#FFFFFF"
+		}
+	}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	}
+}

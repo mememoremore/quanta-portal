@@ -1,0 +1,11 @@
+<svg width="230" height="210" viewBox="0 0 230 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="230" height="210" rx="10" fill="#EEEEEE"/>
+<rect x="14" y="22" width="202" height="172" rx="6" fill="white"/>
+<circle cx="30" cy="39" r="7" fill="#CDE1F6"/><path d="M27 39h6M30 36v6" stroke="#4D7597" stroke-width="1.3"/>
+<text x="43" y="43" fill="#333" font-family="Arial, sans-serif" font-size="10">广东外语外贸大学</text>
+<text x="115" y="91" text-anchor="middle" fill="#555" font-family="Arial, sans-serif" font-size="10">使用零钱通支付</text>
+<text x="115" y="120" text-anchor="middle" fill="#111" font-family="Arial, sans-serif" font-size="25" font-weight="700">¥ 45.00</text>
+<text x="115" y="145" text-anchor="middle" fill="#999" font-family="Arial, sans-serif" font-size="9">账单详情 〉</text>
+<circle cx="29" cy="176" r="6" fill="#23C875"/><path d="m26 176 2 2 4-5" stroke="white" stroke-width="1.5" fill="none"/>
+<text x="42" y="180" fill="#555" font-family="Arial, sans-serif" font-size="9">付款成功</text>
+</svg>

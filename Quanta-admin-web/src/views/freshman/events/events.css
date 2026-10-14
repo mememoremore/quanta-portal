@@ -1,0 +1,75 @@
+.freshman-events__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.freshman-event-card {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.freshman-event-card__type {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.freshman-event-card h2 {
+  margin: 22px 0 10px;
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.freshman-event-card > p {
+  min-height: 52px;
+  color: var(--portal-muted);
+  line-height: 1.7;
+}
+
+.freshman-event-card dl {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin: 24px 0 30px;
+}
+
+.freshman-event-card dl div {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+}
+
+.freshman-event-card dt {
+  color: var(--portal-muted);
+}
+
+.freshman-event-card dd {
+  margin: 0;
+  color: var(--portal-ink);
+  font-weight: 700;
+}
+
+.freshman-event-card button {
+  width: 100%;
+  margin-top: auto;
+}
+
+@media (max-width: 800px) {
+  .freshman-events__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .freshman-event-card { padding: 24px 20px; }
+  .freshman-event-card h2 { margin-top: 18px; font-size: 26px; overflow-wrap: anywhere; }
+  .freshman-event-card > p { min-height: 0; }
+  .freshman-event-card dl { margin-block: 20px 24px; }
+  .freshman-event-card dl div { grid-template-columns: 48px minmax(0, 1fr); gap: 8px; }
+  .freshman-event-card dd { overflow-wrap: anywhere; }
+}

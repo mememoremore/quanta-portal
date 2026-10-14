@@ -1,0 +1,17 @@
+:root {
+  --portal-orange: #ff6700;
+  --portal-orange-strong: #e95d00;
+  --portal-orange-soft: #fff1e7;
+  --portal-ink: #202124;
+  --portal-ink-soft: #34373d;
+  --portal-muted: #70757d;
+  --portal-line: #e8eaed;
+  --portal-canvas: #f7f7f8;
+  --portal-surface: #ffffff;
+  --portal-radius-sm: 14px;
+  --portal-radius-md: 20px;
+  --portal-radius-lg: 28px;
+  --portal-shadow-sm: 0 10px 30px rgb(32 33 36 / 6%);
+  --portal-shadow: 0 22px 60px rgb(32 33 36 / 10%);
+  --portal-content-width: 1180px;
+}

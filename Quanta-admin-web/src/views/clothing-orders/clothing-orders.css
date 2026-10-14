@@ -1,0 +1,16 @@
+.clothing-orders-card { min-width: 1050px; overflow: hidden; font-size: 12px; }
+.clothing-orders-card__header { display: flex; min-height: 62px; padding: 0 24px; border-bottom: 1px solid var(--quanta-border); align-items: center; justify-content: space-between; }
+.clothing-orders-card__header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.clothing-orders-card__header .el-select { width: 145px; }
+.clothing-orders-table { --el-table-header-bg-color: #f7f8fb; --el-table-header-text-color: #747b8e; width: 100%; font-size: 12px; }
+.clothing-orders-table .el-table__header-wrapper .el-table__cell { height: 40px; font-size: 12px; }
+.clothing-orders-table .el-table__body-wrapper .el-table__cell { height: 50px; font-size: 12px; }
+.clothing-orders-table .el-table__header-wrapper th:first-child .cell, .clothing-orders-table .el-table__body-wrapper td:first-child .cell { padding-left: 18px; }
+.clothing-orders-table__status { display: inline-flex; padding: 3px 9px; border-radius: 999px; }
+.clothing-orders-table__status.is-approved { color: #159b56; background: #eaf9f0; }
+.clothing-orders-table__status.is-submitted { color: #d98713; background: #fff6e6; }
+.clothing-orders-table__status.is-rejected { color: #d9363e; background: #fff0f0; }
+.clothing-orders-table__status.is-canceled { color: #59708c; background: #f0f4f8; }
+.clothing-orders-table .el-button { height: 26px; padding: 0 10px; font-size: 11px; }
+.clothing-orders-card__error { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 8px; color: var(--quanta-text-secondary); }
+.payment-proof-dialog img { display: block; width: 100%; max-height: 360px; object-fit: contain; border: 1px solid var(--quanta-border); border-radius: 10px; }

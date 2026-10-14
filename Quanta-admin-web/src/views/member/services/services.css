@@ -1,0 +1,373 @@
+.member-service-page {
+  display: grid;
+  gap: 22px;
+}
+
+.member-service-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.member-service-heading p,
+.member-order-panel > p {
+  margin: 0 0 7px;
+  color: var(--portal-orange-strong);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.member-service-heading h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  letter-spacing: -.04em;
+}
+
+.member-service-heading span {
+  display: block;
+  margin-top: 9px;
+  color: var(--portal-muted);
+  line-height: 1.7;
+}
+
+.member-service-tabs {
+  display: flex;
+  width: fit-content;
+  padding: 5px;
+  border: 1px solid var(--portal-line);
+  border-radius: 14px;
+  background: var(--portal-surface);
+  gap: 4px;
+}
+
+.member-service-tabs button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--portal-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.member-service-tabs button.is-active {
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange-strong);
+}
+
+.member-service-tabs button span {
+  margin-left: 5px;
+  color: inherit;
+  font-size: 11px;
+}
+
+.member-service-state {
+  padding: 44px 24px;
+  color: var(--portal-muted);
+  text-align: center;
+}
+
+.member-service-state strong {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--portal-ink);
+  font-size: 18px;
+}
+
+.member-record-list {
+  display: grid;
+  gap: 12px;
+}
+
+.member-record-card {
+  display: grid;
+  padding: 20px 22px;
+  grid-template-columns: minmax(180px, .7fr) minmax(260px, 1.3fr) auto;
+  align-items: center;
+  gap: 20px;
+}
+
+.member-record-card > div {
+  display: grid;
+  gap: 5px;
+}
+
+.member-record-card small {
+  color: var(--portal-muted);
+}
+
+.member-status-tag {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.member-filter-bar {
+  display: grid;
+  padding: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.member-filter-bar label,
+.member-confirm-panel label,
+.member-order-panel label {
+  display: grid;
+  gap: 7px;
+  color: var(--portal-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.member-filter-bar input,
+.member-filter-bar select,
+.member-confirm-panel input,
+.member-order-panel input,
+.member-order-panel select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--portal-line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--portal-ink);
+  font: inherit;
+}
+
+.member-book-grid,
+.member-clothing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.member-book-card {
+  display: flex;
+  min-height: 230px;
+  padding: 22px;
+  flex-direction: column;
+}
+
+.member-book-card__type {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange-strong);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.member-book-card h2,
+.member-order-panel h2 {
+  margin: 16px 0 7px;
+}
+
+.member-book-card > p {
+  margin: 0;
+  color: var(--portal-muted);
+}
+
+.member-book-card dl {
+  display: grid;
+  margin: auto 0 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.member-book-card dt {
+  color: var(--portal-muted);
+  font-size: 10px;
+}
+
+.member-book-card dd {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.member-confirm-panel {
+  display: grid;
+  padding: 22px;
+  grid-template-columns: minmax(0, 1fr) 220px auto;
+  align-items: end;
+  gap: 18px;
+}
+
+.member-confirm-panel p,
+.member-confirm-panel h2,
+.member-confirm-panel span {
+  margin: 0;
+}
+
+.member-confirm-panel span {
+  display: block;
+  margin-top: 6px;
+  color: var(--portal-muted);
+}
+
+.member-confirm-panel__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.member-clothing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, .45fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.member-clothing-card {
+  overflow: hidden;
+  padding: 0 0 16px;
+  border: 1px solid var(--portal-line);
+  color: var(--portal-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-clothing-card.is-selected {
+  border-color: var(--portal-orange);
+  box-shadow: 0 0 0 3px rgb(255 103 0 / 12%);
+}
+
+.member-clothing-card img,
+.member-clothing-card__placeholder {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #292a2e;
+  object-fit: cover;
+  color: var(--portal-orange);
+  font-size: 58px;
+  font-weight: 900;
+  place-items: center;
+}
+
+.member-clothing-card > span,
+.member-clothing-card > strong {
+  display: block;
+  padding-inline: 16px;
+}
+
+.member-clothing-card > span {
+  margin-top: 14px;
+  font-weight: 800;
+}
+
+.member-clothing-card > strong {
+  margin-top: 5px;
+  color: var(--portal-orange-strong);
+  font-size: 12px;
+}
+
+.member-order-panel {
+  position: sticky;
+  top: 94px;
+  display: grid;
+  padding: 24px;
+  gap: 16px;
+}
+
+.member-order-panel h2 {
+  margin: 0;
+}
+
+.member-order-panel__price {
+  display: flex;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f7f7f8;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.member-order-panel__notice {
+  margin: 0;
+  color: var(--portal-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.member-order-panel > a {
+  color: var(--portal-orange-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 920px) {
+  .member-book-grid,
+  .member-clothing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .member-clothing-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .member-order-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .member-service-heading,
+  .member-confirm-panel {
+    align-items: start;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .member-filter-bar,
+  .member-book-grid,
+  .member-clothing-grid,
+  .member-record-card {
+    grid-template-columns: 1fr;
+  }
+
+  .member-service-tabs {
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .member-service-tabs button {
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .member-status-tag {
+    width: fit-content;
+  }
+
+  .member-service-heading { gap: 12px; }
+  .member-service-heading h1 { font-size: 32px; }
+  .member-service-state { padding: 30px 18px; }
+  .member-filter-bar { padding: 16px; }
+  .member-filter-bar > button { width: 100%; }
+  .member-book-card,
+  .member-record-card,
+  .member-confirm-panel,
+  .member-order-panel { padding: 20px 18px; }
+  .member-confirm-panel__actions { display: grid; width: 100%; grid-template-columns: 1fr 1fr; }
+  .member-confirm-panel__actions button { width: 100%; }
+  .member-clothing-card img,
+  .member-clothing-card__placeholder { aspect-ratio: 16 / 10; }
+}
+
+@media (max-width: 420px) {
+  .member-book-card dl { grid-template-columns: 1fr; }
+  .member-order-panel__price { align-items: flex-start; flex-direction: column; gap: 5px; }
+}

@@ -1,0 +1,263 @@
+.portal-security {
+  display: grid;
+  gap: 24px;
+}
+
+.portal-security > header p {
+  margin: 0 0 7px;
+  color: var(--portal-orange-strong);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.portal-security > header h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  letter-spacing: -.04em;
+}
+
+.portal-security > header span {
+  display: block;
+  margin-top: 9px;
+  color: var(--portal-muted);
+}
+
+.portal-security__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 620px);
+  gap: 24px;
+  align-items: start;
+}
+
+.portal-security__grid:not(.has-email-card) {
+  justify-content: center;
+}
+
+.portal-security__grid.has-email-card {
+  grid-template-columns: repeat(2, minmax(0, 560px));
+}
+
+.portal-security__card {
+  display: grid;
+  width: min(620px, 100%);
+  box-sizing: border-box;
+  padding: 30px;
+  gap: 18px;
+}
+
+.portal-security__intro--email > span {
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.portal-security__current-email {
+  display: grid;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: var(--portal-canvas);
+  gap: 4px;
+}
+
+.portal-security__current-email span {
+  color: var(--portal-muted);
+  font-size: 11px;
+}
+
+.portal-security__current-email strong {
+  color: var(--portal-ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.portal-security__intro {
+  display: flex;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--portal-line);
+  align-items: center;
+  gap: 14px;
+}
+
+.portal-security__intro > span {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: var(--portal-orange-soft);
+  color: var(--portal-orange-strong);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  place-items: center;
+}
+
+.portal-security__intro h2,
+.portal-security__intro p {
+  margin: 0;
+}
+
+.portal-security__intro h2 {
+  font-size: 20px;
+}
+
+.portal-security__intro p {
+  margin-top: 5px;
+  color: var(--portal-muted);
+  font-size: 12px;
+}
+
+.portal-security__card label {
+  display: grid;
+  gap: 8px;
+  color: var(--portal-ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.portal-security__card input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1px solid var(--portal-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--portal-ink);
+  font: inherit;
+}
+
+.portal-security__card input:focus {
+  border-color: var(--portal-orange);
+  outline: 3px solid rgb(255 103 0 / 12%);
+}
+
+.portal-security__error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: #fff0ee;
+  color: #b42318;
+  font-size: 13px;
+}
+
+.portal-security__submit {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--portal-orange);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.portal-security__submit:disabled {
+  opacity: .58;
+  cursor: wait;
+}
+
+.portal-security__email-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 146px;
+  gap: 10px;
+}
+
+.portal-security__email-code-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--portal-line);
+  border-radius: 12px;
+  background: var(--portal-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.portal-security__email-code-button:disabled {
+  background: var(--portal-canvas);
+  color: var(--portal-muted);
+  cursor: not-allowed;
+}
+
+.portal-security__field-error,
+.portal-security__field-help {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.portal-security__field-error {
+  color: #b42318;
+}
+
+.portal-security__field-help {
+  color: var(--portal-muted);
+}
+
+@media (max-width: 620px) {
+  .portal-security { gap: 18px; }
+  .portal-security > header h1 { font-size: 32px; }
+  .portal-security > header span { line-height: 1.7; }
+  .portal-security__card {
+    padding: 22px 18px;
+    gap: 16px;
+  }
+
+  .portal-security__email-code-row {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-security__email-code-button,
+  .portal-security__submit { min-height: 46px; }
+
+  .portal-security__intro { align-items: flex-start; gap: 12px; }
+  .portal-security__intro > span { width: 46px; height: 46px; flex: 0 0 auto; }
+}
+
+@media (max-width: 1080px) {
+  .portal-security__grid.has-email-card {
+    grid-template-columns: minmax(0, 620px);
+  }
+}
+.portal-security__password-field {
+  position: relative;
+  display: block;
+}
+
+.portal-security__password-field input {
+  padding-right: 48px;
+}
+
+.portal-security__password-field input::-ms-reveal,
+.portal-security__password-field input::-ms-clear {
+  display: none;
+}
+
+.portal-security__password-field button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--portal-muted);
+  cursor: pointer;
+  font-size: 20px;
+  place-items: center;
+  transform: translateY(-50%);
+}
+
+.portal-security__password-field button:hover {
+  background: var(--portal-canvas);
+  color: var(--portal-orange);
+}
+
+.portal-security__password-field button svg {
+  width: 18px;
+  height: 18px;
+}

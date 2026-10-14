@@ -1,0 +1,98 @@
+html {
+  background: var(--quanta-page-bg);
+}
+
+body {
+  overflow: hidden;
+}
+
+#nprogress .bar {
+  background: var(--quanta-primary);
+}
+
+.page-card {
+  overflow: hidden;
+  background: var(--quanta-card-bg);
+  border: 1px solid rgb(232 231 228 / 92%);
+  border-radius: var(--quanta-radius);
+  box-shadow: var(--quanta-shadow);
+}
+
+.quanta-primary-button.el-button--primary {
+  --el-button-bg-color: var(--quanta-primary);
+  --el-button-border-color: var(--quanta-primary);
+  --el-button-hover-bg-color: #ff7a1a;
+  --el-button-hover-border-color: #ff7a1a;
+  --el-button-active-bg-color: var(--quanta-primary-dark);
+  --el-button-active-border-color: var(--quanta-primary-dark);
+}
+
+.app-layout .el-button {
+  border-radius: 10px;
+  font-weight: 650;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.app-layout .el-button:not(.is-disabled):hover {
+  transform: translateY(-1px);
+}
+
+.app-layout .el-input__wrapper,
+.app-layout .el-select__wrapper,
+.app-layout .el-textarea__inner,
+.app-layout .el-input-number {
+  border-radius: 11px;
+  box-shadow: 0 0 0 1px var(--quanta-border) inset;
+}
+
+.app-layout .el-input__wrapper.is-focus,
+.app-layout .el-select__wrapper.is-focused,
+.app-layout .el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--quanta-primary) inset, 0 0 0 3px rgb(255 103 0 / 9%);
+}
+
+.app-layout .el-table {
+  --el-table-border-color: #eeece8;
+  --el-table-header-bg-color: #f7f6f4;
+  --el-table-header-text-color: #6f7378;
+  --el-table-row-hover-bg-color: #fff8f3;
+  color: var(--quanta-text);
+}
+
+.app-layout .el-table th.el-table__cell {
+  font-weight: 750;
+  letter-spacing: .01em;
+}
+
+.app-layout .el-dialog {
+  overflow: hidden;
+  border: 1px solid rgb(232 231 228 / 90%);
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgb(32 33 36 / 22%);
+}
+
+.app-layout .el-dialog__footer {
+  padding: 0 26px 24px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quanta-dialog .el-dialog__header {
+  padding: 26px 28px 12px;
+  font-size: 18px;
+}
+
+.quanta-dialog .el-dialog__body {
+  padding: 18px 28px 28px;
+  font-size: 13px;
+}

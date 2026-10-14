@@ -1,0 +1,65 @@
+.members-view {
+  min-width: 900px;
+}
+
+.members-card {
+  min-height: 320px;
+  font-size: 12px;
+}
+
+.members-card__toolbar {
+  display: flex;
+  min-height: 64px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.members-card__toolbar .quanta-primary-button.el-button {
+  min-height: 30px;
+  padding: 5px 13px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+
+.members-card__error {
+  display: flex;
+  min-height: 220px;
+  color: var(--quanta-text-secondary);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.members-card__footer {
+  display: flex;
+  min-height: 56px;
+  padding: 0 18px;
+  border-top: 1px solid var(--quanta-border);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.retain-confirm-dialog p {
+  margin: 0;
+  color: #60687a;
+  line-height: 1.7;
+}
+
+.retain-confirm-dialog .retain-confirm-dialog__confirm.el-button {
+  --el-button-bg-color: #fdaf32;
+  --el-button-border-color: #fdaf32;
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: #eda126;
+  --el-button-hover-border-color: #eda126;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #db9017;
+  --el-button-active-border-color: #db9017;
+}
+
+@media (max-width: 1280px) {
+  .members-card__toolbar {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}

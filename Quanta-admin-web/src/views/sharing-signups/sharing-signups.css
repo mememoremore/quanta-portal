@@ -1,0 +1,60 @@
+.sharing-signups-card {
+  min-width: 900px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.business-records__header {
+  display: flex;
+  min-height: 62px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--quanta-border);
+  align-items: center;
+  gap: 12px;
+}
+
+.business-records__header h2 {
+  margin: 0;
+  color: var(--quanta-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sharing-signups__count {
+  padding: 3px 9px;
+  color: #d77910;
+  font-size: 11px;
+  background: #fff4e4;
+  border-radius: 999px;
+}
+
+.business-records__table {
+  --el-table-header-bg-color: #f7f8fb;
+  --el-table-header-text-color: #747b8e;
+  width: 100%;
+  font-size: 12px;
+}
+
+.business-records__table .el-table__header-wrapper .el-table__cell {
+  height: 40px;
+  font-size: 12px;
+}
+
+.business-records__table .el-table__body-wrapper .el-table__cell {
+  height: 50px;
+  font-size: 12px;
+}
+
+.business-records__table .el-table__header-wrapper th:first-child .cell,
+.business-records__table .el-table__body-wrapper td:first-child .cell {
+  padding-left: 18px;
+}
+
+.business-records__error {
+  display: flex;
+  min-height: 220px;
+  color: var(--quanta-text-secondary);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
