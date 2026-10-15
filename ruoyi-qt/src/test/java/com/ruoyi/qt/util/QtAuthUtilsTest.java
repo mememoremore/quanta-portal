@@ -16,6 +16,7 @@ import com.ruoyi.qt.controller.QtBookBorrowController;
 import com.ruoyi.qt.controller.QtBookController;
 import com.ruoyi.qt.controller.QtClothingItemController;
 import com.ruoyi.qt.controller.QtClothingOrderController;
+import com.ruoyi.qt.controller.QtForumController;
 import com.ruoyi.qt.controller.QtLabMemberController;
 import com.ruoyi.qt.controller.QtMaterialController;
 import com.ruoyi.qt.controller.QtPaymentConfigController;
@@ -25,6 +26,7 @@ import com.ruoyi.qt.domain.QtBook;
 import com.ruoyi.qt.domain.QtBookBorrow;
 import com.ruoyi.qt.domain.QtClothingItem;
 import com.ruoyi.qt.domain.QtClothingOrder;
+import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.domain.QtLabMember;
 import com.ruoyi.qt.domain.QtMaterial;
 import com.ruoyi.qt.domain.QtPaymentConfig;
@@ -140,6 +142,10 @@ class QtAuthUtilsTest
         assertThrows(ServiceException.class, () -> new QtClothingItemController().list(new QtClothingItem()));
         assertThrows(ServiceException.class, () -> new QtClothingOrderController().list(new QtClothingOrder()));
         assertThrows(ServiceException.class, () -> new QtPaymentConfigController().list(new QtPaymentConfig()));
+        assertThrows(ServiceException.class, () -> new QtForumController().listPosts(new QtForumPost(), null));
+        assertThrows(ServiceException.class, () -> new QtForumController().getPost(1L));
+        assertThrows(ServiceException.class,
+                () -> new QtForumController().listComments(1L));
     }
 
     @Test

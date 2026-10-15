@@ -196,6 +196,7 @@ public class FileValidator
             case "flv":
                 return matchesMedia(head, contentType);
             case "txt":
+            case "md":
                 return looksLikeText(head, contentType);
             default:
                 return false;
@@ -213,7 +214,7 @@ public class FileValidator
     }
 
     /**
-     * txt 没有文件头签名，因此要求声明为 text/*，且前 16 字节内不出现 NUL（二进制特征）。
+     * txt/md 没有文件头签名。拒绝含 NUL 的二进制内容，并接受 text/*、Markdown 或未声明类型。
      */
     private static boolean looksLikeText(byte[] head, String contentType)
     {
@@ -224,8 +225,13 @@ public class FileValidator
                 return false;
             }
         }
-        return contentType == null || contentType.toLowerCase(Locale.ROOT).startsWith("text/")
-                || "application/octet-stream".equalsIgnoreCase(contentType);
+        if (contentType == null || contentType.isBlank())
+        {
+            return true;
+        }
+        String type = contentType.toLowerCase(Locale.ROOT);
+        return type.startsWith("text/") || type.contains("markdown")
+                || "application/octet-stream".equals(type);
     }
 
     private static byte[] readHead(MultipartFile file, int len)

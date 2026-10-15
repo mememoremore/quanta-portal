@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtForumPostMapper">
+
+    <resultMap id="QtForumPostResult" type="QtForumPost">
+        <id property="postId" column="post_id"/>
+        <result property="title" column="title"/>
+        <result property="category" column="category"/>
+        <result property="content" column="content"/>
+        <result property="authorId" column="author_id"/>
+        <result property="authorName" column="author_name"/>
+        <result property="authorDepartment" column="author_department"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectPostList" parameterType="QtForumPost" resultMap="QtForumPostResult">
+        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count,
+               p.create_time, p.update_time,
+               u.nick_name as author_name, u.member_department as author_department
+        from qt_forum_post p
+        left join sys_user u on p.author_id = u.user_id
+        <where>
+            <if test="authorId != null">and p.author_id = #{authorId}</if>
+            <if test="category != null and category != ''">and p.category = #{category}</if>
+        </where>
+        order by p.create_time desc, p.post_id desc
+    </select>
+
+    <select id="selectPostById" parameterType="Long" resultMap="QtForumPostResult">
+        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count,
+               p.create_time, p.update_time,
+               u.nick_name as author_name, u.member_department as author_department
+        from qt_forum_post p
+        left join sys_user u on p.author_id = u.user_id
+        where p.post_id = #{postId}
+    </select>
+
+    <insert id="insertPost" parameterType="QtForumPost" useGeneratedKeys="true" keyProperty="postId">
+        insert into qt_forum_post
+        (title, category, content, author_id, comment_count, create_time, update_time)
+        values
+        (#{title}, #{category}, #{content}, #{authorId}, 0, now(), now())
+    </insert>
+
+    <update id="updatePost" parameterType="QtForumPost">
+        update qt_forum_post
+        set title = #{title}, category = #{category}, content = #{content}, update_time = now()
+        where post_id = #{postId}
+    </update>
+
+    <delete id="deletePostById" parameterType="Long">
+        delete from qt_forum_post where post_id = #{postId}
+    </delete>
+
+    <update id="refreshCommentCount" parameterType="Long">
+        update qt_forum_post p
+        set p.comment_count = (select count(*) from qt_forum_comment c where c.post_id = p.post_id)
+        where p.post_id = #{postId}
+    </update>
+</mapper>

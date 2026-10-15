@@ -6,7 +6,7 @@ export const MATERIAL_CATEGORIES = Object.freeze([
 ])
 
 export const MATERIAL_EXTENSIONS = Object.freeze([
-  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt',
+  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'md',
   'jpg', 'jpeg', 'png', 'webp',
 ])
 
@@ -37,7 +37,7 @@ export function getMaterialUploadPolicy({ roles = [], permissions = [], departme
 
 export function materialFileError(file) {
   const extension = String(file?.name || '').split('.').pop()?.toLowerCase()
-  if (!MATERIAL_EXTENSIONS.includes(extension)) return '仅支持 PDF、Word、PPT、Excel、TXT 和常见图片'
+  if (!MATERIAL_EXTENSIONS.includes(extension)) return '仅支持 PDF、Word、PPT、Excel、TXT、Markdown 和常见图片'
   if (file.size > MATERIAL_MAX_SIZE) return '单个文件不能超过 20 MB'
   return ''
 }

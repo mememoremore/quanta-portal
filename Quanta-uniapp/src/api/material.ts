@@ -14,7 +14,7 @@ export interface MaterialDto {
 }
 
 export const getMaterials = async () => {
-  const response = await request<TableResponse<MaterialDto>>({ url: '/qt/materials', data: { pageNum: 1, pageSize: 100 } })
+  const response = await request<TableResponse<MaterialDto>>({ url: '/qt/materials', data: { pageNum: 1, pageSize: 100, categoryScope: 'STANDARD' } })
   return response.rows || []
 }
 

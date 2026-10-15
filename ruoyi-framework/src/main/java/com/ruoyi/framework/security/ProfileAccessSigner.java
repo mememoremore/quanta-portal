@@ -23,7 +23,8 @@ public class ProfileAccessSigner
 
     private static final String[] PUBLIC_PREFIXES = {
         "/profile/upload/qt/clothing-item/",
-        "/profile/upload/qt/payment-qr/"
+        "/profile/upload/qt/payment-qr/",
+        "/profile/upload/qt/forum/"
     };
 
     private static final String[] SENSITIVE_PREFIXES = {

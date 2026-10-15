@@ -27,7 +27,8 @@ export function uploadMaterial(file, { category } = {}) {
   data.append('file', file)
   data.append('category', category)
   data.append('visibility', 'MEMBER')
-  return request({ url: '/qt/materials', method: 'post', data })
+  // 资料最大 20 MB，单独放宽超时，避免被全局 15s 掐断
+  return request({ url: '/qt/materials', method: 'post', data, timeout: 120000 })
 }
 
 export function removeMaterial(materialId) {

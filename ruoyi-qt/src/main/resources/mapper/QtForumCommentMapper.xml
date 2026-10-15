@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtForumCommentMapper">
+
+    <resultMap id="QtForumCommentResult" type="QtForumComment">
+        <id property="commentId" column="comment_id"/>
+        <result property="postId" column="post_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="content" column="content"/>
+        <result property="authorId" column="author_id"/>
+        <result property="authorName" column="author_name"/>
+        <result property="replyToUserName" column="reply_to_user_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="selectCommentColumns">
+        select c.comment_id, c.post_id, c.parent_id, c.content, c.author_id, c.reply_to_user_name, c.create_time,
+               u.nick_name as author_name
+        from qt_forum_comment c
+        left join sys_user u on c.author_id = u.user_id
+    </sql>
+
+    <select id="selectCommentList" parameterType="QtForumComment" resultMap="QtForumCommentResult">
+        <include refid="selectCommentColumns"/>
+        <where>
+            <if test="postId != null">and c.post_id = #{postId}</if>
+        </where>
+        order by c.create_time asc, c.comment_id asc
+    </select>
+
+    <select id="selectCommentById" parameterType="Long" resultMap="QtForumCommentResult">
+        <include refid="selectCommentColumns"/>
+        where c.comment_id = #{commentId}
+    </select>
+
+    <insert id="insertComment" parameterType="QtForumComment" useGeneratedKeys="true" keyProperty="commentId">
+        insert into qt_forum_comment
+        (post_id, parent_id, content, author_id, reply_to_user_name, create_time)
+        values
+        (#{postId}, #{parentId}, #{content}, #{authorId}, #{replyToUserName}, now())
+    </insert>
+
+    <update id="updateCommentContent" parameterType="QtForumComment">
+        update qt_forum_comment
+        set content = #{content}
+        where comment_id = #{commentId}
+    </update>
+
+    <!-- 删除评论保留回复：直接子回复提升为顶层评论，reply_to_user_name 快照仍显示被回复人 -->
+    <update id="promoteReplies" parameterType="QtForumComment">
+        update qt_forum_comment
+        set parent_id = null
+        where parent_id = #{commentId}
+    </update>
+
+    <delete id="deleteCommentById" parameterType="Long">
+        delete from qt_forum_comment where comment_id = #{commentId}
+    </delete>
+
+    <delete id="deleteByPostId" parameterType="Long">
+        delete from qt_forum_comment where post_id = #{postId}
+    </delete>
+</mapper>

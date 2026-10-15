@@ -74,8 +74,10 @@ public class QtMaterialController extends BaseController
         {
             return error("请选择要上传的文件");
         }
+        // 先校验分类/部门，再落盘，避免业务拒绝后留下孤儿文件
+        qtMaterialService.validateUploadPolicy(material);
         String uploadPath = RuoYiConfig.getUploadPath() + "/qt/materials";
-        String stored = FileUploadUtils.upload(uploadPath, file, MimeTypeUtils.DEFAULT_ALLOWED_EXTENSION,
+        String stored = FileUploadUtils.upload(uploadPath, file, MimeTypeUtils.MATERIAL_EXTENSION,
                 FileValidator.SIZE_DOCUMENT);
         material.setFileName(file.getOriginalFilename());
         material.setStoredName(FileUtils.getName(stored));

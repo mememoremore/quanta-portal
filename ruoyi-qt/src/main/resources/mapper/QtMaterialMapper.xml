@@ -40,11 +40,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join sys_user u on m.uploader_id = u.user_id
         <where>
             <if test="category != null and category != ''">and m.category = #{category}</if>
+            <if test="categoryScope != null and categoryScope == 'STANDARD'">
+                and m.category in ('FRONTEND', 'BACKEND', 'PRODUCT', 'DESIGN')
+            </if>
             <if test="visibility != null and visibility != ''">and m.visibility = #{visibility}</if>
             <if test="fileName != null and fileName != ''">and m.file_name like concat('%', #{fileName}, '%')</if>
-            <if test="params.admin != null and params.admin == '1'">
-            </if>
-            <if test="params.admin == null or params.admin != '1'">
+            <if test='params.admin == null or params.admin != "1"'>
                 and (
                     m.visibility = 'ALL'
                     or (m.visibility = 'MEMBER' and #{params.isMember} = '1')

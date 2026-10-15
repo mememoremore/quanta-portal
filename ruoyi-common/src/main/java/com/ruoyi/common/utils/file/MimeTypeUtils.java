@@ -31,6 +31,13 @@ public class MimeTypeUtils
     /** 表格导入用 */
     public static final String[] EXCEL_EXTENSION = { "xls", "xlsx" };
 
+    /** 学习资料上传白名单：PDF、Word、PPT、Excel、TXT、Markdown 和常见图片（不含压缩包、视频） */
+    public static final String[] MATERIAL_EXTENSION = { "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt", "md",
+            "jpg", "jpeg", "png", "webp" };
+
+    /** 论坛帖子图片：仅 PNG/JPEG/WEBP/GIF */
+    public static final String[] FORUM_IMAGE_EXTENSION = { "png", "jpg", "jpeg", "gif", "webp" };
+
     public static final String[] PDF_EXTENSION = { "pdf" };
 
     public static final String[] DEFAULT_ALLOWED_EXTENSION = {

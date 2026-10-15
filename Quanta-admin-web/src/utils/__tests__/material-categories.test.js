@@ -18,7 +18,8 @@ describe('learning material rules', () => {
 
   it('matches the backend-supported file types and 20 MiB limit', () => {
     expect(materialFileError({ name: 'guide.docx', size: MATERIAL_MAX_SIZE })).toBe('')
-    expect(materialFileError({ name: 'guide.md', size: 10 })).toContain('仅支持')
+    expect(materialFileError({ name: 'guide.md', size: 10 })).toBe('')
+    expect(materialFileError({ name: 'guide.exe', size: 10 })).toContain('仅支持')
     expect(materialFileError({ name: 'guide.pdf', size: MATERIAL_MAX_SIZE + 1 })).toContain('20 MB')
   })
 })

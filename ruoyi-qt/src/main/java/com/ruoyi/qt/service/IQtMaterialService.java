@@ -11,6 +11,11 @@ public interface IQtMaterialService
 
     int insertMaterial(QtMaterial material);
 
+    /**
+     * 落盘前校验分类、可见性与部门绑定，避免校验失败留下孤儿文件。
+     */
+    void validateUploadPolicy(QtMaterial material);
+
     int updateMaterial(QtMaterial material);
 
     int deleteMaterialById(Long materialId);

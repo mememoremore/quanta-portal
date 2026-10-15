@@ -133,7 +133,7 @@ onMounted(loadList)
       <ElUpload drag action="#" :show-file-list="false" :before-upload="validateFile" :http-request="handleUpload" :disabled="uploading || !selectedUploadCategory" :accept="MATERIAL_EXTENSIONS.map((item) => `.${item}`).join(',')">
         <ElIcon class="learning-upload-card__icon"><FolderOpened /></ElIcon>
         <p>{{ uploading ? '正在上传…' : '点击或拖拽文件到此处上传' }}</p>
-        <span>PDF、Word、PPT、Excel、TXT、图片 · 最大 20 MB</span>
+        <span>PDF、Word、PPT、Excel、TXT、Markdown、图片 · 最大 20 MB</span>
       </ElUpload>
     </section>
     <p v-else-if="uploadPolicy.reason" class="learning-upload-warning" role="alert">{{ uploadPolicy.reason }}</p>

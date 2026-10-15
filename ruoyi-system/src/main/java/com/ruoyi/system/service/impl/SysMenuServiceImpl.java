@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -175,6 +176,11 @@ public class SysMenuServiceImpl implements ISysMenuService
         List<RouterVo> routers = new LinkedList<RouterVo>();
         for (SysMenu menu : menus)
         {
+            // 工位预约已在前端退场：不再向 Web 下发相关菜单，接口与历史数据保留
+            if (isRetiredWorkstationMenu(menu))
+            {
+                continue;
+            }
             RouterVo router = new RouterVo();
             router.setHidden("1".equals(menu.getVisible()));
             router.setName(getRouteName(menu));
@@ -185,9 +191,14 @@ public class SysMenuServiceImpl implements ISysMenuService
             List<SysMenu> cMenus = menu.getChildren();
             if (StringUtils.isNotEmpty(cMenus) && UserConstants.TYPE_DIR.equals(menu.getMenuType()))
             {
+                List<RouterVo> childrenRouters = buildMenus(cMenus);
+                if (childrenRouters.isEmpty())
+                {
+                    continue;
+                }
                 router.setAlwaysShow(true);
                 router.setRedirect("noRedirect");
-                router.setChildren(buildMenus(cMenus));
+                router.setChildren(childrenRouters);
             }
             else if (isMenuFrame(menu))
             {
@@ -219,6 +230,17 @@ public class SysMenuServiceImpl implements ISysMenuService
             routers.add(router);
         }
         return routers;
+    }
+
+    /**
+     * 工位预约页面已退场：按 path / component 识别并停止下发，数据库菜单与其他客户端暂不受影响。
+     */
+    private boolean isRetiredWorkstationMenu(SysMenu menu)
+    {
+        String path = menu.getPath();
+        String component = menu.getComponent();
+        return (path != null && path.toLowerCase(Locale.ROOT).contains("workstation"))
+                || (component != null && component.toLowerCase(Locale.ROOT).contains("workstation"));
     }
 
     /**
