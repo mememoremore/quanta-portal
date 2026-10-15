@@ -65,6 +65,9 @@ function responseFor(request, state) {
   const account = accountFromRequest(request)
 
   if (method === 'GET' && path === '/captchaImage') return { code: 200, captchaEnabled: false }
+  if (method === 'POST' && path === '/auth/refresh') {
+    return { code: 401, msg: '登录状态已过期，请重新登录' }
+  }
   if (method === 'POST' && path === '/login') {
     const body = request.postDataJSON()
     const selected = accounts[body.username]
@@ -131,6 +134,7 @@ export const test = base.extend({
       }
       const headers = {
         'access-control-allow-origin': appOrigin,
+        'access-control-allow-credentials': 'true',
         'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'access-control-allow-headers': 'authorization, content-type, x-trace-id',
       }
