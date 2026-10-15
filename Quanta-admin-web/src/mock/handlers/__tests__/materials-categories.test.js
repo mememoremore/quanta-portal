@@ -16,11 +16,14 @@ describe('material category mock permissions', () => {
   it('lets a department manager upload only their own category', () => {
     expect(upload('mock-token-product-manager', 'PRODUCT').code).toBe(200)
     expect(upload('mock-token-product-manager', 'FRONTEND').code).toBe(403)
+    expect(upload('mock-token-product-interviewer', 'PRODUCT').code).toBe(200)
+    expect(upload('mock-token-product-interviewer', 'FRONTEND').code).toBe(403)
+    expect(upload('mock-token-viewer', 'PRODUCT').code).toBe(403)
   })
 
-  it('rejects markdown and allows an administrator to choose a category', () => {
+  it('accepts markdown and allows an administrator to choose a category', () => {
     expect(upload('mock-token-admin', 'FRONTEND').code).toBe(200)
-    expect(upload('mock-token-admin', 'FRONTEND', '笔记.md').code).toBe(400)
+    expect(upload('mock-token-admin', 'FRONTEND', '笔记.md').code).toBe(200)
   })
 
   it('serves all standard categories to any authenticated member', () => {

@@ -4,7 +4,7 @@ import LearningMaterials from '../index.vue'
 import { getMaterials, uploadMaterial } from '@/api/materials'
 
 vi.mock('@/api/materials', () => ({ getMaterials: vi.fn(), uploadMaterial: vi.fn(), downloadMaterial: vi.fn(), removeMaterial: vi.fn() }))
-vi.mock('@/stores/user', () => ({ useUserStore: () => ({ roles: ['qt_mgmt'], permissions: ['qt:material:add'], departmentCode: 'FRONTEND' }) }))
+vi.mock('@/stores/user', () => ({ useUserStore: () => ({ roles: ['qt_mgmt'], permissions: [], departmentCode: 'FRONTEND', canAccessAdmin: true }) }))
 vi.mock('@/composables/usePermission', () => ({ usePermission: () => ({ hasAny: () => false, hasRole: () => false }) }))
 vi.mock('element-plus', () => ({ ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() }, ElMessageBox: { confirm: vi.fn() } }))
 

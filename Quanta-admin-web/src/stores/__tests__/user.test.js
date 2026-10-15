@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useUserStore } from '../user'
 import { getToken } from '@/utils/token'
@@ -14,6 +14,7 @@ vi.mock('@/api/auth', () => ({
     permissions: ['qt:member:list'],
   }),
   logout: vi.fn().mockResolvedValue({ code: 200 }),
+  refreshSession: vi.fn().mockResolvedValue({ code: 200, token: 'restored-access' }),
 }))
 
 describe('user store', () => {
@@ -21,6 +22,17 @@ describe('user store', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     authApi.login.mockClear()
+  })
+
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('restores access through the refresh cookie only in dual-token mode', async () => {
+    vi.stubEnv('VITE_DUAL_TOKEN_AUTH', 'true')
+    vi.stubEnv('VITE_USE_MOCK', 'false')
+    const store = useUserStore()
+    expect(await store.restoreSession()).toBe(true)
+    expect(store.token).toBe('restored-access')
+    expect(authApi.refreshSession).toHaveBeenCalledOnce()
   })
 
   it('submits the correct login type and persists audience only after success', async () => {

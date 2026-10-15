@@ -1,4 +1,4 @@
-import { refreshSession, request } from '@/utils/request'
+import { refreshSession as refreshAccessSession, request } from '@/utils/request'
 
 export function login(data) {
   return request({ url: '/login', method: 'post', data })
@@ -55,7 +55,9 @@ export function logout() {
   return request({ url: '/logout', method: 'post' })
 }
 
-export { refreshSession }
+export function refreshSession() {
+  return refreshAccessSession()
+}
 
 export function getCaptcha() {
   return request({ url: '/captchaImage', method: 'get' })

@@ -32,6 +32,7 @@ const uploadPolicy = computed(() => getMaterialUploadPolicy({
   roles: userStore.roles,
   permissions: userStore.permissions,
   departmentCode: userStore.departmentCode,
+  canAccessAdmin: userStore.canAccessAdmin,
 }))
 const canDelete = computed(() =>
   (hasRole('qt_mgmt') || hasRole('ceo') || hasRole('admin')) && hasAny('qt:material:remove'))

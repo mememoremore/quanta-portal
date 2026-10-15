@@ -35,11 +35,12 @@ describe('learning materials view', () => {
     expect(wrapper.text()).toContain('删除')
   })
 
-  it('renders a read-only list for managers', async () => {
+  it('shows upload to managers without qt:material:add while keeping delete hidden', async () => {
     const wrapper = mountFor('mock-token-product-interviewer', ['qt:material:list'], ['qt_manager'])
     await flushPromises()
     expect(wrapper.text()).toContain('React 入门教程.pdf')
-    expect(wrapper.text()).not.toContain('点击或拖拽文件到此处选择')
+    expect(wrapper.text()).toContain('点击或拖拽文件到此处选择')
+    expect(wrapper.text()).toContain('确认上传')
     expect(wrapper.text()).not.toContain('删除')
   })
 })

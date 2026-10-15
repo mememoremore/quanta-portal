@@ -1,5 +1,4 @@
-import { isMockEnabled, request, service } from './request'
-import { notifyUnauthorized } from './unauthorized'
+import { isMockEnabled, request } from './request'
 
 export function parseContentDispositionFileName(header = '') {
   const encoded = header.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
@@ -16,17 +15,6 @@ export function saveBlob(blob, fileName) {
   URL.revokeObjectURL(url)
 }
 
-async function throwBlobBusinessError(blob) {
-  if (!blob?.type?.includes('json')) return
-  const payload = JSON.parse(await blob.text())
-  if (Number(payload.code ?? 200) !== 200) {
-    const error = new Error(payload.msg || '下载失败')
-    error.code = Number(payload.code)
-    error.payload = payload
-    throw error
-  }
-}
-
 export async function requestBlob(config, fallbackFileName = 'download') {
   if (isMockEnabled()) {
     const payload = await request(config)
@@ -37,17 +25,10 @@ export async function requestBlob(config, fallbackFileName = 'download') {
     return { blob, fileName: data.fileName || fallbackFileName }
   }
 
-  try {
-    const response = await service.request({ ...config, responseType: 'blob' })
-    await throwBlobBusinessError(response.data)
-    const contentDisposition = response.headers?.['content-disposition'] || ''
-    return {
-      blob: response.data,
-      fileName: parseContentDispositionFileName(contentDisposition) || fallbackFileName,
-    }
-  } catch (error) {
-    const code = Number(error?.code ?? error?.response?.status)
-    if (code === 401) await notifyUnauthorized(error)
-    throw error
+  const response = await request({ ...config, responseType: 'blob' })
+  const contentDisposition = response.headers?.['content-disposition'] || ''
+  return {
+    blob: response.data,
+    fileName: parseContentDispositionFileName(contentDisposition) || fallbackFileName,
   }
 }

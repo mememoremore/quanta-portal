@@ -5,6 +5,7 @@ import { usePermissionStore } from '@/stores/permission'
 import { hasAnyPermission } from '@/composables/usePermission'
 import { setUnauthorizedHandler } from '@/utils/unauthorized'
 import { safeInternalRedirect } from '@/utils/redirect'
+import { isDualTokenEnabled } from '@/utils/request'
 import {
   audienceForPath,
   getAudience,
@@ -60,14 +61,6 @@ export function setupRouterGuard(router) {
 
     const targetAudience = audienceForPath(to.path)
 
-    if (!userStore.token) {
-      try {
-        await userStore.restoreSession()
-      } catch {
-        userStore.reset()
-      }
-    }
-
     if (publicPaths.has(to.path)) {
       if (targetAudience && userStore.token) {
         try {
@@ -75,10 +68,15 @@ export function setupRouterGuard(router) {
           if (targetAudience === 'admin' && userStore.canAccessAdmin) {
             return homePathFor('admin')
           }
+          if (targetAudience === 'admin') {
+            await userStore.logout().catch(() => {})
+            permissionStore.resetRoutes()
+            return { path: '/admin/login', query: { ...to.query, denied: '1' } }
+          }
           if (targetAudience === userStore.serverAudience) {
             return homePathFor(targetAudience)
           }
-          userStore.reset()
+          await userStore.logout().catch(() => {})
           permissionStore.resetRoutes()
           return true
         } catch {
@@ -87,6 +85,10 @@ export function setupRouterGuard(router) {
         }
       }
       return true
+    }
+
+    if (!userStore.token && isDualTokenEnabled()) {
+      await userStore.restoreSession()
     }
 
     if (!userStore.token) {
@@ -109,7 +111,9 @@ export function setupRouterGuard(router) {
         return homePathFor(userStore.serverAudience || 'admin')
       }
       if (targetAudience === 'admin' && !userStore.canAccessAdmin) {
-        return homePathFor(userStore.serverAudience || 'admin')
+        await userStore.logout().catch(() => {})
+        permissionStore.resetRoutes()
+        return { path: '/admin/login', query: { denied: '1' } }
       }
 
       if (targetAudience === 'admin' && !permissionStore.initialized) {

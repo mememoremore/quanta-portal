@@ -3,6 +3,7 @@ import { mockMaterials } from '../data/materials'
 import { MATERIAL_EXTENSIONS, MATERIAL_MAX_SIZE, isMaterialCategory } from '@/utils/material-categories'
 
 const has = (account, permission) => account?.permissions.includes('*:*:*') || account?.permissions.includes(permission)
+const canAccessBackoffice = (account) => account?.roles.some((role) => ['admin', 'ceo', 'qt_mgmt', 'qt_manager'].includes(role)) || has(account, '*:*:*')
 const account = (config) => findAccountByToken(config.headers?.Authorization || '')
 const departmentCodes = { 前端部: 'FRONTEND', 后端部: 'BACKEND', 产品部: 'PRODUCT', 设计部: 'DESIGN', 研发部: 'BACKEND' }
 
@@ -27,7 +28,7 @@ export const materialHandlers = [
     method: 'post', path: '/qt/materials', handle(config) {
       const current = account(config)
       if (!current) return { code: 401, msg: '登录状态已失效' }
-      if (!has(current, 'qt:material:add')) return { code: 403, msg: '没有上传学习资料的权限' }
+      if (!canAccessBackoffice(current)) return { code: 403, msg: '没有上传学习资料的权限' }
       const file = config.data instanceof FormData ? config.data.get('file') : null
       if (!file) return { code: 400, msg: '请选择文件' }
       if (file.size > MATERIAL_MAX_SIZE) return { code: 400, msg: '单个文件不能超过20MB' }
@@ -35,7 +36,7 @@ export const materialHandlers = [
       if (!MATERIAL_EXTENSIONS.includes(extension)) return { code: 400, msg: '暂不支持该文件格式' }
       const category = config.data.get('category')
       if (!isMaterialCategory(category)) return { code: 400, msg: '请选择有效的资料分类' }
-      const isSuperAdmin = current.roles.includes('admin') || current.roles.includes('ceo')
+      const isSuperAdmin = current.roles.includes('admin') || current.roles.includes('ceo') || has(current, '*:*:*')
       const ownCategory = current.user.deptCode || departmentCodes[current.user.memberDepartment]
       if (!isSuperAdmin && category !== ownCategory) return { code: 403, msg: '只能上传本部门资料' }
       if (config.data.get('visibility') !== 'MEMBER') return { code: 400, msg: '资料必须对全部塔员可见' }

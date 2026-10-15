@@ -6,6 +6,15 @@ import ElementPlus from 'element-plus'
 import LoginView from '../index.vue'
 import { useUserStore } from '@/stores/user'
 
+function mockManager(userStore) {
+  vi.spyOn(userStore, 'login').mockResolvedValue({ code: 200, token: 'test-token' })
+  vi.spyOn(userStore, 'fetchUserInfo').mockImplementation(async () => {
+    userStore.user = { userName: 'admin', isQuantaMember: '1' }
+    userStore.roles = ['qt_manager']
+    return { user: userStore.user, roles: userStore.roles, permissions: [] }
+  })
+}
+
 async function mountLogin(redirect = '') {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -68,7 +77,7 @@ describe('login view', () => {
 
   it('logs in and enters the dashboard', async () => {
     const { wrapper, router, userStore } = await mountLogin()
-    vi.spyOn(userStore, 'login').mockResolvedValue({ code: 200, token: 'test-token' })
+    mockManager(userStore)
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')
@@ -77,12 +86,44 @@ describe('login view', () => {
 
     expect(userStore.login).toHaveBeenCalledOnce()
     expect(userStore.login).toHaveBeenCalledWith(expect.objectContaining({ username: 'admin' }), 'admin')
+    expect(userStore.fetchUserInfo).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.path).toBe('/admin/dashboard')
+  })
+
+  it('rejects a member without management access and stays on admin login', async () => {
+    const { wrapper, router, userStore } = await mountLogin()
+    vi.spyOn(userStore, 'login').mockImplementation(async () => {
+      userStore.token = 'member-token'
+      return { code: 200, token: 'member-token' }
+    })
+    vi.spyOn(userStore, 'fetchUserInfo').mockImplementation(async () => {
+      userStore.user = { userName: 'member', isQuantaMember: '1' }
+      userStore.roles = ['qt_member']
+      return { user: userStore.user, roles: userStore.roles, permissions: [] }
+    })
+
+    await wrapper.find('input[autocomplete="username"]').setValue('member')
+    await wrapper.find('input[autocomplete="current-password"]').setValue('member123')
+    await wrapper.find('.login-card__submit').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/admin/login')
+    expect(userStore.token).toBe('')
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('当前用户无法登录后台管理系统')
+  })
+
+  it('shows the denial dialog after a protected admin URL redirects to login', async () => {
+    const { wrapper, router } = await mountLogin()
+
+    await router.replace('/admin/login?denied=1')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain('当前用户无法登录后台管理系统')
   })
 
   it('ignores an identity-page redirect after admin login', async () => {
     const { wrapper, router, userStore } = await mountLogin('/')
-    vi.spyOn(userStore, 'login').mockResolvedValue({ code: 200, token: 'test-token' })
+    mockManager(userStore)
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')
@@ -94,7 +135,7 @@ describe('login view', () => {
 
   it('keeps a valid management-page redirect after admin login', async () => {
     const { wrapper, router, userStore } = await mountLogin('/admin/recruitment')
-    vi.spyOn(userStore, 'login').mockResolvedValue({ code: 200, token: 'test-token' })
+    mockManager(userStore)
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')

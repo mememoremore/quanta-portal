@@ -22,11 +22,9 @@ export function materialCategoryLabel(value) {
   return MATERIAL_CATEGORIES.find((item) => item.value === value)?.label || ''
 }
 
-export function getMaterialUploadPolicy({ roles = [], permissions = [], departmentCode = '' } = {}) {
-  // 能登录后台即可看到上传入口；接口仍校验 qt:material:add
-  const canAccessAdmin = roles.some((role) => ['admin', 'ceo', 'qt_mgmt', 'qt_manager'].includes(role))
-    || permissions.includes('*:*:*')
-  if (!canAccessAdmin) return { allowed: false, canChoose: false, category: '', reason: '' }
+export function getMaterialUploadPolicy({ roles = [], permissions = [], departmentCode = '', canAccessAdmin } = {}) {
+  const allowed = canAccessAdmin ?? (roles.some((role) => ['admin', 'ceo', 'qt_mgmt', 'qt_manager'].includes(role)) || permissions.includes('*:*:*'))
+  if (!allowed) return { allowed: false, canChoose: false, category: '', reason: '' }
   if (roles.includes('admin') || roles.includes('ceo') || permissions.includes('*:*:*')) {
     return { allowed: true, canChoose: true, category: '', reason: '' }
   }

@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import * as authApi from '@/api/auth'
 import { getToken, removeToken, setToken } from '@/utils/token'
+import { isDualTokenEnabled } from '@/utils/request'
 import {
   clearAudience,
   getAudience,
@@ -85,6 +86,18 @@ export const useUserStore = defineStore('user', () => {
     return response
   }
 
+  async function restoreSession() {
+    if (!isDualTokenEnabled()) return false
+    try {
+      const response = await authApi.refreshSession()
+      token.value = response.token
+      return Boolean(response.token)
+    } catch {
+      reset()
+      return false
+    }
+  }
+
   async function fetchUserInfo() {
     const response = await authApi.getInfo()
     user.value = response.user || null
@@ -93,18 +106,9 @@ export const useUserStore = defineStore('user', () => {
     return response
   }
 
-  async function restoreSession() {
-    const response = await authApi.refreshSession()
-    const nextToken = response?.token || ''
-    if (!nextToken) return ''
-    token.value = nextToken
-    setToken(nextToken)
-    return nextToken
-  }
-
   async function logout() {
     try {
-      if (token.value) await authApi.logout()
+      if (token.value || isDualTokenEnabled()) await authApi.logout()
     } finally {
       reset()
     }

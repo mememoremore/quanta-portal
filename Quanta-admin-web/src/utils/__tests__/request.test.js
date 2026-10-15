@@ -1,16 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getInfo, login } from '@/api/auth'
 import { getMetricsLatest } from '@/api/metrics'
 import { refreshMock } from '@/mock/handlers/auth'
 import { getToken, removeToken, setToken } from '@/utils/token'
 import { setUnauthorizedHandler } from '@/utils/unauthorized'
 import { isMockApiRequest, shouldUseMock } from '@/config/mock-api'
+import { request, service } from '@/utils/request'
+import { requestBlob } from '@/utils/download'
 
 describe('request and mock adapter', () => {
   beforeEach(() => {
     removeToken()
     setUnauthorizedHandler(null)
   })
+
+  afterEach(() => vi.unstubAllEnvs())
 
   it('returns a RuoYi-shaped login response', async () => {
     const response = await login({ username: 'admin', password: 'quanta123' })
@@ -80,6 +84,73 @@ describe('request and mock adapter', () => {
     await expect(getMetricsLatest()).rejects.toMatchObject({ code: 403 })
     expect(refreshMock.calls).toBe(0)
     expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('uses one refresh for concurrent business 401 responses and retries both requests', async () => {
+    vi.stubEnv('VITE_USE_MOCK', 'false')
+    vi.stubEnv('VITE_DUAL_TOKEN_AUTH', 'true')
+    setToken('expired-access')
+    let refreshed = false
+    const send = vi.spyOn(service, 'request').mockImplementation(async ({ url }) => {
+      if (url === '/auth/refresh') {
+        refreshed = true
+        return { data: { code: 200, token: 'new-access', expiresIn: 900 } }
+      }
+      return { data: refreshed ? { code: 200, data: 'ok' } : { code: 401, msg: '过期' } }
+    })
+
+    const responses = await Promise.all([
+      request({ url: '/getInfo', method: 'get' }),
+      request({ url: '/getRouters', method: 'get' }),
+    ])
+
+    expect(responses.map((item) => item.data)).toEqual(['ok', 'ok'])
+    expect(send.mock.calls.filter(([config]) => config.url === '/auth/refresh')).toHaveLength(1)
+    expect(getToken()).toBe('new-access')
+  })
+
+  it('does not refresh on 403 or on a public login failure', async () => {
+    vi.stubEnv('VITE_USE_MOCK', 'false')
+    vi.stubEnv('VITE_DUAL_TOKEN_AUTH', 'true')
+    const send = vi.spyOn(service, 'request').mockImplementation(async ({ url }) => ({
+      data: { code: url === '/login' ? 401 : 403, msg: '拒绝访问' },
+    }))
+    await expect(request({ url: '/qt/materials', method: 'get' })).rejects.toMatchObject({ code: 403 })
+    await expect(request({ url: '/login', method: 'post' })).rejects.toMatchObject({ code: 401 })
+    expect(send).toHaveBeenCalledTimes(2)
+  })
+
+  it('clears access and reports unauthorized when refresh fails', async () => {
+    vi.stubEnv('VITE_USE_MOCK', 'false')
+    vi.stubEnv('VITE_DUAL_TOKEN_AUTH', 'true')
+    setToken('expired-access')
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    vi.spyOn(service, 'request').mockImplementation(async ({ url }) => ({
+      data: { code: 401, msg: url === '/auth/refresh' ? 'Refresh 已失效' : 'Access 已失效' },
+    }))
+    await expect(request({ url: '/getInfo', method: 'get' })).rejects.toMatchObject({ code: 401 })
+    expect(getToken()).toBe('')
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('refreshes and retries a blob download with a JSON business 401', async () => {
+    vi.stubEnv('VITE_USE_MOCK', 'false')
+    vi.stubEnv('VITE_DUAL_TOKEN_AUTH', 'true')
+    setToken('expired-access')
+    let refreshed = false
+    vi.spyOn(service, 'request').mockImplementation(async ({ url }) => {
+      if (url === '/auth/refresh') {
+        refreshed = true
+        return { data: { code: 200, token: 'new-access' } }
+      }
+      return refreshed
+        ? { data: new Blob(['pdf'], { type: 'application/pdf' }), headers: {} }
+        : { data: new Blob([JSON.stringify({ code: 401, msg: '过期' })], { type: 'application/json' }) }
+    })
+    const result = await requestBlob({ url: '/qt/materials/download', method: 'get' })
+    expect(await result.blob.text()).toBe('pdf')
+    expect(getToken()).toBe('new-access')
   })
 
   it('does not treat a real backend failure as a reason to use mock', () => {

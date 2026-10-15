@@ -1,19 +1,23 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Lock, User } from '@element-plus/icons-vue'
 import { getCaptcha } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { usePermissionStore } from '@/stores/permission'
 import { safeAudienceRedirect } from '@/utils/redirect'
+import PortalNoticeDialog from '@/components/PortalNoticeDialog.vue'
 import LoginBrand from '@/components/identity-login/LoginBrand.vue'
 import BackToIdentity from '@/components/identity-login/BackToIdentity.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const permissionStore = usePermissionStore()
 const formRef = ref()
 const loading = ref(false)
+const accessDeniedVisible = ref(false)
 const captchaEnabled = ref(false)
 const captchaImage = ref('')
 const isDev = import.meta.env.DEV
@@ -64,9 +68,20 @@ async function submit() {
   loading.value = true
   try {
     await userStore.login({ ...form }, 'admin')
+    await userStore.fetchUserInfo()
+    if (!userStore.canAccessAdmin) {
+      await userStore.logout().catch(() => {})
+      permissionStore.resetRoutes()
+      form.password = ''
+      form.code = ''
+      accessDeniedVisible.value = true
+      return
+    }
     ElMessage.success('登录成功')
     await router.replace(safeAudienceRedirect(route.query.redirect, 'admin'))
   } catch (error) {
+    userStore.reset()
+    permissionStore.resetRoutes()
     form.password = ''
     form.code = ''
     ElMessage.error(error.message || '登录失败')
@@ -76,11 +91,25 @@ async function submit() {
   }
 }
 
+watch(
+  () => route.query.denied,
+  (denied) => {
+    if (denied === '1') accessDeniedVisible.value = true
+  },
+  { immediate: true },
+)
+
 onMounted(loadCaptcha)
 </script>
 
 <template>
   <main class="login-page">
+    <PortalNoticeDialog
+      v-model="accessDeniedVisible"
+      type="error"
+      title="无访问权限"
+      message="当前用户无法登录后台管理系统"
+    />
     <section class="login-page__brand-panel">
       <LoginBrand class="login-page__brand" />
       <div class="login-page__intro">

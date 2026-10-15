@@ -116,4 +116,35 @@ describe('global route guard', () => {
     await router.push('/admin/recruitment')
     expect(router.currentRoute.value.path).toBe('/admin/recruitment')
   })
+
+  it('blocks a regular member from a direct admin deep link', async () => {
+    const router = createTestRouter()
+    setAudience('member')
+    setToken('member-token')
+    userStore.token = 'member-token'
+    userStore.user = { userName: 'member', isQuantaMember: '1' }
+    userStore.roles = ['qt_member']
+
+    await router.push('/admin/dashboard')
+
+    expect(router.currentRoute.value.path).toBe('/admin/login')
+    expect(router.currentRoute.value.query.denied).toBe('1')
+    expect(userStore.token).toBe('')
+    expect(userStore.user).toBeNull()
+  })
+
+  it('shows the admin denial when a signed-in regular member opens admin login', async () => {
+    const router = createTestRouter()
+    setAudience('member')
+    setToken('member-token')
+    userStore.token = 'member-token'
+    userStore.user = { userName: 'member', isQuantaMember: '1' }
+    userStore.roles = ['qt_member']
+
+    await router.push('/admin/login')
+
+    expect(router.currentRoute.value.path).toBe('/admin/login')
+    expect(router.currentRoute.value.query.denied).toBe('1')
+    expect(userStore.token).toBe('')
+  })
 })
