@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import CommunityFeed from '../index.vue'
 import CommunityEditor from '../editor.vue'
@@ -15,9 +16,18 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ params: {} }),
   useRouter: () => ({ replace: vi.fn() }),
 }))
-vi.mock('element-plus', () => ({ ElMessage: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('element-plus', async (importOriginal) => ({ ...await importOriginal(), ElMessage: { success: vi.fn(), error: vi.fn() } }))
 
-const stubs = { RouterLink: { template: '<a><slot /></a>' } }
+const SelectStub = defineComponent({
+  props: { modelValue: { type: String, default: '' } },
+  emits: ['update:modelValue'],
+  template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
+})
+const stubs = {
+  RouterLink: { template: '<a><slot /></a>' },
+  ElSelect: SelectStub,
+  ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
+}
 
 describe('member community pages', () => {
   beforeEach(() => {
@@ -53,7 +63,8 @@ describe('member community pages', () => {
     const wrapper = mount(CommunityFeed, { global: { stubs } })
     await flushPromises()
     expect(wrapper.get('.community-post-card__media img').attributes('src')).toBe('/files/photo.webp')
-    expect(wrapper.get('.community-post-card__media').text()).toContain('1 张图片')
+    expect(wrapper.get('.community-post-card__media').text()).not.toContain('photo.webp')
+    expect(wrapper.find('.community-post-card__image-count').exists()).toBe(false)
   })
 
   it('does not claim success when loading the feed fails', async () => {
@@ -94,6 +105,7 @@ describe('member community pages', () => {
 
   it('keeps the styled category selector and list toolbar functional', async () => {
     const wrapper = mount(CommunityEditor, { global: { stubs } })
+    expect(wrapper.get('.community-category-select').exists()).toBe(true)
     await wrapper.get('select[aria-label="帖子分类"]').setValue('TECH')
     await wrapper.get('[data-tool="list"]').trigger('click')
     expect(wrapper.get('textarea[aria-label="帖子正文"]').element.value).toContain('- 列表项')

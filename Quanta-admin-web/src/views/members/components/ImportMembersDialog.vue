@@ -80,6 +80,7 @@ async function downloadTemplate() {
   <ElDialog
     :model-value="modelValue"
     title="导入成员名单"
+    class="admin-import-dialog"
     width="520px"
     destroy-on-close
     :close-on-click-modal="!submitting"

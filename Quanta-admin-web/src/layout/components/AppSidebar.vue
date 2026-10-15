@@ -1,16 +1,25 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
 import SidebarMenuItem from './SidebarMenuItem.vue'
 import UserPanel from './UserPanel.vue'
 
+defineProps({ mobileMenuOpen: { type: Boolean, default: false } })
+
 const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const { sidebarCollapsed } = storeToRefs(appStore)
+const mobileMedia = window.matchMedia?.('(max-width: 900px)')
+const isMobile = ref(mobileMedia?.matches ?? false)
+const updateMobile = (event) => { isMobile.value = event.matches }
+const navigate = (path) => { if (path && path !== route.path) router.push(path) }
+onMounted(() => mobileMedia?.addEventListener('change', updateMobile))
+onBeforeUnmount(() => mobileMedia?.removeEventListener('change', updateMobile))
 
 const groupedRoutes = computed(() => {
   const groups = []
@@ -30,12 +39,12 @@ const groupedRoutes = computed(() => {
 </script>
 
 <template>
-  <aside class="app-sidebar">
+  <aside class="app-sidebar" :aria-hidden="isMobile && !mobileMenuOpen" :inert="isMobile && !mobileMenuOpen">
     <div class="app-sidebar__brand">
       <div class="app-sidebar__logo">
         <img :src="'/quanta-logo.jpg'" alt="Quanta 社团 Logo" />
       </div>
-      <div v-show="!sidebarCollapsed" class="app-sidebar__brand-copy">
+      <div v-show="!sidebarCollapsed || isMobile" class="app-sidebar__brand-copy">
         <strong>Quanta</strong>
         <span>后台管理系统</span>
       </div>
@@ -45,12 +54,12 @@ const groupedRoutes = computed(() => {
       <ElMenu
         class="app-sidebar__menu"
         :default-active="route.path"
-        :collapse="sidebarCollapsed"
+        :collapse="sidebarCollapsed && !isMobile"
         :collapse-transition="false"
-        router
+        @select="navigate"
       >
         <div v-for="group in groupedRoutes" :key="group.title" class="menu-group">
-          <p v-show="!sidebarCollapsed" class="menu-group__title">{{ group.title }}</p>
+          <p v-show="!sidebarCollapsed || isMobile" class="menu-group__title">{{ group.title }}</p>
           <SidebarMenuItem
             v-for="menuRoute in group.routes"
             :key="menuRoute.name"
@@ -60,7 +69,7 @@ const groupedRoutes = computed(() => {
       </ElMenu>
     </ElScrollbar>
 
-    <UserPanel />
+    <UserPanel :mobile="isMobile" />
   </aside>
 </template>
 

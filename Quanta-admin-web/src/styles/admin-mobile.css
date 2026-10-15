@@ -1,0 +1,171 @@
+/* Admin-only responsive rules. Desktop layout remains unchanged. */
+.app-layout__backdrop,
+.app-header__mobile-toggle { display: none; }
+
+@media (max-width: 900px) {
+  .app-layout,
+  .app-layout--collapsed { --sidebar-current-width: 0px; }
+  .app-layout__body { width: 100%; margin-left: 0; }
+  .app-layout__backdrop {
+    position: fixed;
+    z-index: 21;
+    inset: 0;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: rgb(17 22 31 / 58%);
+  }
+  .app-sidebar {
+    z-index: 22;
+    width: min(280px, calc(100vw - 52px));
+    max-width: 100%;
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+  }
+  .app-layout--mobile-menu-open .app-sidebar { transform: translateX(0); }
+  .app-sidebar__menu.el-menu,
+  .app-sidebar__menu.el-menu--collapse { width: 100%; padding: 20px 14px; }
+  .app-header__toggle { display: none; }
+  .app-header__mobile-toggle {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: #596273;
+    background: #f4f3f1;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    flex: 0 0 40px;
+    place-items: center;
+  }
+  .app-main { min-width: 0; overflow-x: hidden; }
+  .app-layout .dashboard-view,
+  .app-layout .recruitment-view,
+  .app-layout .members-view,
+  .app-layout .metrics-view,
+  .app-layout .learning-materials-view,
+  .app-layout .activity-signups,
+  .app-layout .sharing-signups-card,
+  .app-layout .lecture-signups-card,
+  .app-layout .book-borrows-card,
+  .app-layout .clothing-orders-card { min-width: 0; max-width: 100%; }
+  .app-layout .el-table { width: 100%; max-width: 100%; }
+  .app-layout .el-button--primary:not(.is-disabled) {
+    --el-button-bg-color: #ff6700;
+    --el-button-border-color: #ff6700;
+    --el-button-hover-bg-color: #f46a0e;
+    --el-button-hover-border-color: #f46a0e;
+    --el-button-text-color: #fff;
+    background: #ff6700;
+    border-color: #ff6700;
+    color: #fff;
+  }
+  .app-layout .el-table .el-table-fixed-column--right,
+  .app-layout .el-table .el-table-fixed-column--left {
+    position: static !important;
+    right: auto !important;
+    left: auto !important;
+  }
+  .app-layout .el-table .el-table-fixed-column--right::before,
+  .app-layout .el-table .el-table-fixed-column--left::before { display: none; }
+  .app-layout .page-card { max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .app-header { height: 64px; padding: 0 16px; }
+  .app-header h1 { font-size: 17px; }
+  .app-main {
+    height: calc(100dvh - 64px);
+    padding: 16px 12px calc(24px + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+  }
+  .page-card { border-radius: 16px; }
+  .app-layout .dashboard-view__stats,
+  .app-layout .metrics-view__stats { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .app-layout .dashboard-view .welcome-banner { min-height: 0; padding: 24px; }
+  .app-layout .dashboard-view .welcome-banner__copy { min-width: 0; }
+  .app-layout .dashboard-view .welcome-banner p { overflow-wrap: anywhere; line-height: 1.6; }
+  .app-layout .dashboard-view .welcome-banner h2 { font-size: 26px; }
+  .dashboard-view__error,
+  .metrics-view__error { flex-wrap: wrap; gap: 8px; }
+  .recruitment-card__toolbar,
+  .members-card__toolbar,
+  .activity-signups__heading,
+  .metrics-card__header,
+  .learning-upload-card header,
+  .learning-list-card header {
+    min-height: 0;
+    padding: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .app-layout .recruitment-board { padding: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .recruitment-board__card { min-height: 125px; }
+  .recruitment-board__card strong { font-size: 28px; }
+  .recruitment-tabs { width: 100%; overflow-x: auto; }
+  .recruitment-tabs__item { flex: 1 0 auto; padding-inline: 12px; }
+  .app-layout .recruitment-filters { padding: 16px; flex-direction: column; align-items: stretch; gap: 12px; }
+  .recruitment-filters__fields { flex-wrap: wrap; }
+  .app-layout .recruitment-filters__department,
+  .app-layout .recruitment-filters__fields .el-input { width: 100%; }
+  .recruitment-filters__count { white-space: normal; }
+  .recruitment-pagination { padding: 14px 16px; align-items: flex-start; flex-direction: column; gap: 8px; }
+  .recruitment-pagination .el-pagination { max-width: 100%; overflow-x: auto; }
+  .app-layout .members-card__toolbar .member-search { width: 100%; }
+  .members-card__footer { padding: 14px 16px; align-items: flex-start; flex-direction: column; gap: 10px; }
+  .members-card__footer .el-pagination { max-width: 100%; overflow-x: auto; }
+  .activity-signups__heading { padding: 0 2px; }
+  .app-layout .activity-signups__filters { padding: 16px; grid-template-columns: minmax(0, 1fr); }
+  .activity-signups__filters .el-input,
+  .activity-signups__filters .el-select,
+  .activity-signups__filters .el-button { width: 100%; margin: 0; }
+  .learning-upload-card__category { padding: 16px 16px 0; flex-wrap: wrap; }
+  .learning-upload-card__category .el-select { width: 100%; }
+  .learning-upload-card .el-upload { padding: 16px; }
+  .learning-upload-card .el-upload-dragger { height: 150px; padding: 12px; }
+  .learning-upload-card__actions .el-button { width: 100%; min-height: 42px; }
+  .learning-list-card__filters { padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .learning-list-card__filters .el-select,
+  .learning-list-card__filters .el-input,
+  .learning-list-card__filters .el-button { width: 100%; margin: 0; }
+  .learning-list-card__pagination { padding: 14px; justify-content: center; }
+  .learning-list-card__pagination.el-pagination { flex-wrap: wrap; }
+  .resume-dialog__grid { grid-template-columns: minmax(0, 1fr); }
+  .score-dialog__field { padding: 14px; flex-wrap: wrap; }
+  .notice-dialog__preview img { max-width: 100%; }
+  .app-layout .el-table .el-table__inner-wrapper { max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .el-dialog.quanta-dialog,
+  .el-dialog.payment-proof-dialog,
+  .el-dialog.admin-import-dialog,
+  .app-layout .activity-signups .el-dialog {
+    width: calc(100vw - 24px) !important;
+    max-width: 600px;
+    max-height: calc(100dvh - 32px);
+    margin: 16px auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .el-dialog.quanta-dialog .el-dialog__body,
+  .el-dialog.payment-proof-dialog .el-dialog__body,
+  .el-dialog.admin-import-dialog .el-dialog__body,
+  .app-layout .activity-signups .el-dialog__body {
+    min-height: 0;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .el-dialog.quanta-dialog .el-dialog__header,
+  .el-dialog.payment-proof-dialog .el-dialog__header,
+  .el-dialog.admin-import-dialog .el-dialog__header,
+  .app-layout .activity-signups .el-dialog__header { padding: 18px 16px 8px; }
+  .el-dialog.quanta-dialog .el-dialog__footer,
+  .el-dialog.payment-proof-dialog .el-dialog__footer,
+  .el-dialog.admin-import-dialog .el-dialog__footer,
+  .app-layout .activity-signups .el-dialog__footer { padding: 8px 16px 16px; }
+  .el-message-box { width: calc(100vw - 24px) !important; max-width: 440px; }
+}

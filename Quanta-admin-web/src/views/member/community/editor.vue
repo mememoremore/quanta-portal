@@ -1,10 +1,11 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElOption, ElSelect } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { createForumPost, FORUM_CATEGORIES, getForumPost, updateForumPost, uploadForumImage } from '@/api/portal/forum'
 import { markdownToHtml } from './markdown'
+import { prepareForumImage } from './image-upload'
 import './community.css'
 
 const route = useRoute()
@@ -60,13 +61,10 @@ async function onImageSelected(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
   if (!file) return
-  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-    ElMessage.error('仅支持 5 MB 内的 PNG、JPG、WEBP、GIF 图片')
-    return
-  }
   uploading.value = true
   try {
-    const url = await uploadForumImage(file)
+    const prepared = await prepareForumImage(file)
+    const url = await uploadForumImage(prepared)
     const alt = file.name.replaceAll('[', '').replaceAll(']', '').replaceAll('(', '').replaceAll(')', '')
     await insertText(`![${alt}](${url})`, '', '')
     ElMessage.success('图片已插入正文')
@@ -109,7 +107,7 @@ async function save() {
       <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }}</p>
       <div class="community-editor__fields">
         <label class="community-field"><span>标题 <small>最多 80 字</small></span><input v-model="title" maxlength="80" placeholder="给讨论起个清晰的标题" /></label>
-        <label class="community-field"><span>话题</span><span class="community-select"><select v-model="category" aria-label="帖子分类"><option v-for="item in FORUM_CATEGORIES" :key="item.value" :value="item.value">{{ item.label }}</option></select><span class="community-select__arrow" aria-hidden="true"></span></span></label>
+        <label class="community-field"><span>话题</span><ElSelect v-model="category" class="community-category-select" popper-class="community-category-popper" aria-label="帖子分类"><ElOption v-for="item in FORUM_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" /></ElSelect></label>
       </div>
       <div class="community-editor__body-label"><strong>正文</strong><span class="community-editor__desktop-hint">Markdown 编辑 · 右侧同步预览</span><span class="community-editor__mobile-hint">Markdown 编辑 · 切换查看预览</span></div>
       <div class="community-editor__composer">
@@ -133,7 +131,7 @@ async function save() {
           </div>
         </div>
       </div>
-      <div class="community-editor__footer"><span>{{ content.length }} / 20000 字 · 图片上限 5 MB</span><div><RouterLink class="member-secondary-button" to="/member/community">取消</RouterLink><button class="member-primary-button" type="button" :disabled="saving || loading || uploading || (editing && !editAuthorized)" @click="save">{{ saving ? '保存中…' : editing ? '保存修改' : '发布帖子' }}</button></div></div>
+      <div class="community-editor__footer"><span>{{ content.length }} / 20000 字 · 原图 20 MB 内，上传图 5 MB 内</span><div><RouterLink class="member-secondary-button" to="/member/community">取消</RouterLink><button class="member-primary-button" type="button" :disabled="saving || loading || uploading || (editing && !editAuthorized)" @click="save">{{ saving ? '保存中…' : editing ? '保存修改' : '发布帖子' }}</button></div></div>
     </div>
   </section>
 </template>

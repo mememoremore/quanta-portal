@@ -1,3 +1,22 @@
+import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import java from 'highlight.js/lib/languages/java'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import python from 'highlight.js/lib/languages/python'
+import sql from 'highlight.js/lib/languages/sql'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+
+for (const [name, language] of Object.entries({ bash, css, java, javascript, json, python, sql, typescript, xml })) {
+  hljs.registerLanguage(name, language)
+}
+for (const [alias, name] of Object.entries({ sh: 'bash', js: 'javascript', jsx: 'javascript', py: 'python', ts: 'typescript', tsx: 'typescript', html: 'xml', vue: 'xml' })) {
+  hljs.registerAliases(alias, { languageName: name })
+}
+
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -13,87 +32,50 @@ function safeUrl(value, image = false) {
   return ''
 }
 
-export function markdownImagePreviews(source) {
-  return [...String(source || '').matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)]
-    .map(([, alt, url]) => ({ alt: alt.trim() || '帖子配图', src: safeUrl(url, true) }))
-    .filter((image) => image.src)
-}
+const markdown = new MarkdownIt({
+  html: false,
+  linkify: false,
+  highlight(code, language) {
+    const name = language.trim().split(/\s+/)[0]
+    const highlighted = name && hljs.getLanguage(name)
+      ? hljs.highlight(code, { language: name, ignoreIllegals: true }).value
+      : escapeHtml(code)
+    const className = name && hljs.getLanguage(name) ? ` class="language-${escapeHtml(name)}"` : ''
+    return `<pre class="hljs"><code${className}>${highlighted}</code></pre>`
+  },
+})
 
-function inline(text) {
-  const sentinel = String.fromCharCode(0)
-  const tokens = []
-  const mark = (html) => {
-    const token = `${sentinel}${tokens.length}${sentinel}`
-    tokens.push(html)
-    return token
-  }
-  const withTokens = String(text || '')
-    .replace(/`([^`\n]+)`/g, (_, code) => mark(`<code>${escapeHtml(code)}</code>`))
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
-      const src = safeUrl(url, true)
-      return src ? mark(`<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy">`) : escapeHtml(alt)
-    })
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => {
-      const href = safeUrl(url)
-      return href ? mark(`<a href="${escapeHtml(href)}" rel="noopener noreferrer" target="_blank">${escapeHtml(label)}</a>`) : escapeHtml(label)
-    })
-  return escapeHtml(withTokens)
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(new RegExp(`${sentinel}(\\d+)${sentinel}`, 'g'), (_, index) => tokens[Number(index)])
+markdown.validateLink = (url) => Boolean(safeUrl(url, true))
+const renderImage = markdown.renderer.rules.image
+markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
+  const token = tokens[index]
+  if (!safeUrl(token.attrGet('href'))) return ''
+  token.attrSet('target', '_blank')
+  token.attrSet('rel', 'noopener noreferrer')
+  return renderer.renderToken(tokens, index, options)
+}
+markdown.renderer.rules.image = (tokens, index, options, env, renderer) => {
+  const token = tokens[index]
+  if (!safeUrl(token.attrGet('src'), true)) return escapeHtml(token.content)
+  token.attrSet('loading', 'lazy')
+  return renderImage(tokens, index, options, env, renderer)
 }
 
 export function markdownToHtml(source) {
-  const lines = String(source || '').replace(/\r\n?/g, '\n').split('\n')
-  const blocks = []
-  let paragraph = []
-  let list = []
-  let listType = ''
-  let code = null
-  let language = ''
+  return markdown.render(String(source || ''))
+}
 
-  const flushParagraph = () => {
-    if (paragraph.length) blocks.push(`<p>${inline(paragraph.join(' '))}</p>`)
-    paragraph = []
-  }
-  const flushList = () => {
-    if (list.length) blocks.push(`<${listType}>${list.map((item) => `<li>${inline(item)}</li>`).join('')}</${listType}>`)
-    list = []
-    listType = ''
-  }
-  const flushCode = () => {
-    if (code) blocks.push(`<pre><code${language ? ` class="language-${language}"` : ''}>${escapeHtml(code.join('\n'))}</code></pre>`)
-    code = null
-    language = ''
-  }
-
-  for (const line of lines) {
-    const fence = line.match(/^\s*```([\w+-]*)\s*$/)
-    if (fence) {
-      flushParagraph(); flushList()
-      if (code) flushCode()
-      else { code = []; language = escapeHtml(fence[1]) }
-      continue
+export function markdownImagePreviews(source) {
+  const images = []
+  const visit = (tokens) => {
+    for (const token of tokens || []) {
+      if (token.type === 'image') {
+        const src = safeUrl(token.attrGet('src'), true)
+        if (src) images.push({ alt: token.content.trim() || '帖子配图', src })
+      }
+      if (token.children) visit(token.children)
     }
-    if (code) { code.push(line); continue }
-    if (!line.trim()) { flushParagraph(); flushList(); continue }
-    const heading = line.match(/^(#{1,3})\s+(.+)$/)
-    if (heading) { flushParagraph(); flushList(); blocks.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`); continue }
-    const bullet = line.match(/^\s*[-*]\s+(.+)$/)
-    const numbered = line.match(/^\s*\d+\.\s+(.+)$/)
-    if (bullet || numbered) {
-      flushParagraph()
-      const type = bullet ? 'ul' : 'ol'
-      if (listType && listType !== type) flushList()
-      listType = type
-      list.push((bullet || numbered)[1])
-      continue
-    }
-    const quote = line.match(/^>\s*(.*)$/)
-    if (quote) { flushParagraph(); flushList(); blocks.push(`<blockquote>${inline(quote[1])}</blockquote>`); continue }
-    flushList()
-    paragraph.push(line.trim())
   }
-  flushParagraph(); flushList(); flushCode()
-  return blocks.join('\n')
+  visit(markdown.parse(String(source || ''), {}))
+  return images
 }

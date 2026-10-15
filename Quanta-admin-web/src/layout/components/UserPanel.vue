@@ -7,6 +7,8 @@ import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
 
+defineProps({ mobile: { type: Boolean, default: false } })
+
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -28,11 +30,11 @@ async function handleCommand(command) {
   <ElDropdown placement="top" trigger="click" @command="handleCommand">
     <button class="user-panel" type="button">
       <span class="user-panel__avatar">{{ initial }}</span>
-      <span v-show="!sidebarCollapsed" class="user-panel__copy">
+      <span v-show="!sidebarCollapsed || mobile" class="user-panel__copy">
         <strong>{{ displayName }}</strong>
         <small>{{ user?.memberDepartment || 'Quanta' }}</small>
       </span>
-      <ElIcon v-show="!sidebarCollapsed" class="user-panel__arrow"><ArrowUp /></ElIcon>
+      <ElIcon v-show="!sidebarCollapsed || mobile" class="user-panel__arrow"><ArrowUp /></ElIcon>
     </button>
     <template #dropdown>
       <ElDropdownMenu>

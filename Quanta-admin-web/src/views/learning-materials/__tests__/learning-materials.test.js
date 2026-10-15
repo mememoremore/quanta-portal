@@ -29,7 +29,8 @@ describe('learning materials view', () => {
       ['qt_mgmt'],
     )
     await flushPromises()
-    expect(wrapper.text()).toContain('点击或拖拽文件到此处上传')
+    expect(wrapper.text()).toContain('点击或拖拽文件到此处选择')
+    expect(wrapper.text()).toContain('确认上传')
     expect(wrapper.text()).toContain('产品')
     expect(wrapper.text()).toContain('删除')
   })
@@ -38,7 +39,7 @@ describe('learning materials view', () => {
     const wrapper = mountFor('mock-token-product-interviewer', ['qt:material:list'], ['qt_manager'])
     await flushPromises()
     expect(wrapper.text()).toContain('React 入门教程.pdf')
-    expect(wrapper.text()).not.toContain('点击或拖拽文件到此处上传')
+    expect(wrapper.text()).not.toContain('点击或拖拽文件到此处选择')
     expect(wrapper.text()).not.toContain('删除')
   })
 })

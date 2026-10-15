@@ -21,6 +21,8 @@ const category = ref('')
 const keyword = ref('')
 const searchText = ref('')
 const uploadCategory = ref('')
+const uploadRef = ref(null)
+const selectedFile = ref(null)
 const loading = ref(false)
 const failed = ref(false)
 const uploading = ref(false)
@@ -71,19 +73,41 @@ function changeCategory(value) {
   loadList()
 }
 
-function validateFile(file) {
-  const error = materialFileError(file)
-  if (error) ElMessage.warning(error)
-  if (!selectedUploadCategory.value) ElMessage.warning('请先选择资料所属部门')
-  return !error && Boolean(selectedUploadCategory.value)
+function clearSelectedFile() {
+  selectedFile.value = null
+  uploadRef.value?.clearFiles()
 }
 
-async function handleUpload({ file }) {
-  if (uploading.value || !uploadPolicy.value.allowed || !selectedUploadCategory.value) return
+function selectFile(uploadFile) {
+  const file = uploadFile?.raw
+  if (!file) return
+  const error = materialFileError(file)
+  if (error) {
+    ElMessage.warning(error)
+    clearSelectedFile()
+    return
+  }
+  selectedFile.value = file
+}
+
+function replaceFile(files) {
+  const file = files?.[0]
+  if (!file) return
+  uploadRef.value?.clearFiles()
+  uploadRef.value?.handleStart(file)
+}
+
+function fileSize(size) {
+  return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.ceil(size / 1024))} KB`
+}
+
+async function confirmUpload() {
+  if (uploading.value || !uploadPolicy.value.allowed || !selectedUploadCategory.value || !selectedFile.value) return
   uploading.value = true
   try {
-    await uploadMaterial(file, { category: selectedUploadCategory.value })
+    await uploadMaterial(selectedFile.value, { category: selectedUploadCategory.value })
     ElMessage.success('上传成功')
+    clearSelectedFile()
     pageNum.value = 1
     await loadList()
   } catch (error) {
@@ -130,11 +154,17 @@ onMounted(loadList)
         </ElSelect>
         <strong v-else>{{ materialCategoryLabel(uploadPolicy.category) }}</strong>
       </div>
-      <ElUpload drag action="#" :show-file-list="false" :before-upload="validateFile" :http-request="handleUpload" :disabled="uploading || !selectedUploadCategory" :accept="MATERIAL_EXTENSIONS.map((item) => `.${item}`).join(',')">
+      <ElUpload ref="uploadRef" drag action="#" :auto-upload="false" :show-file-list="false" :limit="1" :on-change="selectFile" :on-exceed="replaceFile" :disabled="uploading || !selectedUploadCategory" :accept="MATERIAL_EXTENSIONS.map((item) => `.${item}`).join(',')">
         <ElIcon class="learning-upload-card__icon"><FolderOpened /></ElIcon>
-        <p>{{ uploading ? '正在上传…' : '点击或拖拽文件到此处上传' }}</p>
+        <p>{{ selectedFile ? '重新选择文件，或拖拽文件替换' : '点击或拖拽文件到此处选择' }}</p>
         <span>PDF、Word、PPT、Excel、TXT、Markdown、图片 · 最大 20 MB</span>
       </ElUpload>
+      <div v-if="selectedFile" class="learning-upload-card__selected" role="status">
+        <span class="learning-upload-card__file-icon" aria-hidden="true">{{ selectedFile.name.split('.').pop()?.toUpperCase() }}</span>
+        <div class="learning-upload-card__file-info"><strong :title="selectedFile.name">{{ selectedFile.name }}</strong><span>{{ fileSize(selectedFile.size) }} · {{ materialCategoryLabel(selectedUploadCategory) }} · 待上传</span></div>
+        <button type="button" :disabled="uploading" @click="clearSelectedFile">移除</button>
+      </div>
+      <div class="learning-upload-card__actions"><ElButton type="primary" class="quanta-primary-button" data-testid="confirm-material-upload" :loading="uploading" :disabled="!selectedFile || !selectedUploadCategory" @click="confirmUpload">确认上传</ElButton></div>
     </section>
     <p v-else-if="uploadPolicy.reason" class="learning-upload-warning" role="alert">{{ uploadPolicy.reason }}</p>
 

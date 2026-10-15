@@ -92,7 +92,7 @@ onMounted(load)
             <div class="community-post-card__author"><span class="community-avatar">{{ post.authorName.slice(0, 1) }}</span><strong>{{ post.authorName }}</strong><span v-if="post.authorDepartment">· {{ post.authorDepartment }}</span><time :datetime="post.createdAt" :title="post.createdAt">{{ displayTime(post.createdAt) }}</time></div>
             <RouterLink class="community-post-card__title" :to="`/member/community/${post.postId}`">{{ post.title }}</RouterLink>
             <p>{{ post.summary || '打开帖子查看完整内容与讨论。' }}</p>
-            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="`/member/community/${post.postId}`" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span>{{ post.previewImages[0].alt }} · {{ post.previewImages.length }} 张图片</span></RouterLink>
+            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="`/member/community/${post.postId}`" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
             <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><span>{{ post.commentCount }} 条评论</span></div>
           </article>
         </div>
