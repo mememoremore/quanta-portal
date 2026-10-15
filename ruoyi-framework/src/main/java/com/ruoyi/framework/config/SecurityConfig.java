@@ -109,7 +109,7 @@ public class SecurityConfig
                 permitAllUrl.getUrls().forEach(url -> requests.requestMatchers(url).permitAll());
                 // 对于登录login 注册register 验证码captchaImage 允许匿名访问
                 requests.requestMatchers("/login", "/register", "/register/emailCode", "/captchaImage",
-                        "/system/password/emailCode", "/system/password/reset").permitAll()
+                        "/auth/refresh", "/system/password/emailCode", "/system/password/reset").permitAll()
                     // 静态资源，可匿名访问。上游的 "/**.html" 是递归通配（/any/path/evil.html 也放行），
                     // 本站前端由 Nginx 直出，后端只需根路径与上传件访问，故收窄为精确匹配
                     .requestMatchers(HttpMethod.GET, "/", "/index.html", "/favicon.ico", "/*.css", "/*.js", "/profile/**").permitAll();

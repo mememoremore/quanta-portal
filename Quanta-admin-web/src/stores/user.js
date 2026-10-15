@@ -93,6 +93,15 @@ export const useUserStore = defineStore('user', () => {
     return response
   }
 
+  async function restoreSession() {
+    const response = await authApi.refreshSession()
+    const nextToken = response?.token || ''
+    if (!nextToken) return ''
+    token.value = nextToken
+    setToken(nextToken)
+    return nextToken
+  }
+
   async function logout() {
     try {
       if (token.value) await authApi.logout()
@@ -125,6 +134,7 @@ export const useUserStore = defineStore('user', () => {
     canAccessAdmin,
     login,
     fetchUserInfo,
+    restoreSession,
     logout,
     reset,
   }

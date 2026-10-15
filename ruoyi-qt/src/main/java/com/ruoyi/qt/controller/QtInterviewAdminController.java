@@ -154,18 +154,20 @@ public class QtInterviewAdminController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('qt:interview:admin:offer')")
     @GetMapping("/applications/{applicationId}/notice-preview")
-    public AjaxResult noticePreview(@PathVariable Long applicationId)
+    public AjaxResult noticePreview(@PathVariable Long applicationId,
+            @RequestParam("department") String department)
     {
-        return success(qtInterviewAdminService.previewNotice(applicationId));
+        return success(qtInterviewAdminService.previewNotice(applicationId, department));
     }
 
     @PreAuthorize("@ss.hasPermi('qt:interview:admin:offer')")
     @Log(title = "招新结果邮件", businessType = BusinessType.UPDATE)
     @PostMapping("/applications/{applicationId}/notice")
     public AjaxResult notice(@PathVariable Long applicationId,
+            @RequestParam("department") String department,
             @RequestParam(value = "qrCode", required = false) MultipartFile qrCode)
     {
-        return success(qtInterviewAdminService.sendNotice(applicationId, qrCode, getUsername()));
+        return success(qtInterviewAdminService.sendNotice(applicationId, department, qrCode, getUsername()));
     }
 
     @PreAuthorize("@ss.hasPermi('qt:interview:admin:list')")

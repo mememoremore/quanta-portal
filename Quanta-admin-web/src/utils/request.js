@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getToken } from './token'
+import { getToken, setToken } from './token'
 import { notifyUnauthorized } from './unauthorized'
 import { mockRequest } from '@/mock'
 import { isFullMockEnabled, shouldUseMock } from '@/config/mock-api'
@@ -8,7 +8,34 @@ import { getTraceId, withTraceId } from './trace-id'
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 15000,
+  withCredentials: true,
 })
+
+let refreshPromise = null
+
+export function refreshSession() {
+  return request({
+    url: '/auth/refresh',
+    method: 'post',
+    headers: { isToken: false },
+    __skipAuthRefresh: true,
+  })
+}
+
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = refreshSession()
+      .then((payload) => {
+        const token = payload?.token || ''
+        if (token) setToken(token)
+        return token
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
 
 service.interceptors.request.use((config) => {
   const tracedConfig = withTraceId(config)
@@ -68,7 +95,27 @@ export async function request(config) {
       getTraceId(rawError?.config) ||
       getTraceId(rawError?.response?.config) ||
       getTraceId(requestConfig)
-    if (Number(error.code) === 401) {
+    const skipRefresh = Boolean(requestConfig.__skipAuthRefresh)
+    const retried = Boolean(requestConfig.__isRetry)
+    if (Number(error.code) === 401 && !skipRefresh && !retried) {
+      let token = ''
+      try {
+        token = await refreshAccessToken()
+      } catch {
+        token = ''
+      }
+      if (token) {
+        return request({
+          ...requestConfig,
+          __isRetry: true,
+          headers: {
+            ...(requestConfig.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      }
+      await notifyUnauthorized(error)
+    } else if (Number(error.code) === 401 && retried) {
       await notifyUnauthorized(error)
     }
     throw error

@@ -24,7 +24,6 @@ import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.enums.LimitType;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.MailUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -141,10 +140,8 @@ public class SysProfileController extends BaseController
         newPassword = SecurityUtils.encryptPassword(newPassword);
         if (userService.resetUserPwd(userId, newPassword) > 0)
         {
-            // 更新缓存用户密码&密码最后更新时间
-            loginUser.getUser().setPwdUpdateDate(DateUtils.getNowDate());
-            loginUser.getUser().setPassword(newPassword);
-            tokenService.setLoginUser(loginUser);
+            tokenService.revokeUserSessions(userId);
+            tokenService.clearRefreshCookieForCurrentResponse();
             return success();
         }
         return error("修改密码异常，请联系管理员");

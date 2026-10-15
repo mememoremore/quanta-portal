@@ -40,10 +40,11 @@ public class LogoutSuccessHandlerImpl implements LogoutSuccessHandler
             throws IOException, ServletException
     {
         LoginUser loginUser = tokenService.getLoginUser(request);
+        tokenService.revokePresentedRefresh(request);
+        tokenService.clearRefreshCookie(response);
         if (StringUtils.isNotNull(loginUser))
         {
             String userName = loginUser.getUsername();
-            // 删除用户缓存记录
             tokenService.delLoginUser(loginUser.getToken());
             // 记录用户退出日志
             AsyncManager.me().execute(AsyncFactory.recordLogininfor(userName, Constants.LOGOUT, MessageUtils.message("user.logout.success")));

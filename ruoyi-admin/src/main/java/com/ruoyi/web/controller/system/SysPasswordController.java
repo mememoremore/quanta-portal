@@ -22,6 +22,7 @@ import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.ip.IpUtils;
 import com.ruoyi.framework.web.service.SysRegisterService;
+import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
@@ -36,6 +37,9 @@ public class SysPasswordController extends BaseController
 
     @Autowired
     private RedisCache redisCache;
+
+    @Autowired
+    private TokenService tokenService;
 
     @Autowired
     private MailUtils mailUtils;
@@ -111,6 +115,8 @@ public class SysPasswordController extends BaseController
         }
         redisCache.deleteObject(verifyKey);
         userService.resetUserPwd(user.getUserId(), SecurityUtils.encryptPassword(password));
+        tokenService.revokeUserSessions(user.getUserId());
+        tokenService.clearRefreshCookieForCurrentResponse();
         return success("\u5bc6\u7801\u91cd\u7f6e\u6210\u529f\uff0c\u8bf7\u4f7f\u7528\u65b0\u5bc6\u7801\u767b\u5f55");
     }
 }

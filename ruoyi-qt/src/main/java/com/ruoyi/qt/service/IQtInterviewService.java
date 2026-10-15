@@ -22,6 +22,16 @@ public interface IQtInterviewService
     List<QtInterviewResult> selectMyResultList(Long userId);
 
     /**
+     * 新生端录用接受状态：ready / acceptedDepartment。
+     */
+    Map<String, Object> buildOfferAcceptance(Long userId);
+
+    /**
+     * 新生接受其中一个二面通过的志愿；成功后转正。
+     */
+    Map<String, Object> acceptOffer(Long userId, String department);
+
+    /**
      * 录入/更新面试轮次结果，并尝试邮件通知新生。
      */
     Map<String, Object> saveInterviewResult(QtInterviewResult result);

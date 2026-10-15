@@ -26,6 +26,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.constant.UserConstants;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.ServletUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileValidator;
 import com.ruoyi.common.utils.file.MimeTypeUtils;
@@ -35,6 +36,7 @@ import com.ruoyi.qt.util.QtAuthUtils;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysPostService;
 import com.ruoyi.system.service.ISysRoleService;
+import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
@@ -48,6 +50,9 @@ public class SysUserController extends BaseController
 {
     @Autowired
     private ISysUserService userService;
+
+    @Autowired
+    private TokenService tokenService;
 
     @Autowired
     private ISysRoleService roleService;
@@ -225,7 +230,16 @@ public class SysUserController extends BaseController
         }
         user.setPassword(SecurityUtils.encryptPassword(user.getPassword()));
         user.setUpdateBy(getUsername());
-        return toAjax(userService.resetPwd(user));
+        int rows = userService.resetPwd(user);
+        if (rows > 0)
+        {
+            tokenService.revokeUserSessions(user.getUserId());
+            if (user.getUserId() != null && user.getUserId().equals(getUserId()))
+            {
+                tokenService.clearRefreshCookie(ServletUtils.getResponse());
+            }
+        }
+        return toAjax(rows);
     }
 
     /**
@@ -239,7 +253,16 @@ public class SysUserController extends BaseController
         userService.checkUserAllowed(user);
         userService.checkUserDataScope(user.getUserId());
         user.setUpdateBy(getUsername());
-        return toAjax(userService.updateUserStatus(user));
+        int rows = userService.updateUserStatus(user);
+        if (rows > 0 && UserConstants.USER_DISABLE.equals(user.getStatus()))
+        {
+            tokenService.revokeUserSessions(user.getUserId());
+            if (user.getUserId() != null && user.getUserId().equals(getUserId()))
+            {
+                tokenService.clearRefreshCookie(ServletUtils.getResponse());
+            }
+        }
+        return toAjax(rows);
     }
 
     /**

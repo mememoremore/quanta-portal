@@ -128,6 +128,7 @@ public class QtInterviewController extends BaseController
         data.put("profile", profile);
         data.put("newApplicationsOpen", newApplicationsOpen);
         data.put("canUpdate", newApplicationsOpen || application != null);
+        data.put("offerAcceptance", qtInterviewService.buildOfferAcceptance(getUserId()));
         return success(data);
     }
 
@@ -136,6 +137,18 @@ public class QtInterviewController extends BaseController
     {
         List<QtInterviewResult> list = qtInterviewService.selectMyResultList(getUserId());
         return success(list);
+    }
+
+    @PostMapping("/my/accept")
+    @RepeatSubmit(message = "正在接受录用，请勿重复提交")
+    public AjaxResult acceptOffer(@org.springframework.web.bind.annotation.RequestBody Map<String, Object> body)
+    {
+        String department = body == null ? null : String.valueOf(body.get("department"));
+        if (body == null || body.get("department") == null)
+        {
+            department = null;
+        }
+        return success(qtInterviewService.acceptOffer(getUserId(), department));
     }
 
     /**

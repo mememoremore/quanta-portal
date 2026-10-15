@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -74,14 +75,18 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
         {
             query.setSortDepartment(QtAuthUtils.currentDepartment());
         }
-        return qtInterviewMapper.selectAdminApplicationList(query);
+        List<QtInterviewApplication> list = qtInterviewMapper.selectAdminApplicationList(query);
+        fillNoticeStatuses(list);
+        return list;
     }
 
     @Override
     public List<QtInterviewApplication> selectMemberList(QtInterviewApplication query)
     {
         // 塔员可见全部部门，不做 scopedDepartment 过滤
-        return qtInterviewMapper.selectAdminApplicationList(query);
+        List<QtInterviewApplication> list = qtInterviewMapper.selectAdminApplicationList(query);
+        fillNoticeStatuses(list);
+        return list;
     }
 
     @Override
@@ -345,36 +350,28 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
     }
 
     @Override
-    public Map<String, Object> previewNotice(Long applicationId)
+    public Map<String, Object> previewNotice(Long applicationId, String department)
     {
         QtInterviewApplication application = selectApplication(applicationId);
-        return buildNoticePreview(application, requireNoticeReady(application), true);
+        NoticeOutcome outcome = requireDepartmentPassReady(application, department);
+        return buildNoticePreview(application, outcome, true);
     }
 
     @Override
     @Transactional
     @CacheEvict(cacheNames = { CacheConstants.CACHE_QT_RECRUIT_STATISTICS, CacheConstants.CACHE_QT_MY_RESULTS,
             CacheConstants.CACHE_QT_MY_APPLICATION, CacheConstants.CACHE_QT_MEMBER_COHORTS }, allEntries = true)
-    public Map<String, Object> sendNotice(Long applicationId, MultipartFile qrCode, String operator)
+    public Map<String, Object> sendNotice(Long applicationId, String department, MultipartFile qrCode, String operator)
     {
         QtInterviewApplication application = selectApplication(applicationId);
-        if ("SENT".equalsIgnoreCase(application.getNoticeStatus()))
+        NoticeOutcome outcome = requireDepartmentPassReady(application, department);
+        QtAuthUtils.assertDepartmentScope(outcome.offeredDepartment);
+        if ("SENT".equalsIgnoreCase(qtInterviewMapper.selectNoticeStatus(applicationId, outcome.offeredDepartment)))
         {
-            throw new ServiceException("结果邮件已发送，不能重复发送");
+            throw new ServiceException("该部门结果邮件已发送，不能重复发送");
         }
-        NoticeOutcome outcome = requireNoticeReady(application);
-        if (!QtAuthUtils.isCeo() && outcome.pass)
-        {
-            QtAuthUtils.assertDepartmentScope(outcome.offeredDepartment);
-        }
-        byte[] attachment = null;
-        String attachmentName = null;
-        if (outcome.pass)
-        {
-            attachment = requireQrBytes(qrCode);
-            attachmentName = qrFileName(qrCode);
-            bindOfferAndConvert(application, outcome.offeredDepartment, operator);
-        }
+        byte[] attachment = requireQrBytes(qrCode);
+        String attachmentName = qrFileName(qrCode);
         Map<String, Object> preview = buildNoticePreview(application, outcome, false);
         boolean emailSent = interviewNotifier.notifyApplicant(application.getUserId(),
                 String.valueOf(preview.get("subject")), String.valueOf(preview.get("content")),
@@ -384,10 +381,9 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
         {
             throw new ServiceException("邮件发送失败，请稍后重试");
         }
-        application.setNoticeStatus("SENT");
-        application.setUpdateBy(operator);
-        qtInterviewMapper.updateApplicationAdminFields(application);
+        qtInterviewMapper.upsertNoticeSent(applicationId, outcome.offeredDepartment, operator);
         preview.put("noticeStatus", "SENT");
+        preview.put("department", outcome.offeredDepartment);
         preview.put("emailSent", Boolean.TRUE);
         return preview;
     }
@@ -733,22 +729,7 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
         }
         application.setUpdateBy(operator);
         qtInterviewMapper.updateApplicationAdminFields(application);
-        if ("OFFERED".equals(applyStatus))
-        {
-            convertToMember(application, operator);
-        }
-    }
-
-    private void bindOfferAndConvert(QtInterviewApplication application, String offeredDepartment, String operator)
-    {
-        application.setOfferedDepartment(offeredDepartment);
-        application.setApplyStatus("OFFERED");
-        if (StringUtils.isEmpty(application.getJoinStatus()))
-        {
-            application.setJoinStatus("PENDING");
-        }
-        application.setUpdateBy(operator);
-        convertToMember(application, operator);
+        // 转正改由新生 POST /qt/interview/my/accept 触发，二面出结果不提前转正
     }
 
     private boolean allAdvancedOut(boolean firstAdvanced, boolean secondAdvanced, boolean firstOut, boolean secondOut)
@@ -780,30 +761,32 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
                 department);
     }
 
-    private NoticeOutcome requireNoticeReady(QtInterviewApplication application)
+    private NoticeOutcome requireDepartmentPassReady(QtInterviewApplication application, String department)
     {
-        boolean firstAdvanced = isAdvanced(application, application.getFirstChoice());
-        boolean secondAdvanced = isAdvanced(application, application.getSecondChoice());
-        if (!firstAdvanced && !secondAdvanced)
+        if (StringUtils.isEmpty(department))
         {
-            throw new ServiceException("没有进入二面的志愿，不能发送结果邮件");
+            throw new ServiceException("请指定录用邮件部门");
+        }
+        department = department.trim().toUpperCase();
+        if (!department.equals(application.getFirstChoice()) && !department.equals(application.getSecondChoice()))
+        {
+            throw new ServiceException("该部门不是申请人的志愿");
+        }
+        if (!isAdvanced(application, department))
+        {
+            throw new ServiceException("该部门未通过一面，不能发送录用邮件");
         }
         QtInterviewRound roundTwo = qtInterviewMapper.selectRoundByNo(2);
-        QtInterviewResult first = resultOf(application, roundTwo, application.getFirstChoice());
-        QtInterviewResult second = resultOf(application, roundTwo, application.getSecondChoice());
-        if (firstAdvanced && (first == null || first.getScore() == null || !QtInterviewStatuses.isDecided(first)))
+        QtInterviewResult second = resultOf(application, roundTwo, department);
+        if (second == null || second.getScore() == null || !QtInterviewStatuses.isDecided(second))
         {
-            throw new ServiceException("请先完成所有二面志愿的评分和录用决定");
+            throw new ServiceException("请先完成该部门二面评分和录用决定");
         }
-        if (secondAdvanced && (second == null || second.getScore() == null || !QtInterviewStatuses.isDecided(second)))
+        if (!QtInterviewStatuses.isPass(second))
         {
-            throw new ServiceException("请先完成所有二面志愿的评分和录用决定");
+            throw new ServiceException("仅二面通过的部门可发送录用邮件");
         }
-        boolean firstPass = firstAdvanced && QtInterviewStatuses.isPass(first);
-        boolean secondPass = secondAdvanced && QtInterviewStatuses.isPass(second);
-        String offered = firstPass ? application.getFirstChoice()
-                : (secondPass ? application.getSecondChoice() : null);
-        return new NoticeOutcome(offered != null, offered);
+        return new NoticeOutcome(true, department);
     }
 
     private Map<String, Object> buildNoticePreview(QtInterviewApplication application, NoticeOutcome outcome,
@@ -815,7 +798,9 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
         Map<String, Object> data = new HashMap<String, Object>();
         data.put("recipientName", application.getRealName());
         data.put("email", application.getEmail());
+        data.put("department", outcome.offeredDepartment);
         data.put("offeredDepartment", outcome.offeredDepartment);
+        data.put("departmentLabel", StringUtils.isEmpty(deptLabel) ? null : deptLabel);
         data.put("offeredDepartmentLabel", StringUtils.isEmpty(deptLabel) ? null : deptLabel);
         data.put("result", outcome.pass ? QtInterviewStatuses.PASS : QtInterviewStatuses.OUT);
         data.put("resultLabel", outcome.pass ? "Pass" : "Out");
@@ -823,6 +808,58 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
         data.put("content", mail.html);
         data.put("plainContent", mail.plain);
         return data;
+    }
+
+    private void fillNoticeStatuses(List<QtInterviewApplication> list)
+    {
+        if (list == null || list.isEmpty())
+        {
+            return;
+        }
+        List<Long> ids = new ArrayList<Long>();
+        for (QtInterviewApplication app : list)
+        {
+            if (app != null && app.getApplicationId() != null)
+            {
+                ids.add(app.getApplicationId());
+            }
+        }
+        Map<Long, Map<String, String>> byApp = new HashMap<Long, Map<String, String>>();
+        if (!ids.isEmpty())
+        {
+            List<Map<String, Object>> rows = qtInterviewMapper.selectNoticesByApplicationIds(ids);
+            if (rows != null)
+            {
+                for (Map<String, Object> row : rows)
+                {
+                    Long appId = ((Number) row.get("applicationId")).longValue();
+                    String dept = String.valueOf(row.get("department"));
+                    String status = String.valueOf(row.get("noticeStatus"));
+                    byApp.computeIfAbsent(appId, key -> new HashMap<String, String>()).put(dept, status);
+                }
+            }
+        }
+        for (QtInterviewApplication app : list)
+        {
+            if (app == null)
+            {
+                continue;
+            }
+            Map<String, String> statuses = new HashMap<String, String>();
+            Map<String, String> stored = byApp.getOrDefault(app.getApplicationId(), Map.of());
+            putDefaultNoticeStatus(statuses, stored, app.getFirstChoice());
+            putDefaultNoticeStatus(statuses, stored, app.getSecondChoice());
+            app.setNoticeStatuses(statuses);
+        }
+    }
+
+    private void putDefaultNoticeStatus(Map<String, String> target, Map<String, String> stored, String department)
+    {
+        if (StringUtils.isEmpty(department))
+        {
+            return;
+        }
+        target.put(department, stored.getOrDefault(department, "UNSENT"));
     }
 
     private byte[] requireQrBytes(MultipartFile qrCode)
@@ -886,9 +923,10 @@ public class QtInterviewAdminServiceImpl implements IQtInterviewAdminService
      * 2. 幂等绑定 qt_member 角色（roleId 通过 roleKey 查询）；
      * 3. 在 qt_member_record 中建立当前届次的成员档案（roleCategory = MEMBER，memberStatus = ACTIVE）。
      * <p>
-     * 仅在 offer 决策为 PASS 且 applyStatus 变为 OFFERED 时调用。
+     * 仅在新生接受录用成功时调用，二面出结果或发邮件不得调用。
      */
-    private void convertToMember(QtInterviewApplication application, String operator)
+    @Override
+    public void convertToMember(QtInterviewApplication application, String operator)
     {
         Long userId = application.getUserId();
         if (userId == null)

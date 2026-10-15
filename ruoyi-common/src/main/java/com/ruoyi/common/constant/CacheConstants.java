@@ -12,6 +12,18 @@ public class CacheConstants
      */
     public static final String LOGIN_TOKEN_KEY = "login_tokens:";
 
+    /** 某用户当前全部 Access uuid */
+    public static final String LOGIN_USER_TOKENS_KEY = "login_user_tokens:";
+
+    /** Refresh 原文的 SHA-256 */
+    public static final String REFRESH_TOKEN_KEY = "refresh_tokens:";
+
+    /** 已轮换或已退出的 Refresh，用于识别重放 */
+    public static final String REFRESH_USED_KEY = "refresh_used:";
+
+    /** 某用户当前全部 Refresh 哈希 */
+    public static final String REFRESH_USER_KEY = "refresh_user:";
+
     /**
      * 验证码 redis key
      */

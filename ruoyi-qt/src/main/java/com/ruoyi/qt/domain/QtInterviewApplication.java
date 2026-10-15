@@ -2,6 +2,8 @@ package com.ruoyi.qt.domain;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
@@ -39,6 +41,8 @@ public class QtInterviewApplication extends BaseEntity
     @Excel(name = "最终状态")
     private String finalStatus;
     private String noticeStatus;
+    /** 按部门录用邮件状态，非表字段 */
+    private Map<String, String> noticeStatuses = new HashMap<String, String>();
     @Excel(name = "学号")
     private String studentNo;
     @Excel(name = "电话")
@@ -246,6 +250,16 @@ public class QtInterviewApplication extends BaseEntity
     public void setNoticeStatus(String noticeStatus)
     {
         this.noticeStatus = noticeStatus;
+    }
+
+    public Map<String, String> getNoticeStatuses()
+    {
+        return noticeStatuses;
+    }
+
+    public void setNoticeStatuses(Map<String, String> noticeStatuses)
+    {
+        this.noticeStatuses = noticeStatuses == null ? new HashMap<String, String>() : noticeStatuses;
     }
 
     public String getStudentNo()

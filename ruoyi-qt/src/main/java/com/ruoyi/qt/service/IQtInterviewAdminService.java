@@ -39,9 +39,12 @@ public interface IQtInterviewAdminService
 
     Map<String, Object> saveScore(Long applicationId, String department, Integer score, String operator);
 
-    Map<String, Object> previewNotice(Long applicationId);
+    Map<String, Object> previewNotice(Long applicationId, String department);
 
-    Map<String, Object> sendNotice(Long applicationId, MultipartFile qrCode, String operator);
+    Map<String, Object> sendNotice(Long applicationId, String department, MultipartFile qrCode, String operator);
+
+    /** 接受录用成功后转正；发邮件不得调用。 */
+    void convertToMember(QtInterviewApplication application, String operator);
 
     Map<String, Object> offer(QtInterviewOfferBody body, String operator);
 

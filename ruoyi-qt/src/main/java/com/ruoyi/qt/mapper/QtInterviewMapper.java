@@ -15,6 +15,9 @@ public interface QtInterviewMapper
 
     QtInterviewApplication selectApplicationById(Long applicationId);
 
+    /** 接受录用时行锁，防止并发重复转正 */
+    QtInterviewApplication selectApplicationByIdForUpdate(Long applicationId);
+
     int insertInterviewApplication(QtInterviewApplication application);
 
     int updateInterviewApplication(QtInterviewApplication application);
@@ -78,4 +81,11 @@ public interface QtInterviewMapper
      * 幂等绑定角色：若 sys_user_role 中不存在该 (userId, roleId) 则插入。
      */
     int insertUserRoleIfAbsent(@Param("userId") Long userId, @Param("roleId") Long roleId);
+
+    String selectNoticeStatus(@Param("applicationId") Long applicationId, @Param("department") String department);
+
+    List<Map<String, Object>> selectNoticesByApplicationIds(@Param("applicationIds") List<Long> applicationIds);
+
+    int upsertNoticeSent(@Param("applicationId") Long applicationId, @Param("department") String department,
+            @Param("operator") String operator);
 }

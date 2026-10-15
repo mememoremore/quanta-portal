@@ -60,6 +60,14 @@ export function setupRouterGuard(router) {
 
     const targetAudience = audienceForPath(to.path)
 
+    if (!userStore.token) {
+      try {
+        await userStore.restoreSession()
+      } catch {
+        userStore.reset()
+      }
+    }
+
     if (publicPaths.has(to.path)) {
       if (targetAudience && userStore.token) {
         try {

@@ -137,8 +137,13 @@ token:
   #   生产由 deploy/aliyun/run.sh 从 .env 注入 TOKEN_SECRET（≥32 位随机串）
   #   本地未配置时 TokenService 会随机生成并打告警，重启即失效
   secret: ${TOKEN_SECRET:}
-  # 令牌有效期（默认30分钟）
-  expireTime: 30
+  # Access 有效期（分钟）。到期后只能用 Refresh Cookie 换新，不再滑动续期
+  expireTime: 15
+  refresh:
+    cookie-name: quanta_refresh
+    secure: ${TOKEN_REFRESH_SECURE:false}
+    member-expire-days: 7
+    admin-expire-days: 1
 
 # MyBatis配置
 mybatis:

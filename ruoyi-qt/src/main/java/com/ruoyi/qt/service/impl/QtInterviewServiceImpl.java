@@ -9,15 +9,21 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.constant.CacheConstants;
+import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.qt.domain.QtInterviewApplication;
 import com.ruoyi.qt.domain.QtInterviewProfile;
 import com.ruoyi.qt.domain.QtInterviewResult;
 import com.ruoyi.qt.domain.QtInterviewRound;
 import com.ruoyi.qt.mapper.QtInterviewMapper;
+import com.ruoyi.qt.service.IQtInterviewAdminService;
 import com.ruoyi.qt.service.IQtInterviewService;
+import com.ruoyi.qt.util.QtDictUtils;
 import com.ruoyi.qt.util.QtInterviewRounds;
+import com.ruoyi.qt.util.QtInterviewStatuses;
 import com.ruoyi.system.service.ISysConfigService;
 
 @Service
@@ -35,6 +41,12 @@ public class QtInterviewServiceImpl implements IQtInterviewService
 
     @Autowired
     private ISysConfigService configService;
+
+    @Autowired
+    private IQtInterviewAdminService qtInterviewAdminService;
+
+    @Autowired
+    private TokenService tokenService;
 
     @Override
     public boolean isNewApplicationsOpen()
@@ -101,6 +113,146 @@ public class QtInterviewServiceImpl implements IQtInterviewService
     public List<QtInterviewResult> selectMyResultList(Long userId)
     {
         return qtInterviewMapper.selectResultsByUserId(userId);
+    }
+
+    @Override
+    public Map<String, Object> buildOfferAcceptance(Long userId)
+    {
+        QtInterviewApplication application = qtInterviewMapper.selectApplicationByUserId(userId);
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("ready", Boolean.FALSE);
+        data.put("acceptedDepartment", null);
+        if (application == null)
+        {
+            return data;
+        }
+        if ("ACCEPTED".equalsIgnoreCase(application.getJoinStatus())
+                && StringUtils.isNotEmpty(application.getOfferedDepartment()))
+        {
+            data.put("ready", Boolean.TRUE);
+            data.put("acceptedDepartment", application.getOfferedDepartment());
+            return data;
+        }
+        data.put("ready", Boolean.valueOf(isOfferAcceptanceReady(application)));
+        return data;
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = { CacheConstants.CACHE_QT_MY_APPLICATION, CacheConstants.CACHE_QT_MY_RESULTS,
+            CacheConstants.CACHE_QT_MY_PROFILE, CacheConstants.CACHE_QT_RECRUIT_STATISTICS,
+            CacheConstants.CACHE_QT_MEMBER_COHORTS }, allEntries = true)
+    public Map<String, Object> acceptOffer(Long userId, String department)
+    {
+        if (StringUtils.isEmpty(department))
+        {
+            throw new ServiceException("请选择要接受的部门");
+        }
+        department = department.trim().toUpperCase();
+        QtDictUtils.requireActiveDepartment(department, "department");
+        QtInterviewApplication owned = qtInterviewMapper.selectApplicationByUserId(userId);
+        if (owned == null || owned.getApplicationId() == null)
+        {
+            throw new ServiceException("未找到你的招新申请");
+        }
+        QtInterviewApplication application = qtInterviewMapper.selectApplicationByIdForUpdate(owned.getApplicationId());
+        if (application == null)
+        {
+            throw new ServiceException("未找到你的招新申请");
+        }
+        if ("ACCEPTED".equalsIgnoreCase(application.getJoinStatus()))
+        {
+            if (department.equals(application.getOfferedDepartment()))
+            {
+                Map<String, Object> ok = new HashMap<String, Object>();
+                ok.put("acceptedDepartment", application.getOfferedDepartment());
+                return ok;
+            }
+            throw new ServiceException("已接受其他部门，不能改选");
+        }
+        if (!isOfferAcceptanceReady(application))
+        {
+            throw new ServiceException("面试结果尚未全部确定，暂不可接受录用");
+        }
+        if (!department.equals(application.getFirstChoice()) && !department.equals(application.getSecondChoice()))
+        {
+            throw new ServiceException("只能接受本人志愿中的部门");
+        }
+        if (!isDepartmentRoundTwoPass(application, department))
+        {
+            throw new ServiceException("该部门未通过二面，不能接受录用");
+        }
+        application.setOfferedDepartment(department);
+        application.setApplyStatus("OFFERED");
+        application.setJoinStatus("ACCEPTED");
+        application.setUpdateBy(String.valueOf(userId));
+        qtInterviewMapper.updateApplicationAdminFields(application);
+        qtInterviewAdminService.convertToMember(application, String.valueOf(userId));
+        try
+        {
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            if (loginUser != null && StringUtils.isNotEmpty(loginUser.getToken()))
+            {
+                tokenService.delLoginUser(loginUser.getToken());
+            }
+            tokenService.revokeUserSessions(userId);
+            tokenService.clearRefreshCookieForCurrentResponse();
+        }
+        catch (Exception ignored)
+        {
+            // 转正已成功；清理会话失败不影响业务结果
+        }
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("acceptedDepartment", department);
+        return data;
+    }
+
+    private boolean isOfferAcceptanceReady(QtInterviewApplication application)
+    {
+        return isChoiceSettled(application, application.getFirstChoice())
+                && isChoiceSettled(application, application.getSecondChoice());
+    }
+
+    private boolean isChoiceSettled(QtInterviewApplication application, String department)
+    {
+        if (StringUtils.isEmpty(department))
+        {
+            return true;
+        }
+        QtInterviewRound roundOne = qtInterviewMapper.selectRoundByNo(1);
+        QtInterviewResult first = resultOf(application, roundOne, department);
+        if (!QtInterviewStatuses.isDecided(first))
+        {
+            return false;
+        }
+        if (!QtInterviewStatuses.isPass(first))
+        {
+            return true;
+        }
+        QtInterviewRound roundTwo = qtInterviewMapper.selectRoundByNo(2);
+        QtInterviewResult second = resultOf(application, roundTwo, department);
+        return QtInterviewStatuses.isDecided(second);
+    }
+
+    private boolean isDepartmentRoundTwoPass(QtInterviewApplication application, String department)
+    {
+        QtInterviewRound roundOne = qtInterviewMapper.selectRoundByNo(1);
+        if (!QtInterviewStatuses.isPass(resultOf(application, roundOne, department)))
+        {
+            return false;
+        }
+        QtInterviewRound roundTwo = qtInterviewMapper.selectRoundByNo(2);
+        return QtInterviewStatuses.isPass(resultOf(application, roundTwo, department));
+    }
+
+    private QtInterviewResult resultOf(QtInterviewApplication application, QtInterviewRound round, String department)
+    {
+        if (application == null || round == null || StringUtils.isEmpty(department))
+        {
+            return null;
+        }
+        return qtInterviewMapper.selectResultByAppRoundDept(application.getApplicationId(), round.getRoundId(),
+                department);
     }
 
     @Override

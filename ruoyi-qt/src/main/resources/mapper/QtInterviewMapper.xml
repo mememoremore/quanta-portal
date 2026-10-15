@@ -105,6 +105,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where a.application_id = #{applicationId}
     </select>
 
+    <select id="selectApplicationByIdForUpdate" resultMap="QtInterviewApplicationResult">
+        select a.application_id, a.user_id, a.real_name, a.gender, a.class_name, a.first_choice, a.second_choice, a.photo_url,
+               a.resume_url, a.resume_file_name, a.apply_status,
+               a.offered_department, a.join_status, a.final_status, a.notice_status,
+               a.create_by, a.create_time, a.update_by, a.update_time,
+               u.student_no, u.phonenumber, u.email, u.major, u.nick_name
+        from qt_interview_application a
+        left join sys_user u on a.user_id = u.user_id
+        where a.application_id = #{applicationId}
+        for update
+    </select>
+
     <insert id="insertInterviewApplication" parameterType="QtInterviewApplication" useGeneratedKeys="true" keyProperty="applicationId">
         insert into qt_interview_application
         (user_id, real_name, gender, class_name, first_choice, second_choice, photo_url, resume_url, resume_file_name,
@@ -528,5 +540,31 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             select 1 from sys_user_role
             where user_id = #{userId} and role_id = #{roleId}
         )
+    </insert>
+
+    <select id="selectNoticeStatus" resultType="java.lang.String">
+        select notice_status from qt_interview_notice
+        where application_id = #{applicationId} and department = #{department}
+        limit 1
+    </select>
+
+    <select id="selectNoticesByApplicationIds" resultType="java.util.HashMap">
+        select application_id as applicationId, department, notice_status as noticeStatus
+        from qt_interview_notice
+        where application_id in
+        <foreach collection="applicationIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <insert id="upsertNoticeSent">
+        insert into qt_interview_notice
+            (application_id, department, notice_status, create_by, create_time, update_by, update_time)
+        values
+            (#{applicationId}, #{department}, 'SENT', #{operator}, now(), #{operator}, now())
+        on duplicate key update
+            notice_status = 'SENT',
+            update_by = #{operator},
+            update_time = now()
     </insert>
 </mapper>

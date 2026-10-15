@@ -10,6 +10,12 @@ function hasPermission(account, permission) {
   return account.permissions.includes('*:*:*') || account.permissions.includes(permission)
 }
 
+export const refreshMock = {
+  mode: 'fail',
+  calls: 0,
+  token: '',
+}
+
 export const authHandlers = [
   {
     method: 'post',
@@ -46,6 +52,17 @@ export const authHandlers = [
       if (!account) return { code: 401, msg: '登录状态已失效' }
       const routes = mockRouters.filter((route) => hasPermission(account, route.meta.permission))
       return { code: 200, msg: '操作成功', data: routes }
+    },
+  },
+  {
+    method: 'post',
+    path: '/auth/refresh',
+    handle() {
+      refreshMock.calls += 1
+      if (refreshMock.mode === 'ok' && refreshMock.token) {
+        return { code: 200, msg: '操作成功', token: refreshMock.token, expiresIn: 900 }
+      }
+      return { code: 401, msg: '登录状态已过期，请重新登录' }
     },
   },
   {

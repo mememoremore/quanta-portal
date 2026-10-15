@@ -6,6 +6,7 @@ const REAL_AUTH_PATHS = new Set([
   '/getInfo',
   '/getRouters',
   '/logout',
+  '/auth/refresh',
   '/system/password/emailCode',
   '/system/password/reset',
 ])

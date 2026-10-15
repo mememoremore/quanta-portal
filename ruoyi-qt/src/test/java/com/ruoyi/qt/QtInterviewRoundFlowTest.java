@@ -195,16 +195,16 @@ class QtInterviewRoundFlowTest
     }
 
     @Test
-    void firstChoicePassConvertsImmediately()
+    void firstChoicePassOffersWithoutConverting()
     {
         loginAsCeo();
-        stubConvert();
         put(101L, FIRST, status("PASS"));
         put(102L, FIRST, scored("PENDING", 91));
         service.saveDecision(APP_ID, 2L, FIRST, "PASS", "ceo");
         assertEquals("OFFERED", application.getApplyStatus());
         assertEquals(FIRST, application.getOfferedDepartment());
-        verify(userService).updateUserProfile(any());
+        assertEquals("PENDING", application.getJoinStatus());
+        verify(userService, never()).updateUserProfile(any());
         verify(userService, never()).updateUser(any());
     }
 
@@ -224,10 +224,9 @@ class QtInterviewRoundFlowTest
     }
 
     @Test
-    void secondChoicePassConvertsWhenFirstIsOut()
+    void secondChoicePassOffersWhenFirstIsOutWithoutConverting()
     {
         loginAsCeo();
-        stubConvert();
         put(101L, FIRST, status("PASS"));
         put(101L, SECOND, status("PASS"));
         put(102L, FIRST, scored("OUT", 60));
@@ -235,16 +234,13 @@ class QtInterviewRoundFlowTest
         service.saveDecision(APP_ID, 2L, SECOND, "PASS", "ceo");
         assertEquals("OFFERED", application.getApplyStatus());
         assertEquals(SECOND, application.getOfferedDepartment());
-        ArgumentCaptor<SysUser> captor = ArgumentCaptor.forClass(SysUser.class);
-        verify(userService).updateUserProfile(captor.capture());
-        assertEquals(SECOND, captor.getValue().getMemberDepartment());
+        verify(userService, never()).updateUserProfile(any());
     }
 
     @Test
-    void dualPassKeepsFirstChoice()
+    void dualPassKeepsFirstChoiceProvisionalWithoutConverting()
     {
         loginAsCeo();
-        stubConvert();
         put(101L, FIRST, status("PASS"));
         put(101L, SECOND, status("PASS"));
         put(102L, FIRST, scored("PENDING", 80));
@@ -252,30 +248,29 @@ class QtInterviewRoundFlowTest
         service.saveDecision(APP_ID, 2L, FIRST, "PASS", "ceo");
         service.saveDecision(APP_ID, 2L, SECOND, "PASS", "ceo");
         assertEquals(FIRST, application.getOfferedDepartment());
-        ArgumentCaptor<SysUser> captor = ArgumentCaptor.forClass(SysUser.class);
-        verify(userService, times(2)).updateUserProfile(captor.capture());
-        assertEquals(FIRST, captor.getAllValues().get(1).getMemberDepartment());
+        verify(userService, never()).updateUserProfile(any());
     }
 
     @Test
-    void noticeRequiresQrForPassAndIsIdempotent()
+    void noticeRequiresQrForPassAndIsIdempotentPerDepartment()
     {
         loginAsCeo();
-        stubConvert();
         put(101L, FIRST, status("PASS"));
         put(102L, FIRST, scored("PASS", 90));
         when(interviewNotifier.departmentLabel(FIRST)).thenReturn("\u540e\u7aef\u90e8");
-        Map<String, Object> preview = service.previewNotice(APP_ID);
+        when(qtInterviewMapper.selectNoticeStatus(APP_ID, FIRST)).thenReturn(null);
+        Map<String, Object> preview = service.previewNotice(APP_ID, FIRST);
         String content = String.valueOf(preview.get("content"));
         assertEquals("Quanta \u540e\u7aef\u90e8\u5f55\u7528\u901a\u77e5", preview.get("subject"));
         assertEquals(FIRST, preview.get("offeredDepartment"));
+        assertEquals(FIRST, preview.get("department"));
         assertTrue(content.contains("\u540e\u7aef\u90e8"));
         assertTrue(content.contains("\u674e\u540c\u5b66"));
         assertTrue(content.contains("\u6b63\u5f0f\u52a0\u5165"));
         assertTrue(content.contains("\u53d1\u9001\u65f6\u5c06\u5728\u6b64\u5904\u663e\u793a\u7fa4\u4e8c\u7ef4\u7801"));
         assertFalse(content.contains("%u"));
         assertFalse(content.contains("cid:qrcode"));
-        ServiceException missingQr = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, null, "ceo"));
+        ServiceException missingQr = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, FIRST, null, "ceo"));
         assertTrue(missingQr.getMessage().contains("\u4e8c\u7ef4\u7801"));
 
         MultipartFile qr = mock(MultipartFile.class);
@@ -294,73 +289,49 @@ class QtInterviewRoundFlowTest
         try (MockedStatic<FileValidator> files = org.mockito.Mockito.mockStatic(FileValidator.class))
         {
             files.when(() -> FileValidator.validate(any(), any(), anyLong())).thenAnswer(invocation -> null);
-            Map<String, Object> sent = service.sendNotice(APP_ID, qr, "ceo");
+            Map<String, Object> sent = service.sendNotice(APP_ID, FIRST, qr, "ceo");
             assertEquals("SENT", sent.get("noticeStatus"));
             assertTrue(String.valueOf(sent.get("content")).contains("cid:qrcode"));
-            assertEquals("OFFERED", application.getApplyStatus());
-            assertEquals(FIRST, application.getOfferedDepartment());
-            ArgumentCaptor<SysUser> userCaptor = ArgumentCaptor.forClass(SysUser.class);
-            verify(userService).updateUserProfile(userCaptor.capture());
-            assertEquals("1", userCaptor.getValue().getIsQuantaMember());
-            assertEquals(FIRST, userCaptor.getValue().getMemberDepartment());
+            verify(qtInterviewMapper).upsertNoticeSent(APP_ID, FIRST, "ceo");
+            verify(userService, never()).updateUserProfile(any());
             verify(userService, never()).updateUser(any());
         }
-        application.setNoticeStatus("SENT");
-        ServiceException duplicate = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, qr, "ceo"));
+        when(qtInterviewMapper.selectNoticeStatus(APP_ID, FIRST)).thenReturn("SENT");
+        ServiceException duplicate = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, FIRST, qr, "ceo"));
         assertTrue(duplicate.getMessage().contains("\u91cd\u590d"));
     }
 
     @Test
-    void rejectNoticeDoesNotNeedQrAndFailedSendKeepsUnsent()
+    void outDepartmentCannotSendOfferNotice()
     {
         loginAsCeo();
         put(101L, FIRST, status("PASS"));
         put(102L, FIRST, scored("OUT", 55));
-        when(interviewNotifier.notifyApplicant(eq(USER_ID), any(), any(), any(), any(), any(), any())).thenReturn(false);
-        ServiceException failed = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, null, "ceo"));
-        assertTrue(failed.getMessage().contains("\u90ae\u4ef6"));
-        Map<String, Object> preview = service.previewNotice(APP_ID);
-        String content = String.valueOf(preview.get("content"));
-        assertEquals("Quanta \u62db\u65b0\u7ed3\u679c\u901a\u77e5", preview.get("subject"));
-        assertTrue(content.contains("\u674e\u540c\u5b66"));
-        assertFalse(content.contains("%u"));
-        assertFalse(content.contains("<img"));
-        assertFalse("SENT".equalsIgnoreCase(application.getNoticeStatus()));
-        verify(qtInterviewMapper, never()).updateApplicationAdminFields(any());
+        ServiceException failed = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, FIRST, null, "ceo"));
+        assertTrue(failed.getMessage().contains("\u4e8c\u9762\u901a\u8fc7") || failed.getMessage().contains("\u5f55\u7528"));
+        verify(interviewNotifier, never()).notifyApplicant(anyLong(), any(), any(), any(), any(), any(), any());
         verify(userService, never()).updateUserProfile(any());
-        verify(userService, never()).updateUser(any());
     }
 
     @Test
-    void noticeUsesSecondChoiceTemplateWhenFirstIsOut()
+    void noticeUsesRequestedDepartmentTemplateWhenBothPass()
     {
         loginAsCeo();
         put(101L, FIRST, status("PASS"));
         put(101L, SECOND, status("PASS"));
         put(102L, FIRST, scored("OUT", 60));
         put(102L, SECOND, scored("PASS", 88));
-        Map<String, Object> preview = service.previewNotice(APP_ID);
-        assertEquals("Quanta \u4ea7\u54c1\u90e8\u5f55\u7528\u901a\u77e5", preview.get("subject"));
-        assertEquals(SECOND, preview.get("offeredDepartment"));
-        assertTrue(String.valueOf(preview.get("content")).contains("\u4ea7\u54c1\u90e8"));
-        assertFalse(String.valueOf(preview.get("content")).contains("\u540e\u7aef\u90e8"));
-        assertFalse(String.valueOf(preview.get("content")).contains("%u"));
-    }
+        Map<String, Object> secondPreview = service.previewNotice(APP_ID, SECOND);
+        assertEquals("Quanta \u4ea7\u54c1\u90e8\u5f55\u7528\u901a\u77e5", secondPreview.get("subject"));
+        assertEquals(SECOND, secondPreview.get("offeredDepartment"));
+        assertTrue(String.valueOf(secondPreview.get("content")).contains("\u4ea7\u54c1\u90e8"));
+        assertFalse(String.valueOf(secondPreview.get("content")).contains("\u540e\u7aef\u90e8"));
 
-    @Test
-    void noticeUsesFirstChoiceTemplateWhenBothPass()
-    {
-        loginAsCeo();
-        put(101L, FIRST, status("PASS"));
-        put(101L, SECOND, status("PASS"));
         put(102L, FIRST, scored("PASS", 80));
-        put(102L, SECOND, scored("PASS", 99));
-        Map<String, Object> preview = service.previewNotice(APP_ID);
-        assertEquals("Quanta \u540e\u7aef\u90e8\u5f55\u7528\u901a\u77e5", preview.get("subject"));
-        assertEquals(FIRST, preview.get("offeredDepartment"));
-        assertTrue(String.valueOf(preview.get("content")).contains("\u6b63\u5f0f\u52a0\u5165\u540e\u7aef\u90e8"));
-        assertFalse(String.valueOf(preview.get("content")).contains("\u4ea7\u54c1\u90e8\u9762\u8bd5"));
-        assertFalse(String.valueOf(preview.get("content")).contains("%u"));
+        Map<String, Object> firstPreview = service.previewNotice(APP_ID, FIRST);
+        assertEquals("Quanta \u540e\u7aef\u90e8\u5f55\u7528\u901a\u77e5", firstPreview.get("subject"));
+        assertEquals(FIRST, firstPreview.get("offeredDepartment"));
+        assertTrue(String.valueOf(firstPreview.get("content")).contains("\u6b63\u5f0f\u52a0\u5165\u540e\u7aef\u90e8"));
     }
 
     @Test
@@ -452,7 +423,7 @@ class QtInterviewRoundFlowTest
                 Set.of("qt:interview:admin:evaluate", "qt:interview:admin:offer"), "qt_mgmt");
         put(101L, FIRST, status("PASS"));
         put(102L, FIRST, scored("PASS", 90));
-        ServiceException error = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, null, "vp"));
+        ServiceException error = assertThrows(ServiceException.class, () -> service.sendNotice(APP_ID, FIRST, null, "vp"));
         assertTrue(error.getMessage().contains("\u672c\u90e8\u95e8"));
         verify(interviewNotifier, never()).notifyApplicant(anyLong(), any(), any(), any(), any(), any(), any());
     }
@@ -482,8 +453,8 @@ class QtInterviewRoundFlowTest
                 QtInterviewDecisionBody.class);
         Method score = QtInterviewAdminController.class.getMethod("score", Long.class, String.class,
                 QtInterviewScoreBody.class);
-        Method preview = QtInterviewAdminController.class.getMethod("noticePreview", Long.class);
-        Method notice = QtInterviewAdminController.class.getMethod("notice", Long.class, MultipartFile.class);
+        Method preview = QtInterviewAdminController.class.getMethod("noticePreview", Long.class, String.class);
+        Method notice = QtInterviewAdminController.class.getMethod("notice", Long.class, String.class, MultipartFile.class);
         Method interviewTime = QtInterviewAdminController.class.getMethod("interviewTime", Long.class, Long.class,
                 QtInterviewTimeBody.class);
         assertTrue(decision.getAnnotation(PreAuthorize.class).value().contains("qt:interview:admin:offer"));

@@ -6,14 +6,15 @@ import {
 describe('learning material rules', () => {
   it('locks a department manager to their own category', () => {
     expect(getMaterialUploadPolicy({
-      roles: ['qt_mgmt'], permissions: ['qt:material:add'], departmentCode: 'FRONTEND',
+      roles: ['qt_mgmt'], permissions: [], departmentCode: 'FRONTEND',
     })).toMatchObject({ allowed: true, canChoose: false, category: 'FRONTEND' })
     expect(materialCategoryLabel('FRONTEND')).toBe('前端')
   })
 
   it('lets CEO choose and rejects unknown department', () => {
-    expect(getMaterialUploadPolicy({ roles: ['ceo'], permissions: ['qt:material:add'] }).canChoose).toBe(true)
-    expect(getMaterialUploadPolicy({ roles: ['qt_mgmt'], permissions: ['qt:material:add'] }).allowed).toBe(false)
+    expect(getMaterialUploadPolicy({ roles: ['ceo'], permissions: [] }).canChoose).toBe(true)
+    expect(getMaterialUploadPolicy({ roles: ['qt_mgmt'], permissions: [] }).allowed).toBe(false)
+    expect(getMaterialUploadPolicy({ roles: ['qt_member'], permissions: ['qt:material:add'] }).allowed).toBe(false)
   })
 
   it('matches the backend-supported file types and 20 MiB limit', () => {

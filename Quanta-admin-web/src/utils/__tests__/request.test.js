@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getInfo, login } from '@/api/auth'
-import { removeToken, setToken } from '@/utils/token'
+import { getMetricsLatest } from '@/api/metrics'
+import { refreshMock } from '@/mock/handlers/auth'
+import { getToken, removeToken, setToken } from '@/utils/token'
 import { setUnauthorizedHandler } from '@/utils/unauthorized'
 import { isMockApiRequest, shouldUseMock } from '@/config/mock-api'
 
@@ -48,6 +50,36 @@ describe('request and mock adapter', () => {
     expect(shouldUseMock({ url: '/register', method: 'post' }, false, routes)).toBe(false)
     expect(shouldUseMock({ url: '/register/emailCode', method: 'post' }, false, routes)).toBe(false)
     expect(shouldUseMock({ url: '/getInfo', method: 'get' }, false, routes)).toBe(false)
+    expect(shouldUseMock({ url: '/auth/refresh', method: 'post' }, false, routes)).toBe(false)
+  })
+
+  it('refreshes once for concurrent 401 responses and retries the original request', async () => {
+    refreshMock.mode = 'ok'
+    refreshMock.token = 'mock-token-admin'
+    setToken('invalid-token')
+
+    const [first, second] = await Promise.all([getInfo(), getInfo()])
+
+    expect(first.user.userName).toBe('admin')
+    expect(second.user.userName).toBe('admin')
+    expect(refreshMock.calls).toBe(1)
+    expect(getToken()).toBe('mock-token-admin')
+  })
+
+  it('logs out when refresh fails and does not refresh a 403', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    setToken('invalid-token')
+    await expect(getInfo()).rejects.toMatchObject({ code: 401 })
+    expect(handler).toHaveBeenCalledOnce()
+    expect(refreshMock.calls).toBe(1)
+
+    handler.mockClear()
+    refreshMock.calls = 0
+    setToken('mock-token-viewer')
+    await expect(getMetricsLatest()).rejects.toMatchObject({ code: 403 })
+    expect(refreshMock.calls).toBe(0)
+    expect(handler).not.toHaveBeenCalled()
   })
 
   it('does not treat a real backend failure as a reason to use mock', () => {
