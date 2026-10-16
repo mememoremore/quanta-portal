@@ -26,9 +26,9 @@ import com.ruoyi.qt.domain.QtInterviewResult;
 import com.ruoyi.qt.domain.QtInterviewRound;
 import com.ruoyi.qt.domain.QtMemberRecord;
 import com.ruoyi.qt.mapper.QtCohortMapper;
-import com.ruoyi.qt.service.impl.QtInterviewNotifier;
 import com.ruoyi.qt.mapper.QtInterviewMapper;
 import com.ruoyi.qt.service.impl.QtInterviewAdminServiceImpl;
+import com.ruoyi.qt.service.impl.QtInterviewNotifier;
 import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
 
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * ??? offer() PASS ???????????????????OUT ????????
+ * 二面 offer() 只更新申请状态；转正由 convertToMember() 在新生接受录用后触发。
  */
 @ExtendWith(MockitoExtension.class)
 class QtInterviewOfferMemberTest
@@ -94,14 +94,10 @@ class QtInterviewOfferMemberTest
     }
 
     @Test
-    void offerPassConvertsFreshmanToMember()
+    void offerPassMarksApplicationOfferedWithoutConvertingToMember()
     {
         loginAsCeo();
         stubRoundTwoReady(DEPT);
-        when(userService.selectUserById(USER_ID)).thenReturn(freshmanUser());
-        when(roleService.selectRoleAll()).thenReturn(List.of(qtMemberRole()));
-        when(qtCohortMapper.selectCurrentCohort()).thenReturn(currentCohort());
-        when(qtCohortMapper.selectRecord(eq(USER_ID), eq(COHORT_ID))).thenReturn(null);
 
         QtInterviewOfferBody body = new QtInterviewOfferBody();
         body.setApplicationId(APP_ID);
@@ -110,54 +106,17 @@ class QtInterviewOfferMemberTest
 
         service.offer(body, "ceo_op");
 
-        ArgumentCaptor<SysUser> userCaptor = ArgumentCaptor.forClass(SysUser.class);
-        verify(userService, times(1)).updateUserProfile(userCaptor.capture());
-        SysUser updated = userCaptor.getValue();
-        assertEquals("1", updated.getIsQuantaMember());
-        assertEquals(DEPT, updated.getMemberDepartment());
+        ArgumentCaptor<QtInterviewApplication> appCaptor = ArgumentCaptor.forClass(QtInterviewApplication.class);
+        verify(qtInterviewMapper, times(1)).updateApplicationAdminFields(appCaptor.capture());
+        QtInterviewApplication updated = appCaptor.getValue();
+        assertEquals("OFFERED", updated.getApplyStatus());
+        assertEquals(DEPT, updated.getOfferedDepartment());
+        assertEquals("PENDING", updated.getJoinStatus());
+        verify(userService, never()).updateUserProfile(any());
         verify(userService, never()).updateUser(any());
-        verify(qtInterviewMapper, times(1)).insertUserRoleIfAbsent(eq(USER_ID), eq(QT_MEMBER_ROLE_ID));
-        ArgumentCaptor<QtMemberRecord> recordCaptor = ArgumentCaptor.forClass(QtMemberRecord.class);
-        verify(qtCohortMapper, times(1)).insertRecord(recordCaptor.capture());
-        QtMemberRecord record = recordCaptor.getValue();
-        assertEquals(USER_ID, record.getUserId());
-        assertEquals(COHORT_ID, record.getCohortId());
-        assertEquals("MEMBER", record.getRoleCategory());
-        assertEquals("ACTIVE", record.getMemberStatus());
-        assertEquals("0", record.getRetainFlag());
-        assertNotNull(record.getJoinTime());
-        verify(interviewNotifier, never()).notifyApplicant(anyLong(), any(), any());
-    }
-
-    @Test
-    void offerPassWithExistingRecordReactivatesAsMember()
-    {
-        loginAsCeo();
-        stubRoundTwoReady(DEPT);
-        when(userService.selectUserById(USER_ID)).thenReturn(freshmanUser());
-        when(roleService.selectRoleAll()).thenReturn(List.of(qtMemberRole()));
-        when(qtCohortMapper.selectCurrentCohort()).thenReturn(currentCohort());
-        QtMemberRecord existing = new QtMemberRecord();
-        existing.setRecordId(99L);
-        existing.setUserId(USER_ID);
-        existing.setCohortId(COHORT_ID);
-        existing.setRoleCategory("FRESHMAN");
-        existing.setMemberStatus("INACTIVE");
-        when(qtCohortMapper.selectRecord(eq(USER_ID), eq(COHORT_ID))).thenReturn(existing);
-
-        QtInterviewOfferBody body = new QtInterviewOfferBody();
-        body.setApplicationId(APP_ID);
-        body.setDecision("PASS");
-        body.setDepartment(DEPT);
-
-        service.offer(body, "ceo_op");
-
+        verify(qtInterviewMapper, never()).insertUserRoleIfAbsent(anyLong(), anyLong());
         verify(qtCohortMapper, never()).insertRecord(any());
-        ArgumentCaptor<QtMemberRecord> recordCaptor = ArgumentCaptor.forClass(QtMemberRecord.class);
-        verify(qtCohortMapper, times(1)).updateRecord(recordCaptor.capture());
-        QtMemberRecord updated = recordCaptor.getValue();
-        assertEquals("MEMBER", updated.getRoleCategory());
-        assertEquals("ACTIVE", updated.getMemberStatus());
+        verify(interviewNotifier, never()).notifyApplicant(anyLong(), any(), any());
     }
 
     @Test
@@ -181,20 +140,71 @@ class QtInterviewOfferMemberTest
     }
 
     @Test
-    void offerPassWithoutCurrentCohortStillUpdatesUserAndRole()
+    void convertToMemberConvertsFreshmanToMember()
     {
-        loginAsCeo();
-        stubRoundTwoReady(DEPT);
+        when(userService.selectUserById(USER_ID)).thenReturn(freshmanUser());
+        when(roleService.selectRoleAll()).thenReturn(List.of(qtMemberRole()));
+        when(qtCohortMapper.selectCurrentCohort()).thenReturn(currentCohort());
+        when(qtCohortMapper.selectRecord(eq(USER_ID), eq(COHORT_ID))).thenReturn(null);
+
+        QtInterviewApplication application = application("OFFERED");
+        application.setOfferedDepartment(DEPT);
+        service.convertToMember(application, "ceo_op");
+
+        ArgumentCaptor<SysUser> userCaptor = ArgumentCaptor.forClass(SysUser.class);
+        verify(userService, times(1)).updateUserProfile(userCaptor.capture());
+        SysUser updated = userCaptor.getValue();
+        assertEquals("1", updated.getIsQuantaMember());
+        assertEquals(DEPT, updated.getMemberDepartment());
+        verify(userService, never()).updateUser(any());
+        verify(qtInterviewMapper, times(1)).insertUserRoleIfAbsent(eq(USER_ID), eq(QT_MEMBER_ROLE_ID));
+        ArgumentCaptor<QtMemberRecord> recordCaptor = ArgumentCaptor.forClass(QtMemberRecord.class);
+        verify(qtCohortMapper, times(1)).insertRecord(recordCaptor.capture());
+        QtMemberRecord record = recordCaptor.getValue();
+        assertEquals(USER_ID, record.getUserId());
+        assertEquals(COHORT_ID, record.getCohortId());
+        assertEquals("MEMBER", record.getRoleCategory());
+        assertEquals("ACTIVE", record.getMemberStatus());
+        assertEquals("0", record.getRetainFlag());
+        assertNotNull(record.getJoinTime());
+    }
+
+    @Test
+    void convertToMemberWithExistingRecordReactivatesAsMember()
+    {
+        when(userService.selectUserById(USER_ID)).thenReturn(freshmanUser());
+        when(roleService.selectRoleAll()).thenReturn(List.of(qtMemberRole()));
+        when(qtCohortMapper.selectCurrentCohort()).thenReturn(currentCohort());
+        QtMemberRecord existing = new QtMemberRecord();
+        existing.setRecordId(99L);
+        existing.setUserId(USER_ID);
+        existing.setCohortId(COHORT_ID);
+        existing.setRoleCategory("FRESHMAN");
+        existing.setMemberStatus("INACTIVE");
+        when(qtCohortMapper.selectRecord(eq(USER_ID), eq(COHORT_ID))).thenReturn(existing);
+
+        QtInterviewApplication application = application("OFFERED");
+        application.setOfferedDepartment(DEPT);
+        service.convertToMember(application, "ceo_op");
+
+        verify(qtCohortMapper, never()).insertRecord(any());
+        ArgumentCaptor<QtMemberRecord> recordCaptor = ArgumentCaptor.forClass(QtMemberRecord.class);
+        verify(qtCohortMapper, times(1)).updateRecord(recordCaptor.capture());
+        QtMemberRecord updated = recordCaptor.getValue();
+        assertEquals("MEMBER", updated.getRoleCategory());
+        assertEquals("ACTIVE", updated.getMemberStatus());
+    }
+
+    @Test
+    void convertToMemberWithoutCurrentCohortStillUpdatesUserAndRole()
+    {
         when(userService.selectUserById(USER_ID)).thenReturn(freshmanUser());
         when(roleService.selectRoleAll()).thenReturn(List.of(qtMemberRole()));
         when(qtCohortMapper.selectCurrentCohort()).thenReturn(null);
 
-        QtInterviewOfferBody body = new QtInterviewOfferBody();
-        body.setApplicationId(APP_ID);
-        body.setDecision("PASS");
-        body.setDepartment(DEPT);
-
-        service.offer(body, "ceo_op");
+        QtInterviewApplication application = application("OFFERED");
+        application.setOfferedDepartment(DEPT);
+        service.convertToMember(application, "ceo_op");
 
         verify(userService, times(1)).updateUserProfile(any());
         verify(userService, never()).updateUser(any());
@@ -203,19 +213,16 @@ class QtInterviewOfferMemberTest
     }
 
     @Test
-    void offerPassMissingUserThrows()
+    void convertToMemberMissingUserThrows()
     {
-        loginAsCeo();
-        stubRoundTwoReady(DEPT);
         when(userService.selectUserById(USER_ID)).thenReturn(null);
 
-        QtInterviewOfferBody body = new QtInterviewOfferBody();
-        body.setApplicationId(APP_ID);
-        body.setDecision("PASS");
-        body.setDepartment(DEPT);
+        QtInterviewApplication application = application("OFFERED");
+        application.setOfferedDepartment(DEPT);
 
-        ServiceException error = assertThrows(ServiceException.class, () -> service.offer(body, "ceo_op"));
-        assertTrue(error.getMessage().contains("\u65e0\u6cd5\u8f6c\u4e3a\u5854\u5458"));
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.convertToMember(application, "ceo_op"));
+        assertTrue(error.getMessage().contains("无法转为塔员"));
         verify(userService, never()).updateUser(any());
         verify(userService, never()).updateUserProfile(any());
     }
@@ -255,11 +262,13 @@ class QtInterviewOfferMemberTest
         QtInterviewResult round1 = new QtInterviewResult();
         round1.setResultStatus("PASS");
         when(qtInterviewMapper.selectResultByAppRoundDept(eq(APP_ID), eq(101L), eq(department))).thenReturn(round1);
+        when(qtInterviewMapper.selectResultByAppRoundDept(eq(APP_ID), eq(101L), eq("PRODUCT"))).thenReturn(null);
         QtInterviewResult round2 = new QtInterviewResult();
         round2.setResultId(200L);
         round2.setResultStatus("PENDING");
         round2.setScore(new BigDecimal("88"));
         when(qtInterviewMapper.selectResultByAppRoundDept(eq(APP_ID), eq(102L), eq(department))).thenReturn(round2);
+        when(qtInterviewMapper.selectResultByAppRoundDept(eq(APP_ID), eq(102L), eq("PRODUCT"))).thenReturn(null);
     }
 
     private QtInterviewRound roundOne()

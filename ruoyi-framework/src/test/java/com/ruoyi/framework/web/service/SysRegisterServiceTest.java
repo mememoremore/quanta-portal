@@ -7,6 +7,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.RegisterBody;
 import com.ruoyi.common.core.redis.RedisCache;
@@ -16,6 +17,7 @@ import com.ruoyi.system.service.ISysUserService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,9 +66,12 @@ class SysRegisterServiceTest
     {
         RegisterBody body = registration("20241003193", "freshman@example.com");
         body.setUsername("client-supplied-name");
+        body.setEmailCode("123456");
         when(userService.checkUserNameUnique(any())).thenReturn(true);
         when(userService.checkStudentNoUnique("20241003193")).thenReturn(true);
         when(userService.checkEmailUnique(any())).thenReturn(true);
+        when(redisCache.getCacheObject(eq(CacheConstants.REGISTER_EMAIL_CODE_KEY + "freshman@example.com")))
+                .thenReturn("123456|20241003193");
         when(userService.registerUser(any())).thenReturn(false);
 
         String message = registerService.register(body);
