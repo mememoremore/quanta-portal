@@ -7,7 +7,7 @@ import App from './App.vue'
 import { pinia } from './stores'
 import router from './router'
 import { registerDirectives } from './directives'
-import { startRumIfConsented } from './observability/rum'
+import { startRum } from './observability/rum'
 
 import './styles/reset.css'
 import './styles/variables.css'
@@ -15,7 +15,7 @@ import './styles/global.css'
 import './styles/portal-variables.css'
 import './styles/portal.css'
 
-startRumIfConsented()
+startRum()
 
 const app = createApp(App)
 

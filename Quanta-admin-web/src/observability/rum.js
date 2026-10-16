@@ -1,4 +1,3 @@
-const RUM_CONSENT_KEY = 'quanta:rum-consent:v1'
 const RUM_SCRIPT_URL = 'https://sdk.rum.aliyuncs.com/v2/browser-sdk.js'
 const PRODUCTION_HOST = 'www.quantacenter.com'
 const SENSITIVE_FIELDS = new Set([
@@ -12,26 +11,6 @@ export function isRumAvailable({
   endpoint = import.meta.env.VITE_ARMS_RUM_ENDPOINT,
 } = {}) {
   return production === true && hostname === PRODUCTION_HOST && /^https:\/\//.test(endpoint || '')
-}
-
-export function readRumConsent(storage) {
-  try {
-    const choice = (storage ?? globalThis.localStorage)?.getItem(RUM_CONSENT_KEY)
-    return choice === 'accepted' || choice === 'declined' ? choice : null
-  } catch {
-    return null
-  }
-}
-
-export function saveRumConsent(choice, storage) {
-  if (choice !== 'accepted' && choice !== 'declined') return false
-  try {
-    const resolvedStorage = storage ?? globalThis.localStorage
-    resolvedStorage?.setItem(RUM_CONSENT_KEY, choice)
-    return true
-  } catch {
-    return false
-  }
 }
 
 export function stripUrlDetails(value) {
@@ -65,9 +44,8 @@ export function loadRumSdk({
   endpoint = import.meta.env.VITE_ARMS_RUM_ENDPOINT,
   windowRef = globalThis.window,
   documentRef = globalThis.document,
-  storage,
 } = {}) {
-  if (!isRumAvailable({ production, hostname, endpoint }) || readRumConsent(storage) !== 'accepted') {
+  if (!isRumAvailable({ production, hostname, endpoint })) {
     return false
   }
   if (!windowRef || !documentRef?.body || documentRef.querySelector('script[data-quanta-rum]')) {
@@ -111,6 +89,6 @@ export function loadRumSdk({
   return true
 }
 
-export function startRumIfConsented() {
+export function startRum() {
   return loadRumSdk()
 }

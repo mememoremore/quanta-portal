@@ -1,7 +1,10 @@
 <script setup>
 import { Filter } from '@element-plus/icons-vue'
-import PermissionButton from '@/components/PermissionButton.vue'
 import StatusTag from '@/components/StatusTag.vue'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+import MemberActions from './MemberActions.vue'
+
+const isMobile = useMediaQuery('(max-width: 600px)')
 
 defineProps({
   rows: { type: Array, default: () => [] },
@@ -35,7 +38,48 @@ function statusOf(status) {
 </script>
 
 <template>
+  <section v-if="isMobile" v-loading="loading" class="member-mobile" aria-label="成员列表">
+    <div class="member-mobile__filters">
+      <label>
+        <span>部门</span>
+        <ElSelect :model-value="department" placeholder="全部部门" aria-label="筛选部门" @update:model-value="emit('department-change', $event)">
+          <ElOption label="全部部门" value="" />
+          <ElOption v-for="option in departments" :key="option.value" :label="option.label" :value="option.value" />
+        </ElSelect>
+      </label>
+      <label>
+        <span>角色</span>
+        <ElSelect :model-value="roleCategory" placeholder="全部角色" aria-label="筛选角色" @update:model-value="emit('role-change', $event)">
+          <ElOption label="全部角色" value="" />
+          <ElOption v-for="option in roleOptions" :key="option.value" :label="option.label" :value="option.value" />
+        </ElSelect>
+      </label>
+    </div>
+    <p v-if="!rows.length" class="member-mobile__empty">{{ loading ? '正在加载成员…' : '暂无符合条件的成员' }}</p>
+    <article v-for="row in rows" :key="row.id" class="member-mobile__card">
+      <header>
+        <h2>{{ row.name }}</h2>
+        <StatusTag :type="statusOf(row.status).type">{{ statusOf(row.status).label }}</StatusTag>
+      </header>
+      <dl>
+        <div><dt>部门</dt><dd>{{ row.department }}</dd></div>
+        <div><dt>角色</dt><dd>{{ row.title }}</dd></div>
+        <div><dt>届数</dt><dd>第{{ row.cohort }}届</dd></div>
+        <div><dt>联系电话</dt><dd>{{ row.phoneMasked }}</dd></div>
+        <div class="member-mobile__joined"><dt>加入时间</dt><dd>{{ row.joinedAt }}</dd></div>
+      </dl>
+      <MemberActions
+        :member="row"
+        :is-current-cohort="isCurrentCohort"
+        :pending-action="pendingAction"
+        @remove="emit('remove', $event)"
+        @reset-password="emit('reset-password', $event)"
+        @retain="emit('retain', $event)"
+      />
+    </article>
+  </section>
   <ElTable
+    v-else
     v-loading="loading"
     class="member-table"
     :data="rows"
@@ -119,42 +163,14 @@ function statusOf(status) {
     </ElTableColumn>
     <ElTableColumn label="操作" min-width="190" fixed="right">
       <template #default="{ row }">
-        <div class="member-table__actions">
-          <template v-if="isCurrentCohort">
-            <PermissionButton
-              size="small"
-              type="danger"
-              class="member-table__action member-table__delete"
-              :permissions="'system:user:remove'"
-              :roles="'ceo'"
-              :loading="pendingAction === `remove-${row.id}`"
-              @click="emit('remove', row)"
-            >
-              删除
-            </PermissionButton>
-            <PermissionButton
-              size="small"
-              class="member-table__action member-table__reset"
-              :permissions="'system:user:resetPwd'"
-              :roles="'ceo'"
-              :loading="pendingAction === `reset-${row.id}`"
-              @click="emit('reset-password', row)"
-            >
-              重置密码
-            </PermissionButton>
-          </template>
-          <PermissionButton
-            v-else-if="row.canRetain"
-            size="small"
-            class="member-table__action member-table__retain"
-            :permissions="'qt:member:retain'"
-            :loading="pendingAction === `retain-${row.id}`"
-            @click="emit('retain', row)"
-          >
-            是否留任
-          </PermissionButton>
-          <span v-else class="member-table__empty-action">—</span>
-        </div>
+        <MemberActions
+          :member="row"
+          :is-current-cohort="isCurrentCohort"
+          :pending-action="pendingAction"
+          @remove="emit('remove', $event)"
+          @reset-password="emit('reset-password', $event)"
+          @retain="emit('retain', $event)"
+        />
       </template>
     </ElTableColumn>
   </ElTable>
@@ -256,7 +272,25 @@ function statusOf(status) {
   color: rgb(29, 78, 216);
 }
 
-.member-table__empty-action {
+:deep(.member-table__empty-action) {
   color: #b8bdc9;
 }
+
+.member-mobile { min-width: 0; padding: 16px; }
+.member-mobile__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.member-mobile__filters label { display: grid; min-width: 0; gap: 8px; color: var(--quanta-text-secondary); font-size: 12px; }
+.member-mobile__filters .el-select { width: 100%; min-width: 0; }
+.member-mobile__card { margin-top: 14px; padding: 16px; border: 1px solid var(--quanta-border); border-radius: 16px; background: #fff; }
+.member-mobile__card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.member-mobile__card h2 { min-width: 0; margin: 0; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.member-mobile__card header .status-tag { flex-shrink: 0; }
+.member-mobile__card dl { display: grid; margin: 14px 0 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+.member-mobile__card dl > div { min-width: 0; }
+.member-mobile__card dt { margin-bottom: 4px; color: var(--quanta-text-secondary); font-size: 11px; }
+.member-mobile__card dd { margin: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.member-mobile__joined { grid-column: 1 / -1; }
+.member-mobile .member-table__actions { margin-top: 14px; flex-wrap: wrap; }
+.member-mobile .member-table__actions:empty { display: none; }
+.member-mobile :deep(.member-table__action.el-button) { min-height: 36px; padding: 8px 12px; font-size: 12px; border-radius: 9px; }
+.member-mobile__empty { margin: 28px 0; color: var(--quanta-text-secondary); text-align: center; line-height: 1.6; }
 </style>

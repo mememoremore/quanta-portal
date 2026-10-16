@@ -21,6 +21,7 @@ export function mapForumPost(row = {}) {
     authorName: row.authorName || row.nickName || '塔员',
     authorDepartment: row.authorDepartment || row.department || '',
     commentCount: Number(row.commentCount || 0),
+    viewCount: row.viewCount != null && row.viewCount !== '' && Number.isSafeInteger(Number(row.viewCount)) && Number(row.viewCount) >= 0 ? Number(row.viewCount) : null,
     createdAt: row.createdAt || row.createTime || '',
   }
 }

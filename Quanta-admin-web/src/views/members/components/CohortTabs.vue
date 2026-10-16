@@ -59,4 +59,9 @@ defineEmits(['update:modelValue'])
   border-color: var(--quanta-primary);
   box-shadow: 0 4px 10px rgba(255, 173, 47, 0.2);
 }
+
+@media (max-width: 600px) {
+  .cohort-tabs { padding: 12px 16px; gap: 8px; scroll-padding-inline: 16px; }
+  .cohort-tabs__item { min-height: 36px; flex: 0 0 auto; }
+}
 </style>

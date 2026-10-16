@@ -11,7 +11,7 @@ defineProps({
       <h2>你好，{{ name }}！</h2>
       <p>连接成员、招新与日常事务，让每一次协作都有迹可循。</p>
     </div>
-    <img class="welcome-banner__mark" :src="'/quanta-logo.jpg'" alt="" />
+    <img class="welcome-banner__mark" :src="'/quanta-logo-small.jpg'" alt="" />
   </section>
 </template>
 
@@ -65,5 +65,13 @@ defineProps({
   object-fit: cover;
   border-radius: 44px;
   transform: rotate(-7deg);
+}
+
+@media (max-width: 600px) {
+  .welcome-banner { min-height: 0; padding: 24px; border-radius: 20px; }
+  .welcome-banner__copy { min-width: 0; }
+  .welcome-banner h2 { font-size: 26px; overflow-wrap: anywhere; }
+  .welcome-banner p { line-height: 1.7; overflow-wrap: anywhere; }
+  .welcome-banner__mark { right: -26px; width: 140px; height: 140px; opacity: .08; }
 }
 </style>

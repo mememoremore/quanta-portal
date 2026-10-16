@@ -31,10 +31,6 @@
 
 .freshman-home__mark {
   display: grid;
-  color: var(--portal-orange);
-  font-size: clamp(150px, 20vw, 280px);
-  font-weight: 900;
-  line-height: 0.8;
   opacity: 0.9;
   place-items: center;
   transform: rotate(-8deg);

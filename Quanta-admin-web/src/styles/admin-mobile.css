@@ -82,13 +82,7 @@
     overscroll-behavior: contain;
   }
   .page-card { border-radius: 16px; }
-  .app-layout .dashboard-view__stats,
   .app-layout .metrics-view__stats { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .app-layout .dashboard-view .welcome-banner { min-height: 0; padding: 24px; }
-  .app-layout .dashboard-view .welcome-banner__copy { min-width: 0; }
-  .app-layout .dashboard-view .welcome-banner p { overflow-wrap: anywhere; line-height: 1.6; }
-  .app-layout .dashboard-view .welcome-banner h2 { font-size: 26px; }
-  .dashboard-view__error,
   .metrics-view__error { flex-wrap: wrap; gap: 8px; }
   .recruitment-card__toolbar,
   .members-card__toolbar,

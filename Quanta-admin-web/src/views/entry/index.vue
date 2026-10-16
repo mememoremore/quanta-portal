@@ -1,5 +1,5 @@
 <script setup>
-import quantaLogoUrl from '@/assets/quanta-logo.jpg'
+const quantaLogoUrl = '/quanta-logo-small.jpg'
 
 const entries = [
   {

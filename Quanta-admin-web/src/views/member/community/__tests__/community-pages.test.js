@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import CommunityFeed from '../index.vue'
 import CommunityEditor from '../editor.vue'
 import { createForumPost, listForumPosts, uploadForumImage } from '@/api/portal/forum'
@@ -29,9 +29,12 @@ const stubs = {
   ElOption: { props: ['label', 'value'], template: '<option :value="value">{{ label }}</option>' },
 }
 
+enableAutoUnmount(afterEach)
+
 describe('member community pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     listForumPosts.mockResolvedValue({ rows: [{ postId: 7, title: '项目讨论', authorName: '小王', category: 'PROJECT', commentCount: 2 }], total: 1 })
   })
 
@@ -42,6 +45,9 @@ describe('member community pages', () => {
     await wrapper.findAll('[role="tab"]')[1].trigger('click')
     await flushPromises()
     expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10, scope: 'mine' })
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+    expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10 })
   })
 
   it('filters the feed by category without changing the current scope', async () => {

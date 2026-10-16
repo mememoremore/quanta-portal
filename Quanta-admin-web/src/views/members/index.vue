@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import PermissionButton from '@/components/PermissionButton.vue'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 import {
   getMemberCohorts,
   getMemberList,
@@ -28,6 +29,7 @@ const retainVisible = ref(false)
 const selectedRetainMember = ref(null)
 const pendingAction = ref('')
 const total = ref(0)
+const isMobile = useMediaQuery('(max-width: 600px)')
 let requestSequence = 0
 
 const query = reactive({
@@ -243,7 +245,7 @@ onMounted(initialize)
 
       <div v-if="!loading && !loadFailed" class="members-card__footer">
         <ElButton v-if="hasFilters && total === 0" link @click="clearFilters">清空筛选条件</ElButton>
-        <span v-else></span>
+        <span v-else class="members-card__mobile-total">共 {{ total }} 位成员</span>
         <ElPagination
           v-if="total > query.pageSize"
           background
@@ -252,6 +254,7 @@ onMounted(initialize)
           :current-page="query.pageNum"
           :page-size="query.pageSize"
           :total="total"
+          :pager-count="isMobile ? 5 : 7"
           @current-change="changePage"
         />
       </div>

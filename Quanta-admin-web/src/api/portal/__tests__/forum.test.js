@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { request } from '@/utils/request'
-import { createForumComment, createForumPost, getForumPost, listForumComments, listForumPosts, uploadForumImage } from '../forum'
+import { createForumComment, createForumPost, getForumPost, listForumComments, listForumPosts, mapForumPost, uploadForumImage } from '../forum'
 
 vi.mock('@/utils/request', () => ({ request: vi.fn() }))
 
 describe('member forum API contract', () => {
+  it('uses the server viewCount and does not invent a count for old responses', () => {
+    expect(mapForumPost({ viewCount: '23' }).viewCount).toBe(23)
+    expect(mapForumPost({ viewCount: 0 }).viewCount).toBe(0)
+    expect(mapForumPost({}).viewCount).toBeNull()
+    expect(mapForumPost({ viewCount: -1 }).viewCount).toBeNull()
+  })
   beforeEach(() => request.mockReset())
 
   it('loads paginated posts and comments with the expected routes', async () => {

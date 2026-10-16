@@ -2,9 +2,17 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElOption, ElSelect } from 'element-plus'
+import 'element-plus/theme-chalk/base.css'
+import 'element-plus/theme-chalk/el-select.css'
+import 'element-plus/theme-chalk/el-option.css'
+import 'element-plus/theme-chalk/el-option-group.css'
+import 'element-plus/theme-chalk/el-popper.css'
+import 'element-plus/theme-chalk/el-scrollbar.css'
+import 'element-plus/theme-chalk/el-tag.css'
 import { useUserStore } from '@/stores/user'
 import { createForumPost, FORUM_CATEGORIES, getForumPost, updateForumPost, uploadForumImage } from '@/api/portal/forum'
-import { markdownToHtml } from './markdown'
+import MarkdownContent from './MarkdownContent.vue'
+import { useForumDraft } from './draft'
 import { prepareForumImage } from './image-upload'
 import './community.css'
 
@@ -23,10 +31,11 @@ const errorMessage = ref('')
 const editAuthorized = ref(false)
 const fileInput = ref(null)
 const textArea = ref(null)
-const preview = computed(() => markdownToHtml(content.value))
+const draft = useForumDraft({ userId: () => userStore.user?.userId, postId: () => route.params.postId, title, category, content })
+const draftStatus = draft.status
 
 onMounted(async () => {
-  if (!editing.value) return
+  if (!editing.value) { draft.initialize(); return }
   loading.value = true
   try {
     const post = await getForumPost(route.params.postId)
@@ -38,6 +47,7 @@ onMounted(async () => {
     category.value = post.category
     content.value = post.content
     editAuthorized.value = true
+    draft.initialize()
   } catch (error) {
     errorMessage.value = error.message || '帖子加载失败'
   } finally {
@@ -87,10 +97,12 @@ async function save() {
       ? await updateForumPost(route.params.postId, payload)
       : await createForumPost(payload)
     if (!Number.isFinite(post.postId)) throw new Error('保存成功，但服务端未返回帖子编号')
+    draft.clear()
     ElMessage.success(editing.value ? '帖子已更新' : '帖子已发布')
     await router.replace(`/member/community/${post.postId}`)
   } catch (error) {
     errorMessage.value = error.message || '保存失败，请稍后重试'
+    draft.flush()
   } finally {
     saving.value = false
   }
@@ -107,7 +119,7 @@ async function save() {
       <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }}</p>
       <div class="community-editor__fields">
         <label class="community-field"><span>标题 <small>最多 80 字</small></span><input v-model="title" maxlength="80" placeholder="给讨论起个清晰的标题" /></label>
-        <label class="community-field"><span>话题</span><ElSelect v-model="category" class="community-category-select" popper-class="community-category-popper" aria-label="帖子分类"><ElOption v-for="item in FORUM_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" /></ElSelect></label>
+        <div class="community-field"><span>话题</span><ElSelect v-model="category" class="community-category-select" popper-class="community-category-popper" aria-label="帖子分类"><ElOption v-for="item in FORUM_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" /></ElSelect></div>
       </div>
       <div class="community-editor__body-label"><strong>正文</strong><span class="community-editor__desktop-hint">Markdown 编辑 · 右侧同步预览</span><span class="community-editor__mobile-hint">Markdown 编辑 · 切换查看预览</span></div>
       <div class="community-editor__composer">
@@ -125,12 +137,11 @@ async function save() {
           <div class="community-editor__pane" :class="{ 'is-mobile-hidden': activePane !== 'edit' }"><div class="community-editor__pane-title"><strong>编辑</strong><span>Markdown</span></div><textarea ref="textArea" v-model="content" maxlength="20000" placeholder="写下你的想法。支持 Markdown、代码块和正文图片…" aria-label="帖子正文"></textarea></div>
           <div class="community-editor__pane community-editor__preview" :class="{ 'is-mobile-hidden': activePane !== 'preview' }">
             <div class="community-editor__pane-title"><strong>预览</strong><span>发布后的效果</span></div>
-            <!-- markdownToHtml escapes raw HTML and rejects unsafe URLs. -->
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <div v-if="content.trim()" class="community-markdown" v-html="preview"></div><div v-else class="community-editor__placeholder">写下正文后，这里会显示排版效果。</div>
+            <MarkdownContent v-if="content.trim()" :source="content" /><div v-else class="community-editor__placeholder">写下正文后，这里会显示排版效果。</div>
           </div>
         </div>
       </div>
+      <p v-if="draftStatus" class="community-draft-status" role="status">{{ draftStatus }}</p>
       <div class="community-editor__footer"><span>{{ content.length }} / 20000 字 · 原图 20 MB 内，上传图 5 MB 内</span><div><RouterLink class="member-secondary-button" to="/member/community">取消</RouterLink><button class="member-primary-button" type="button" :disabled="saving || loading || uploading || (editing && !editAuthorized)" @click="save">{{ saving ? '保存中…' : editing ? '保存修改' : '发布帖子' }}</button></div></div>
     </div>
   </section>

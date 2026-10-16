@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from '@/components/BrandLogo.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createClothingOrder, getClothingItems } from '@/api/portal/clothing'
@@ -56,7 +57,7 @@ onMounted(loadItems)
       <div class="member-clothing-grid">
         <button v-for="item in items" :key="item.itemId" type="button" class="member-clothing-card portal-card" :class="{ 'is-selected': selectedItem?.itemId === item.itemId }" @click="selectItem(item)">
           <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`${item.itemName}效果图`" />
-          <div v-else class="member-clothing-card__placeholder" aria-hidden="true">Q</div>
+          <div v-else class="member-clothing-card__placeholder" aria-hidden="true"><BrandLogo :size="72" decorative /></div>
           <span>{{ item.itemName }}</span><strong>{{ item.priceLabel }}</strong>
         </button>
       </div>

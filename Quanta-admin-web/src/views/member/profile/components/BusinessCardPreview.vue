@@ -1,10 +1,11 @@
 <script setup>
+import BrandLogo from '@/components/BrandLogo.vue'
 defineProps({ card: { type: Object, required: true } })
 </script>
 
 <template>
   <article class="business-card-preview">
-    <div class="business-card-preview__brand"><span>Q</span><strong>QUANTA</strong></div>
+    <div class="business-card-preview__brand"><BrandLogo :size="34" decorative /><strong>QUANTA</strong></div>
     <div class="business-card-preview__identity">
       <p>{{ card.department || 'Quanta Laboratory' }}</p>
       <h2>{{ card.name || 'Quanta 成员' }}</h2>

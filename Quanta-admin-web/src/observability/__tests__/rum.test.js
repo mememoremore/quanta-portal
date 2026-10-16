@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   isRumAvailable,
   loadRumSdk,
-  readRumConsent,
-  saveRumConsent,
   sanitizeRumEvent,
   stripUrlDetails,
 } from '../rum'
@@ -14,7 +12,7 @@ afterEach(() => {
   delete window.__rum
 })
 
-describe('ARMS RUM consent and loader', () => {
+describe('ARMS RUM automatic production loader', () => {
   it('only enables production on the real site with an endpoint', () => {
     expect(isRumAvailable({ production: true, hostname: 'www.quantacenter.com', endpoint })).toBe(true)
     expect(isRumAvailable({ production: false, hostname: 'www.quantacenter.com', endpoint })).toBe(false)
@@ -22,22 +20,18 @@ describe('ARMS RUM consent and loader', () => {
     expect(isRumAvailable({ production: true, hostname: 'www.quantacenter.com', endpoint: '' })).toBe(false)
   })
 
-  it('stores accepted or declined consent without treating missing storage as consent', () => {
-    expect(readRumConsent(localStorage)).toBe(null)
-    saveRumConsent('accepted', localStorage)
-    expect(readRumConsent(localStorage)).toBe('accepted')
-    saveRumConsent('declined', localStorage)
-    expect(readRumConsent(localStorage)).toBe('declined')
-  })
-
-  it('does not download the SDK outside production or before consent', () => {
+  it('does not download the SDK outside production or without a configured endpoint', () => {
     expect(loadRumSdk({ production: false, hostname: 'www.quantacenter.com', endpoint })).toBe(false)
-    expect(loadRumSdk({ production: true, hostname: 'www.quantacenter.com', endpoint })).toBe(false)
+    expect(loadRumSdk({ production: true, hostname: 'www.quantacenter.com', endpoint: '' })).toBe(false)
     expect(document.querySelector('script[data-quanta-rum]')).toBe(null)
   })
 
+  it('starts automatically even if the old consent setting was declined', () => {
+    localStorage.setItem('quanta:rum-consent:v1', 'declined')
+    expect(loadRumSdk({ production: true, hostname: 'www.quantacenter.com', endpoint })).toBe(true)
+  })
+
   it('sets exact ARMS config before adding a single async CDN script', () => {
-    saveRumConsent('accepted', localStorage)
     const options = { production: true, hostname: 'www.quantacenter.com', endpoint }
     expect(loadRumSdk(options)).toBe(true)
     const script = document.querySelector('script[data-quanta-rum]')
@@ -64,7 +58,6 @@ describe('ARMS RUM consent and loader', () => {
   })
 
   it('allows a retry if the CDN script fails without affecting the page', () => {
-    saveRumConsent('accepted', localStorage)
     const options = { production: true, hostname: 'www.quantacenter.com', endpoint }
     expect(loadRumSdk(options)).toBe(true)
     document.querySelector('script[data-quanta-rum]').dispatchEvent(new Event('error'))

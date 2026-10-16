@@ -81,4 +81,14 @@ onMounted(loadStats)
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
 }
+
+@media (max-width: 900px) {
+  .dashboard-view { min-width: 0; width: 100%; }
+  .dashboard-view__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .dashboard-view__stats { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 16px; }
+  .dashboard-view__error { flex-wrap: wrap; gap: 8px; }
+}
 </style>

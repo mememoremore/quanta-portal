@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import BrandLogo from '@/components/BrandLogo.vue'
 import { getPublishedActivities } from '@/api/portal/activities'
 import { getMyApplication } from '@/api/portal/recruitment'
 
@@ -35,7 +36,7 @@ onMounted(loadHome)
         <p>Quanta 是一个由学生共同建设的数字创新社群。</p>
         <RouterLink class="portal-primary-button freshman-home__cta" to="/freshman/recruitment">加入我们</RouterLink>
       </div>
-      <div class="freshman-home__mark" aria-hidden="true">Q</div>
+      <div class="freshman-home__mark" aria-hidden="true"><BrandLogo :size="128" decorative /></div>
     </div>
 
     <p v-if="errorMessage" class="freshman-feedback is-error" role="alert">{{ errorMessage }}</p>

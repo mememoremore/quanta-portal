@@ -84,4 +84,10 @@ defineProps({
   color: #7e8597;
   font-size: 13px;
 }
+
+@media (max-width: 600px) {
+  .stat-card { min-width: 0; min-height: 106px; padding: 20px; gap: 16px; }
+  .stat-card > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+  .stat-card__icon { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; }
+}
 </style>

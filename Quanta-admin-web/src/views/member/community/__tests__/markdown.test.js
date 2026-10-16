@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { markdownImagePreviews, markdownToHtml } from '../markdown'
 
 describe('forum Markdown renderer', () => {
+  it('highlights YAML and its yml alias and includes a safe copy-code control', () => {
+    for (const language of ['yaml', 'yml']) {
+      const html = markdownToHtml('```' + language + '\non:\n  push:\n    branches: [main]\n```')
+      expect(html).toContain('hljs-attr')
+      expect(html).toContain('data-copy-code')
+      expect(html).toContain('复制代码')
+    }
+    expect(markdownToHtml('```\npermissions:\n  contents: read\n```')).toContain('hljs-')
+  })
   it('renders headings, code fences, links and images', () => {
     const html = markdownToHtml('# 标题\n\n```js\nconst a = 1\n```\n\n![图](https://example.com/a.png)\n\n[资料](https://example.com)')
     expect(html).toContain('<h1>标题</h1>')

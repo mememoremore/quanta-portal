@@ -1,12 +1,13 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 const router = useRouter()
 </script>
 
 <template>
   <main class="error-page">
-    <div class="error-page__logo">Q</div>
+    <BrandLogo :size="56" />
     <p class="error-page__code">403</p>
     <h1>暂时没有访问权限</h1>
     <p>当前账号无法打开这个页面。如果你认为这是配置错误，请联系管理员。</p>

@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import quantaLogoUrl from '@/assets/quanta-logo.jpg'
+const quantaLogoUrl = '/quanta-logo-small.jpg'
 
 defineProps({
   link: { type: Boolean, default: false },

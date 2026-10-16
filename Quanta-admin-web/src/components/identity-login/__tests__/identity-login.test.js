@@ -22,7 +22,7 @@ describe('shared login identity elements', () => {
     expect(wrapper.attributes('href')).toBe('/')
     expect(wrapper.text()).toContain('Quanta')
     expect(wrapper.text()).toContain('DIGITAL CLUB')
-    expect(wrapper.get('img[alt="Quanta 社团 Logo"]').attributes('src')).toContain('quanta-logo.jpg')
+    expect(wrapper.get('img[alt="Quanta 社团 Logo"]').attributes('src')).toContain('quanta-logo-small.jpg')
   })
 
   it('renders a non-link dark brand on the admin mobile card', () => {

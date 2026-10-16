@@ -40,6 +40,8 @@
   justify-content: space-between;
 }
 
+.members-card__mobile-total { display: none; }
+
 .retain-confirm-dialog p {
   margin: 0;
   color: #60687a;
@@ -62,4 +64,14 @@
     padding-right: 18px;
     padding-left: 18px;
   }
+}
+
+@media (max-width: 600px) {
+  .members-card__toolbar { min-height: 0; padding: 16px; align-items: stretch; flex-wrap: wrap; gap: 12px; }
+  .members-card__toolbar .member-search { width: 100%; }
+  .members-card__toolbar .quanta-primary-button.el-button { min-height: 36px; }
+  .members-card__footer { min-height: 0; padding: 16px; align-items: center; flex-direction: column; gap: 12px; }
+  .members-card__mobile-total { display: block; color: var(--quanta-text-secondary); }
+  .members-card__footer .el-pagination { max-width: 100%; margin: 0 auto; }
+  .members-card__footer .el-pagination.is-background .el-pager li.is-active { background: var(--quanta-primary); color: #fff; }
 }

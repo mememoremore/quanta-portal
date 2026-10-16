@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
@@ -38,6 +38,25 @@ function mountTable(permissions, roles = []) {
 }
 
 describe('MemberTable', () => {
+  it('shows full member details on mobile and forwards the permitted action', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+    let wrapper
+    try {
+      wrapper = mountTable(['system:user:remove', 'system:user:resetPwd'], ['ceo'])
+      await wrapper.vm.$nextTick()
+      const card = wrapper.get('.member-mobile__card')
+      for (const text of ['测试成员', '研发部', '经理', '第21届', '138****0000', '2024-09-01', '在职']) {
+        expect(card.text()).toContain(text)
+      }
+      expect(wrapper.find('.member-table').exists()).toBe(false)
+      await card.get('.member-table__reset').trigger('click')
+      expect(wrapper.emitted('reset-password')[0]).toEqual([row])
+    } finally {
+      wrapper?.unmount()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('shows current-cohort high-risk actions to the CEO', () => {
     const wrapper = mountTable(['system:user:remove', 'system:user:resetPwd'], ['ceo'])
     expect(wrapper.text()).toContain('删除')

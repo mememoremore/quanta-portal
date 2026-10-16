@@ -2,7 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import PortalUserMenu from './PortalUserMenu.vue'
-import quantaLogoUrl from '@/assets/quanta-logo.jpg'
+import { ElDrawer } from 'element-plus'
+import 'element-plus/theme-chalk/base.css'
+import 'element-plus/theme-chalk/el-drawer.css'
+import 'element-plus/theme-chalk/el-overlay.css'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+const quantaLogoUrl = '/quanta-logo-small.jpg'
 
 const props = defineProps({
   audience: { type: String, required: true },
@@ -10,6 +15,7 @@ const props = defineProps({
 
 const route = useRoute()
 const mobileOpen = ref(false)
+const isMobile = useMediaQuery('(max-width: 760px)')
 const portalName = computed(() => (props.audience === 'freshman' ? '新生门户' : '塔员门户'))
 const navigation = computed(() => props.audience === 'freshman'
   ? [
@@ -33,6 +39,7 @@ const navigation = computed(() => props.audience === 'freshman'
 watch(() => route.fullPath, () => {
   mobileOpen.value = false
 })
+watch(isMobile, (value) => { if (!value) mobileOpen.value = false })
 </script>
 
 <template>
@@ -64,16 +71,23 @@ watch(() => route.fullPath, () => {
         </button>
       </div>
     </div>
-    <nav
-      v-if="mobileOpen"
-      id="portal-mobile-navigation"
-      class="portal-header__mobile-panel"
-      data-testid="portal-mobile-panel"
-      :aria-label="`${portalName}移动导航`"
+    <ElDrawer
+      v-model="mobileOpen"
+      class="portal-mobile-drawer"
+      direction="rtl"
+      size="min(280px, calc(100vw - 56px))"
+      :with-header="false"
+      :title="`${portalName}导航`"
+      append-to-body
     >
-      <RouterLink v-for="item in navigation" :key="item.to" :to="item.to">
-        {{ item.label }}
-      </RouterLink>
-    </nav>
+      <div class="portal-mobile-drawer__heading">
+        <img :src="quantaLogoUrl" alt="Quanta" />
+        <div><strong>Quanta</strong><span>{{ portalName }}</span></div>
+        <button type="button" aria-label="关闭导航菜单" @click="mobileOpen = false">×</button>
+      </div>
+      <nav id="portal-mobile-navigation" class="portal-mobile-drawer__links" data-testid="portal-mobile-panel" :aria-label="`${portalName}移动导航`">
+        <RouterLink v-for="item in navigation" :key="item.to" :to="item.to" @click="mobileOpen = false">{{ item.label }}</RouterLink>
+      </nav>
+    </ElDrawer>
   </header>
 </template>

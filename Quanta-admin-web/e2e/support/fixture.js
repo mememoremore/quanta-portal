@@ -24,6 +24,7 @@ const accounts = {
 
 const adminRoutes = [
   { path: '/dashboard', name: 'Dashboard', component: 'dashboard/index', meta: { title: '控制台', permission: 'qt:dashboard:stats' } },
+  { path: '/members', name: 'Members', component: 'members/index', meta: { title: '成员管理', permission: 'qt:member:list' } },
   { path: '/recruitment', name: 'Recruitment', component: 'recruitment/index', meta: { title: '招新管理', permission: 'qt:interview:admin:list' } },
 ]
 
@@ -50,6 +51,7 @@ const forumPost = {
   authorName: '塔员同学',
   authorDepartment: '产品部',
   commentCount: 2,
+  viewCount: 23,
   createdAt: '2026-10-14 12:00:00',
 }
 
@@ -99,14 +101,38 @@ function responseFor(request, state) {
   if (method === 'GET' && path === '/qt/activity/list') return { code: 200, rows: [], total: 0 }
   if (method === 'GET' && path === '/system/notice/listTop') return { code: 200, data: [], unreadCount: 0 }
   if (method === 'GET' && path === '/qt/forum/posts') {
-    const rows = url.searchParams.get('category') && url.searchParams.get('category') !== forumPost.category
+    const post = state.forumPost
+    const rows = url.searchParams.get('category') && url.searchParams.get('category') !== post.category
       ? []
-      : url.searchParams.get('scope') === 'mine' && account?.user.userId !== forumPost.authorId
+      : url.searchParams.get('scope') === 'mine' && account?.user.userId !== post.authorId
         ? []
-        : [forumPost]
+        : [post]
     return { code: 200, rows, total: rows.length }
   }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: state.forumPost }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows: [], total: 0 }
+  if ((method === 'POST' && path === '/qt/forum/posts') || (method === 'PUT' && /^\/qt\/forum\/posts\/\d+$/.test(path))) {
+    if (state.forumPublishFailure) return { code: 500, msg: '模拟发布失败' }
+    state.forumPost = { ...state.forumPost, ...request.postDataJSON(), postId: method === 'POST' ? 2 : state.forumPost.postId }
+    return { code: 200, data: state.forumPost }
+  }
   if (method === 'GET' && path === '/dashboard/stats') return { code: 200, data: { members: 12, resumesToday: 3, pendingPayments: 0 } }
+  if (method === 'GET' && path === '/qt/member/cohorts') {
+    return { code: 200, data: [21, 20, 19, 18, 17, 16].map((value) => ({ value, label: `第${value}届`, isCurrent: value === 21 })) }
+  }
+  if (method === 'GET' && path === '/qt/member/list') {
+    const departments = [{ value: 'PRODUCT', label: '产品部' }, { value: 'BACKEND', label: '后端部' }]
+    const rows = Array.from({ length: 22 }, (_, index) => ({
+      userId: index + 1, nickName: `测试成员${index + 1}`, memberDepartment: index % 2 ? 'BACKEND' : 'PRODUCT',
+      memberTitle: '经理', roleCategory: 'MANAGER', memberCohort: String(parseInt(url.searchParams.get('memberCohort') || '21', 10)),
+      phonenumber: '138****0000', joinTime: '2026-09-23 18:30:00', memberStatus: 'active',
+    })).filter((row) => (!url.searchParams.get('nickName') || row.nickName.includes(url.searchParams.get('nickName')))
+      && (!url.searchParams.get('memberDepartment') || row.memberDepartment === url.searchParams.get('memberDepartment'))
+      && (!url.searchParams.get('roleCategory') || row.roleCategory === url.searchParams.get('roleCategory')))
+    const page = Number(url.searchParams.get('pageNum') || 1)
+    const pageSize = Number(url.searchParams.get('pageSize') || 10)
+    return { code: 200, rows: rows.slice((page - 1) * pageSize, page * pageSize), total: rows.length, departments }
+  }
   if (method === 'GET' && path === '/qt/interview/admin/statistics') {
     return { code: 200, data: { submissions: 1, firstPassed: 0, secondPassed: 0, joined: 0 } }
   }
@@ -123,7 +149,7 @@ function responseFor(request, state) {
 
 export const test = base.extend({
   api: async ({ page }, use) => {
-    const state = { recruitmentOpen: false, applyResult: 'success', candidateCount: 1, unexpected: [], requests: [] }
+    const state = { recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumPublishFailure: false, unexpected: [], requests: [] }
     await page.route('**/*', async (route) => {
       const request = route.request()
       const url = new URL(request.url())
@@ -165,4 +191,6 @@ export async function loginAs(page, audience) {
   await page.getByPlaceholder(audience === 'admin' || audience === 'viewer' ? '用户名' : audience === 'freshman' ? '请输入学号' : '请输入学号或用户名').fill(identity.username)
   await page.getByPlaceholder(audience === 'admin' || audience === 'viewer' ? '密码' : '请输入密码', { exact: true }).fill('demo-password')
   await page.getByRole('button', { name: identity.button, exact: true }).click()
+  const destination = audience === 'freshman' ? '/freshman/home' : audience === 'member' ? '/member/home' : '/admin/dashboard'
+  await expect(page).toHaveURL(new URL(destination, appOrigin).href)
 }

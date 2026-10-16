@@ -36,7 +36,7 @@
 .community-editor__fields { display: grid; grid-template-columns: minmax(0, 2.7fr) minmax(220px, 1fr); gap: 24px; }
 .community-field { display: grid; min-width: 0; align-content: start; gap: 12px; font-size: 15px; font-weight: 750; }
 .community-field small { margin-left: 8px; color: var(--portal-muted); font-size: 12px; font-weight: 400; }
-.community-field input { box-sizing: border-box; width: 100%; min-height: 54px; padding: 12px 18px; border: 1px solid var(--portal-line); border-radius: 15px; background: #fff; color: var(--portal-ink); font: inherit; font-size: 16px; font-weight: 500; }
+.community-field > input { box-sizing: border-box; width: 100%; min-height: 54px; padding: 12px 18px; border: 1px solid var(--portal-line); border-radius: 15px; background: #fff; color: var(--portal-ink); font: inherit; font-size: 16px; font-weight: 500; }
 .community-category-select.el-select { width: 100%; --el-color-primary: var(--portal-orange-strong); }
 .community-category-select .el-select__wrapper { min-height: 54px; padding: 10px 17px; border: 1px solid var(--portal-line); border-radius: 15px; box-shadow: none; transition: border-color .18s, box-shadow .18s; }
 .community-category-select .el-select__wrapper:hover { border-color: #ffb185; }
@@ -46,7 +46,11 @@
 .community-category-popper .el-select-dropdown__item { height: 42px; margin: 3px 6px; padding: 0 13px; border-radius: 9px; color: var(--portal-ink-soft); font-size: 14px; line-height: 42px; }
 .community-category-popper .el-select-dropdown__item.is-hovering { background: var(--portal-orange-soft); }
 .community-category-popper .el-select-dropdown__item.is-selected { background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-weight: 750; }
-.community-field :focus-visible, .community-editor textarea:focus-visible, .community-comments textarea:focus-visible { border-color: var(--portal-orange); outline: 3px solid rgb(255 103 0 / 14%); }
+.community-field > input:focus-visible, .community-editor textarea:focus-visible, .community-comments textarea:focus-visible { border-color: var(--portal-orange); outline: 3px solid rgb(255 103 0 / 14%); }
+.community-draft-status { margin: 0; color: var(--portal-muted); font-size: 12px; }
+.community-code-block { min-width: 0; max-width: 100%; }
+.community-code-block__toolbar { display: none; }
+.community-detail__views { margin: 12px 0 0; color: var(--portal-muted); font-size: 12px; }
 .community-editor__body-label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
 .community-editor__body-label strong { font-size: 17px; }
 .community-editor__body-label span { color: var(--portal-muted); font-size: 14px; }
@@ -81,10 +85,10 @@
 .community-markdown th { background: #f7f8fa; color: var(--portal-ink); }
 .community-markdown img { display: block; max-width: 100%; max-height: 560px; margin: 18px 0; border-radius: 12px; object-fit: contain; }
 .community-markdown pre { max-width: 100%; overflow-x: auto; padding: 17px; border-radius: 12px; background: #202124; color: #f7f7f8; line-height: 1.6; overflow-wrap: normal; }
-.community-markdown pre code { white-space: pre; overflow-wrap: normal; }
+.community-markdown pre code { display: block; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; white-space: pre; overflow-wrap: normal; }
 .community-markdown .hljs-keyword, .community-markdown .hljs-selector-tag, .community-markdown .hljs-built_in { color: #ff9b75; }
-.community-markdown .hljs-string, .community-markdown .hljs-attr, .community-markdown .hljs-addition { color: #a8d69b; }
-.community-markdown .hljs-title, .community-markdown .hljs-function, .community-markdown .hljs-section { color: #8bc4ff; }
+.community-markdown .hljs-string, .community-markdown .hljs-addition { color: #a8d69b; }
+.community-markdown .hljs-title, .community-markdown .hljs-function, .community-markdown .hljs-section, .community-markdown .hljs-attr { color: #8bc4ff; }
 .community-markdown .hljs-comment, .community-markdown .hljs-quote { color: #a0a4ad; }
 .community-markdown .hljs-number, .community-markdown .hljs-literal { color: #d3b6ff; }
 .community-markdown :not(pre) > code { padding: 2px 5px; border-radius: 5px; background: #f2f3f5; }
@@ -146,4 +150,50 @@
   .community-editor__footer > div > * { justify-content: center; flex: 1; }
   .community-comment.is-reply { margin-left: 20px; }
   .community-comment__header time { width: 100%; margin-left: 0; }
+  .community-detail__post.portal-card, .community-detail .community-comments.portal-card { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .community-detail__post h1 { overflow-wrap: anywhere; }
+  .community-detail__author { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 4px 12px; }
+  .community-detail__author .community-avatar { grid-column: 1; grid-row: 1 / span 3; }
+  .community-detail__author > strong, .community-detail__author > span:not(.community-avatar), .community-detail__author > time { grid-column: 2; min-width: 0; overflow-wrap: anywhere; }
+  .community-detail__author time { margin-left: 0; font-size: 12px; }
+  .community-code-block { margin: 18px 0; overflow: hidden; border-radius: 12px; background: #202124; }
+  .community-code-block__toolbar { display: flex; min-height: 42px; padding: 6px 12px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #3d4046; color: #c3c6cf; font-size: 12px; }
+  .community-code-copy { min-height: 32px; padding: 5px 10px; border: 1px solid #555b67; border-radius: 7px; background: #30343b; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+  .community-markdown .community-code-block pre { margin: 0; border-radius: 0; }
+
+  /* Mobile reading layout only; keep the desktop article/card rules above. */
+  .community-detail { gap: 20px; }
+  .community-detail > .community-back { margin: 0; padding: 4px 0; font-size: 13px; }
+  .community-detail__post.portal-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 12px; }
+  .community-detail__post > .community-tag { grid-column: 1; grid-row: 1; align-self: center; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+  .community-detail__post > h1 { grid-column: 1 / -1; grid-row: 2; margin: 0; font-size: clamp(27px, 7vw, 32px); line-height: 1.4; letter-spacing: -.025em; }
+  .community-detail__post > .community-detail__views { grid-column: 2; grid-row: 1; margin: 0; align-self: center; font-size: 12px; white-space: nowrap; }
+  .community-detail__post > .community-detail__author { grid-column: 1 / -1; grid-row: 3; padding-bottom: 20px; border-bottom: 1px solid var(--portal-line); grid-template-columns: 40px minmax(0, 1fr); gap: 3px 11px; }
+  .community-detail__author .community-avatar { width: 40px; height: 40px; border-radius: 13px; }
+  .community-detail__author > strong { font-size: 14px; line-height: 1.5; }
+  .community-detail__author > span:not(.community-avatar) { font-size: 12px; line-height: 1.5; }
+  .community-detail__author > time { padding-top: 3px; font-size: 11px; line-height: 1.5; }
+  .community-detail__post > .community-markdown { grid-column: 1 / -1; grid-row: 4; margin-top: 4px; font-size: 16px; line-height: 1.9; }
+  .community-detail .community-markdown p { margin: 0 0 18px; }
+  .community-detail .community-markdown :is(h1, h2, h3, h4, h5, h6) { margin: 28px 0 14px; font-weight: 800; letter-spacing: -.015em; line-height: 1.5; }
+  .community-detail .community-markdown > :first-child { margin-top: 0; }
+  .community-detail .community-markdown h1 { font-size: 27px; }
+  .community-detail .community-markdown h2 { font-size: 23px; }
+  .community-detail .community-markdown h3 { font-size: 20px; }
+  .community-detail .community-markdown :is(h4, h5, h6) { font-size: 17px; }
+  .community-detail .community-markdown :is(ul, ol) { margin-block: 16px; padding-left: 1.6em; }
+  .community-detail .community-markdown li { margin-block: 6px; }
+  .community-detail .community-markdown img { margin: 20px auto; border: 1px solid var(--portal-line); border-radius: 12px; }
+  .community-detail .community-markdown :not(pre) > code { padding: 3px 6px; background: #fff0e6; color: #b94c00; font-size: .88em; }
+  .community-detail .community-markdown table { margin: 20px 0; background: #fff; font-size: 14px; }
+  .community-detail .community-code-block { margin: 22px 0; box-shadow: 0 6px 18px rgb(24 28 35 / 5%); }
+  .community-detail .community-code-block pre { padding: 18px 16px; line-height: 1.75; }
+  .community-detail__post > .community-detail__actions { grid-column: 1 / -1; grid-row: 5; margin-top: 0; padding-top: 18px; flex-wrap: wrap; gap: 10px; }
+  .community-detail__actions > * { display: inline-flex; min-height: 44px; justify-content: center; align-items: center; flex: 1; font-size: 13px; }
+  .community-detail .community-comments.portal-card { margin-top: 4px; padding-top: 24px; border-top: 1px solid var(--portal-line); }
+  .community-detail .community-comments h2 { display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px; font-size: 21px; }
+  .community-detail .community-comments h2 small { font-size: 12px; font-weight: 500; }
+  .community-detail .community-comments textarea { min-height: 112px; padding: 14px; background: #fff; border-radius: 14px; font-size: 14px; }
+  .community-detail .community-comments__form > div:last-child { gap: 12px; }
+  .community-detail .community-comments__empty { padding: 24px 0; font-size: 13px; }
 }

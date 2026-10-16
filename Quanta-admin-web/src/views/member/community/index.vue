@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { FORUM_CATEGORIES, listForumPosts, forumCategoryLabel } from '@/api/portal/forum'
-import { markdownImagePreviews } from './markdown'
+import { markdownImagePreviews } from './image-previews'
 import './community.css'
 
 const posts = ref([])
@@ -34,8 +34,9 @@ async function load() {
 }
 
 function chooseScope(value) {
-  if (scope.value === value) return
-  scope.value = value
+  const next = value === 'mine' && scope.value === 'mine' ? 'latest' : value
+  if (scope.value === next) return
+  scope.value = next
   pageNum.value = 1
   load()
 }
@@ -93,7 +94,7 @@ onMounted(load)
             <RouterLink class="community-post-card__title" :to="`/member/community/${post.postId}`">{{ post.title }}</RouterLink>
             <p>{{ post.summary || '打开帖子查看完整内容与讨论。' }}</p>
             <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="`/member/community/${post.postId}`" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
-            <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><span>{{ post.commentCount }} 条评论</span></div>
+            <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><span>{{ post.commentCount }} 条评论</span><span v-if="post.viewCount != null">{{ post.viewCount }} 次浏览</span></div>
           </article>
         </div>
         <div v-else-if="!errorMessage" class="member-empty portal-card">{{ scope === 'mine' ? '你还没有发布帖子' : '还没有讨论，来发布第一篇帖子吧' }}</div>

@@ -75,7 +75,6 @@ body.portal-scroll-active {
 
 .portal-header__mobile-trigger { display: none; width: 42px; height: 42px; padding: 10px; border: 1px solid var(--portal-line); border-radius: 12px; background: #fff; cursor: pointer; }
 .portal-header__mobile-trigger span { display: block; height: 2px; margin-block: 4px; border-radius: 2px; background: var(--portal-ink); }
-.portal-header__mobile-panel { display: none; }
 
 .portal-focus-ring:focus-visible,
 .portal-layout a:focus-visible,
@@ -111,16 +110,22 @@ body.portal-scroll-active {
   .portal-user-menu__name, .portal-user-menu__chevron { display: none; }
   .portal-user-menu__trigger { padding-right: 5px; }
   .portal-header__mobile-trigger { display: block; }
-  .portal-header__mobile-panel { display: grid; width: min(100% - 28px, 680px); max-height: calc(100dvh - 86px); margin: 0 auto 14px; padding: 8px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--portal-line); border-radius: 16px; background: #fff; box-shadow: var(--portal-shadow-sm); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-  .portal-header__mobile-panel a { min-width: 0; padding: 12px; border-radius: 10px; color: var(--portal-ink-soft); font-size: 13px; font-weight: 650; text-align: center; text-decoration: none; }
-  .portal-header__mobile-panel a.router-link-active { background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
+  .portal-mobile-drawer.el-drawer { --el-drawer-padding-primary: 0; color: var(--portal-ink); }
+  .portal-mobile-drawer .el-drawer__body { padding: 0 16px max(24px, env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+  .portal-mobile-drawer__heading { display: flex; align-items: center; padding: max(24px, env(safe-area-inset-top)) 0 20px; border-bottom: 1px solid var(--portal-line); gap: 12px; }
+  .portal-mobile-drawer__heading img { width: 42px; height: 42px; border-radius: 12px; object-fit: contain; }
+  .portal-mobile-drawer__heading > div { display: grid; gap: 3px; }
+  .portal-mobile-drawer__heading strong { font-size: 20px; }
+  .portal-mobile-drawer__heading span { color: var(--portal-muted); font-size: 12px; }
+  .portal-mobile-drawer__heading button { width: 40px; height: 40px; margin-left: auto; border: 1px solid var(--portal-line); border-radius: 10px; background: #fff; color: var(--portal-ink); font-size: 26px; cursor: pointer; }
+  .portal-mobile-drawer__links { display: grid; gap: 5px; padding-top: 16px; }
+  .portal-mobile-drawer__links a { display: block; padding: 14px; border-radius: 10px; color: var(--portal-ink-soft); font-size: 15px; font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+  .portal-mobile-drawer__links a.router-link-active { background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
 }
 
 @media (max-width: 420px) {
   .portal-container,
-  .portal-header__inner,
-  .portal-header__mobile-panel { width: calc(100% - 24px); }
+  .portal-header__inner { width: calc(100% - 24px); }
 
   .portal-header__brand small { letter-spacing: .06em; }
-  .portal-header__mobile-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

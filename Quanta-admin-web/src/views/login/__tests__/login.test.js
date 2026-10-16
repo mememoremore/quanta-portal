@@ -39,7 +39,7 @@ describe('login view', () => {
   it('shows the Quanta brand and real backend development account', async () => {
     const { wrapper } = await mountLogin()
 
-    expect(wrapper.get('img[alt="Quanta 社团 Logo"]').attributes('src')).toContain('quanta-logo.jpg')
+    expect(wrapper.get('img[alt="Quanta 社团 Logo"]').attributes('src')).toContain('quanta-logo-small.jpg')
     expect(wrapper.text()).toContain('真实后端')
     expect(wrapper.text()).toContain('admin / admin123')
     expect(wrapper.text()).not.toContain('viewer / quanta123')

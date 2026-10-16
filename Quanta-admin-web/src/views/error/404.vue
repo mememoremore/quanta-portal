@@ -1,12 +1,13 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import BrandLogo from '@/components/BrandLogo.vue'
 
 const router = useRouter()
 </script>
 
 <template>
   <main class="error-page">
-    <div class="error-page__logo">Q</div>
+    <BrandLogo :size="56" />
     <p class="error-page__code">404</p>
     <h1>页面走丢了</h1>
     <p>你访问的地址不存在，或者对应功能还没有加入系统。</p>

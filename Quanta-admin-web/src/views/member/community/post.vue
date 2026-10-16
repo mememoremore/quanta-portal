@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { createForumComment, deleteForumComment, deleteForumPost, forumCategoryLabel, getForumPost, listForumComments, updateForumComment } from '@/api/portal/forum'
 import { groupForumComments, canManageForumContent } from './comment-tree'
-import { markdownToHtml } from './markdown'
+import MarkdownContent from './MarkdownContent.vue'
 import './community.css'
 
 const route = useRoute()
@@ -27,7 +27,6 @@ const replyTarget = ref(null)
 const editingCommentId = ref(null)
 const editingText = ref('')
 const threads = computed(() => groupForumComments(comments.value))
-const renderedContent = computed(() => markdownToHtml(post.value?.content || ''))
 const currentUserId = computed(() => Number(userStore.user?.userId))
 const permissions = computed(() => userStore.permissions || [])
 const canEditPost = computed(() => post.value?.authorId === currentUserId.value)
@@ -36,9 +35,10 @@ const canDeletePost = computed(() => canManageForumContent(post.value, currentUs
 async function loadPost() {
   loading.value = true
   errorMessage.value = ''
+  const commentsRequest = loadComments(true)
   try {
     post.value = await getForumPost(route.params.postId)
-    await loadComments(true)
+    await commentsRequest
   } catch (error) {
     errorMessage.value = error.message || '帖子加载失败'
   } finally {
@@ -145,10 +145,9 @@ onMounted(loadPost)
       <article class="community-detail__post portal-card">
         <span class="community-tag">{{ forumCategoryLabel(post.category) }}</span>
         <h1>{{ post.title }}</h1>
-        <div class="community-detail__author"><span class="community-avatar">{{ post.authorName.slice(0, 1) }}</span><strong>{{ post.authorName }}</strong><span v-if="post.authorDepartment">· {{ post.authorDepartment }}</span><time>{{ post.createdAt }}</time></div>
-        <!-- markdownToHtml escapes raw HTML and rejects unsafe URLs. -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="community-markdown" v-html="renderedContent"></div>
+        <div class="community-detail__author"><span class="community-avatar">{{ post.authorName.slice(0, 1) }}</span><strong>{{ post.authorName }}</strong><span v-if="post.authorDepartment">· {{ post.authorDepartment }}</span><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
+        <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
+        <MarkdownContent :source="post.content" />
         <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
       </article>
 

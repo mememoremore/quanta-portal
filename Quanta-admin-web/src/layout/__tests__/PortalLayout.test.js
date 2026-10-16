@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { mount } from '@vue/test-utils'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import PortalLayout from '../PortalLayout.vue'
 import { useUserStore } from '@/stores/user'
+
+enableAutoUnmount(afterEach)
 
 async function mountLayout(audience = 'freshman') {
   const pinia = createPinia()
@@ -21,7 +23,7 @@ async function mountLayout(audience = 'freshman') {
   await router.isReady()
   const store = useUserStore()
   store.user = { nickName: audience === 'freshman' ? '新生小李' : '塔员小王' }
-  const wrapper = mount(PortalLayout, { global: { plugins: [pinia, router] } })
+  const wrapper = mount(PortalLayout, { global: { plugins: [pinia, router], stubs: { teleport: true } } })
   return { wrapper, router, store }
 }
 
