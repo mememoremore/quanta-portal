@@ -1,5 +1,7 @@
 # Old project planning and backend-integration notes are not part of this frontend repository.
 /Quanta-admin-web/docs/
+/社区论坛PV与本轮前端修复对接说明.md
+/第一轮前端性能优化解析.md
 
 # Maven output and local development files
 target/
