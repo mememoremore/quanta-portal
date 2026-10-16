@@ -36,10 +36,12 @@ describe('learning materials staged upload', () => {
     await flushPromises()
     expect(uploadMaterial).not.toHaveBeenCalled()
     expect(wrapper.get('.learning-upload-card__selected').text()).toContain('学习资料.pdf')
+    expect(wrapper.get('.learning-upload-card__pending').text()).toBe('待上传')
     await wrapper.get('[data-testid="confirm-material-upload"]').trigger('click')
     await flushPromises()
     expect(uploadMaterial).toHaveBeenCalledWith(file, { category: 'FRONTEND' })
     expect(wrapper.find('.learning-upload-card__selected').exists()).toBe(false)
+    expect(wrapper.find('.learning-upload-card__pending').exists()).toBe(false)
   })
 
   it('keeps the selected file after an upload error for retry', async () => {

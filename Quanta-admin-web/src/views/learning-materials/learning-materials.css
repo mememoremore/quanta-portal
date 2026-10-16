@@ -16,12 +16,13 @@
 .learning-upload-card .el-upload-dragger { display: flex; height: 188px; padding: 0; color: #727b8e; background: #fff9ee; border: 2px dashed #fdaf32; align-items: center; flex-direction: column; justify-content: center; }
 .learning-upload-card__icon { margin-bottom: 10px; color: #fdaf32; font-size: 38px; }
 .learning-upload-card p { margin: 0 0 7px; font-size: 13px; }
-.learning-upload-card span { color: #a3aaba; font-size: 11px; }
+.learning-upload-card .el-upload-dragger > span { color: #a3aaba; font-size: 11px; }
 .learning-upload-card__selected { display: flex; min-width: 0; margin: 0 30px 14px; padding: 14px; border: 1px solid #e9ecf1; border-radius: 12px; background: #fafbfc; align-items: center; gap: 12px; }
 .learning-upload-card__file-icon { display: grid; width: 45px; height: 45px; flex: 0 0 auto; border-radius: 10px; background: #fff0e5; color: #f36a00 !important; font-size: 10px !important; font-weight: 800; place-items: center; }
 .learning-upload-card__file-info { display: grid; min-width: 0; flex: 1; gap: 5px; }
 .learning-upload-card__file-info strong { overflow: hidden; color: var(--quanta-text-primary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.learning-upload-card__file-info span { color: #788396; }
+.learning-upload-card__file-info span { color: #788396; font-size: 11px; }
+.learning-upload-card__pending::before { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #22b46e; content: ''; vertical-align: 1px; }
 .learning-upload-card__selected button { padding: 6px 9px; border: 0; border-radius: 7px; background: transparent; color: #758094; cursor: pointer; }
 .learning-upload-card__selected button:hover { background: #eef0f3; color: #e45c00; }
 .learning-upload-card__selected button:disabled { opacity: .5; cursor: not-allowed; }
@@ -43,6 +44,7 @@
   letter-spacing: .02em;
 }
 .learning-upload-card__actions .quanta-primary-button.el-button--primary.is-disabled {
+  --el-button-disabled-text-color: #fff;
   color: #fff;
   background: #ffba89;
   border-color: #ffba89;

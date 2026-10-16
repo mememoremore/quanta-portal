@@ -162,7 +162,7 @@ onMounted(loadList)
       </ElUpload>
       <div v-if="selectedFile" class="learning-upload-card__selected" role="status">
         <span class="learning-upload-card__file-icon" aria-hidden="true">{{ selectedFile.name.split('.').pop()?.toUpperCase() }}</span>
-        <div class="learning-upload-card__file-info"><strong :title="selectedFile.name">{{ selectedFile.name }}</strong><span>{{ fileSize(selectedFile.size) }} · {{ materialCategoryLabel(selectedUploadCategory) }} · 待上传</span></div>
+        <div class="learning-upload-card__file-info"><strong :title="selectedFile.name">{{ selectedFile.name }}</strong><span>{{ fileSize(selectedFile.size) }} · {{ materialCategoryLabel(selectedUploadCategory) }} · <span class="learning-upload-card__pending">待上传</span></span></div>
         <button type="button" :disabled="uploading" @click="clearSelectedFile">移除</button>
       </div>
       <div class="learning-upload-card__actions"><ElButton type="primary" class="quanta-primary-button" data-testid="confirm-material-upload" :loading="uploading" :disabled="!selectedFile || !selectedUploadCategory" @click="confirmUpload">确认上传</ElButton></div>

@@ -6,7 +6,7 @@
 
 ## 接入方式
 
-使用阿里云控制台提供的异步 CDN SDK。仅当生产构建部署于 `www.quantacenter.com` 时使用提供的杭州地域 `endpoint`，其 `service_id` 为 `d08n852dkz@a575525305e4ddb5ce019`。配置 `env: 'prod'`、`spaMode: 'history'`、所提供的性能、Web Vitals、接口、静态资源、错误及行为采集项，保持 `tracing: false`。不新增 npm 依赖；开发、测试和本地预览环境不向生产应用上报。
+使用阿里云控制台提供的异步 CDN SDK。仅当生产构建部署于 `www.quantacenter.com` 时使用提供的杭州地域 `endpoint`，其 `service_id` 为 `d08n852dkz@a575525305e4ddb5ce019`。配置 `env: 'prod'`、`spaMode: 'history'`、所提供的性能、Web Vitals、接口、静态资源及错误采集项；行为采集使用更新后的 `click: { enable: true, trackUserInteractions: true }`，保持 `tracing: false`、`replay: false`。不新增 npm 依赖；开发、测试和本地预览环境不向生产应用上报。
 
 ## 用户选择与隐私
 
