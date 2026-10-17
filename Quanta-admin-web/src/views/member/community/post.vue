@@ -1,5 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import MemberAuthor from '@/components/MemberAuthor.vue'
+import { safeProfileReturn } from '@/utils/member-profile'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -31,33 +33,47 @@ const currentUserId = computed(() => Number(userStore.user?.userId))
 const permissions = computed(() => userStore.permissions || [])
 const canEditPost = computed(() => post.value?.authorId === currentUserId.value)
 const canDeletePost = computed(() => canManageForumContent(post.value, currentUserId.value, permissions.value))
+const returnPath = computed(() => safeProfileReturn(router.options?.history.state?.postReturn))
+function goBack(event) {
+  if (event?.metaKey || event?.ctrlKey || event?.shiftKey || event?.altKey) return
+  event?.preventDefault()
+  if (router.options?.history.state?.back === returnPath.value) router.back()
+  else router.replace(returnPath.value)
+}
+let postRequestId = 0, commentRequestId = 0
 
 async function loadPost() {
+  const current = ++postRequestId
+  post.value = null; replyTarget.value = null; editingCommentId.value = null; commentText.value = ''
   loading.value = true
   errorMessage.value = ''
   const commentsRequest = loadComments(true)
   try {
-    post.value = await getForumPost(route.params.postId)
+    const result = await getForumPost(route.params.postId)
+    if (current !== postRequestId) return
+    post.value = result
     await commentsRequest
   } catch (error) {
-    errorMessage.value = error.message || '帖子加载失败'
+    if (current === postRequestId) errorMessage.value = error.message || '帖子加载失败'
   } finally {
-    loading.value = false
+    if (current === postRequestId) loading.value = false
   }
 }
 
 async function loadComments(reset = false) {
+  const current = ++commentRequestId
   if (reset) { commentPage.value = 1; comments.value = [] }
   commentLoading.value = true
   commentError.value = ''
   try {
     const result = await listForumComments(route.params.postId, { pageNum: commentPage.value, pageSize: commentPageSize })
+    if (current !== commentRequestId) return
     comments.value = reset ? result.rows : [...comments.value, ...result.rows]
     commentTotal.value = result.total
   } catch (error) {
-    commentError.value = error.message || '评论加载失败'
+    if (current === commentRequestId) commentError.value = error.message || '评论加载失败'
   } finally {
-    commentLoading.value = false
+    if (current === commentRequestId) commentLoading.value = false
   }
 }
 
@@ -133,19 +149,20 @@ async function removePost() {
   finally { deleting.value = false }
 }
 
-onMounted(loadPost)
+watch(() => route.params.postId, loadPost, { immediate:true })
+onBeforeUnmount(() => { postRequestId++; commentRequestId++ })
 </script>
 
 <template>
   <section class="member-page community-page community-detail">
-    <RouterLink class="community-back" to="/member/community">← 返回社区</RouterLink>
+    <a class="community-back" :href="returnPath" @click="goBack">← {{ returnPath.startsWith('/member/people/') ? '返回成员主页' : '返回社区' }}</a>
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }} <button type="button" @click="loadPost">重试</button></p>
     <div v-if="loading" class="member-loading portal-card">正在加载帖子…</div>
     <template v-else-if="post">
       <article class="community-detail__post portal-card">
         <span class="community-tag">{{ forumCategoryLabel(post.category) }}</span>
         <h1>{{ post.title }}</h1>
-        <div class="community-detail__author"><span class="community-avatar">{{ post.authorName.slice(0, 1) }}</span><strong>{{ post.authorName }}</strong><span v-if="post.authorDepartment">· {{ post.authorDepartment }}</span><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
+        <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
         <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
         <MarkdownContent :source="post.content" />
         <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
@@ -163,9 +180,9 @@ onMounted(loadPost)
         <div v-else-if="!threads.length" class="community-comments__empty">还没有评论，来开启讨论吧。</div>
         <div v-for="thread in threads" :key="thread.commentId" class="community-comment-thread">
           <div v-for="comment in [thread, ...thread.replies]" :key="comment.commentId" class="community-comment" :class="{ 'is-reply': comment.commentId !== thread.commentId }">
-            <span class="community-avatar">{{ comment.authorName.slice(0, 1) }}</span>
+            <MemberAuthor :member-id="comment.authorId" :name="comment.authorName" :avatar="comment.authorAvatar" avatar-only />
             <div class="community-comment__body">
-              <div class="community-comment__header"><strong>{{ comment.authorName }}</strong><span v-if="comment.replyToUserName">回复 {{ comment.replyToUserName }}</span><time>{{ comment.createdAt }}</time></div>
+              <div class="community-comment__header"><MemberAuthor class="community-comment__name" name-only :member-id="comment.authorId" :name="comment.authorName" :avatar="comment.authorAvatar" /><span v-if="comment.replyToUserName">回复 {{ comment.replyToUserName }}</span><time>{{ comment.createdAt }}</time></div>
               <template v-if="editingCommentId === comment.commentId"><textarea v-model="editingText" maxlength="1000" aria-label="编辑评论"></textarea><div class="community-comment__actions"><button type="button" @click="editingCommentId = null">取消</button><button type="button" @click="saveCommentEdit(comment)">保存</button></div></template>
               <template v-else><p>{{ comment.content }}</p><div class="community-comment__actions"><button type="button" @click="startReply(comment)">回复</button><button v-if="comment.authorId === currentUserId" type="button" @click="startEdit(comment)">编辑</button><button v-if="canManageForumContent(comment, currentUserId, permissions)" type="button" @click="removeComment(comment)">删除</button></div></template>
             </div>

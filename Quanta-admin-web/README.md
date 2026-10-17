@@ -3,7 +3,7 @@
 Vue 3 + Vite 单站点，包含三类入口：
 
 - `/login/freshman`：新生门户，招新、面试进度、活动和账号安全。
-- `/login/member`：塔员门户，通讯录、通知、资料、个人名片和自助服务。
+- `/login/member`：塔员门户，通讯录、社区论坛、学习资料、云端个人档案和自助服务。
 - `/admin/login`：原管理后台，成员、招新、活动、资料及运营管理。
 - `/login`：兼容旧地址，自动跳转到管理端登录。
 
@@ -24,7 +24,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8080
 VITE_APP_TITLE=Quanta 统一门户
 ```
 
-开发和生产默认都应连接真实后端。完整 Mock 只用于独立 UI 开发；局部 Mock 仅限 `src/config/mock-api.js` 中的显式白名单。门户允许的本地数据只有浏览器电子名片和品牌静态内容，详见 `../docs/Quanta门户Web端接口Mock清单.md`。
+开发和生产默认都应连接真实后端。完整 Mock 只用于独立 UI 开发；局部 Mock 仅限 `src/config/mock-api.js` 中的显式白名单。个人档案不再读取或写入浏览器本地名片；论坛与报名草稿仍按各自功能保存。品牌内容使用静态资源。
 
 接口失败不会自动回退为 Mock 成功。写接口、文件下载及身份授权必须使用真实后端结果。
 
@@ -44,7 +44,7 @@ VITE_APP_TITLE=Quanta 统一门户
 - 塔员服务：`/qt/book/*`、`/qt/borrow/*`、`/qt/workstation/*`、`/qt/reservation/*`、`/qt/item/*`、`/qt/order/*`。
 - 管理端：`/dashboard/*`、`/qt/*`、`/system/*` 及文件上传下载接口。
 
-塔服缺少可信价格时只保存 `DRAFT`；电子名片只保存在当前浏览器。详见中文 Mock 清单。
+塔服缺少可信价格时只保存 `DRAFT`。头像复用 `POST /system/user/profile/avatar`（`avatarfile`）；云端档案使用 `GET/PUT /qt/member/profile`，成员主页使用 `GET /qt/member/{userId}/profile` 与 `/qt/member/{userId}/posts`。后面三个新增契约需要后端实现；真实接口未接通时明确显示错误，不伪装本地保存成功。
 
 ## 质量检查
 

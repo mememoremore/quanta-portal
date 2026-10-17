@@ -20,6 +20,8 @@
 .community-post-card__author strong, .community-detail__author strong { color: var(--portal-ink); font-size: 14px; }
 .community-post-card__author time, .community-detail__author time { margin-left: auto; }
 .community-avatar { display: inline-grid; width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-size: 16px; font-weight: 800; place-items: center; }
+.community-comment__name > .member-avatar { display:none; }
+@media(max-width:600px) { .community-detail__post > .community-detail__author > .member-author { grid-column:1/-1; grid-row:1; }.community-detail__post > .community-detail__author > time { grid-column:1/-1; grid-row:2; margin-left:54px; } }
 .community-post-card__title { color: var(--portal-ink); font-size: 23px; font-weight: 800; line-height: 1.4; }
 .community-post-card__title:hover { color: var(--portal-orange-strong); }
 .community-post-card > p { margin: 0; color: var(--portal-muted); font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }

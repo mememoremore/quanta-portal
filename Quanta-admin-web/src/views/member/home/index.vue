@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import MemberAvatar from '@/components/MemberAvatar.vue'
 import { ElMessage } from 'element-plus'
 import { getCurrentProfile } from '@/api/portal/members'
 import { getTopNotices, markNoticeRead } from '@/api/portal/content'
@@ -10,7 +11,6 @@ const unreadCount = ref(0)
 const loading = ref(true)
 const errorMessage = ref('')
 const selectedNotice = ref(null)
-const surname = computed(() => profile.value?.name?.slice(0, 1) || 'Q')
 
 async function load() {
   try {
@@ -44,7 +44,7 @@ onMounted(load)
   <section class="member-page member-home">
     <div class="member-home__hero">
       <div><p>QUANTA MEMBER</p><h1>欢迎回来，{{ profile?.name || 'Quanta 成员' }}</h1><span>从这里继续你的学习、协作和创造。</span></div>
-      <div class="member-home__avatar">{{ surname }}</div>
+      <RouterLink to="/member/profile" aria-label="进入个人中心"><MemberAvatar :member-id="profile?.id" :src="profile?.avatar || ''" :name="profile?.name || '塔员'" :size="88" eager /></RouterLink>
     </div>
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }}</p>
     <div v-if="loading" class="member-loading portal-card">正在加载门户信息…</div>
@@ -69,7 +69,7 @@ onMounted(load)
           <RouterLink to="/member/community">社区论坛 <span>→</span></RouterLink>
           <RouterLink to="/member/materials">学习资料 <span>→</span></RouterLink>
           <RouterLink to="/member/services">我的服务 <span>→</span></RouterLink>
-          <RouterLink to="/member/profile">个人名片 <span>→</span></RouterLink>
+          <RouterLink to="/member/profile">个人中心 <span>→</span></RouterLink>
         </nav>
       </aside>
     </div>

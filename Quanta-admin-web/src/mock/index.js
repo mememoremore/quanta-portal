@@ -10,8 +10,10 @@ import { materialHandlers } from './handlers/materials'
 import { clothingOrderHandlers } from './handlers/clothing-orders'
 import { metricsHandlers } from './handlers/metrics'
 import { forumHandlers } from './handlers/forum'
+import { memberProfileHandlers } from './handlers/member-profiles'
 
 const handlers = [
+  ...memberProfileHandlers,
   ...authHandlers,
   ...dashboardHandlers,
   ...memberHandlers,

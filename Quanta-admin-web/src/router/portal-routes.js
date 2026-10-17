@@ -82,6 +82,12 @@ export const portalRoutes = [
         meta: { title: '个人中心', portalAudience: 'member' },
       },
       {
+        path: 'people/:userId',
+        name: 'MemberPublicProfile',
+        component: () => import('@/views/member/profile/member.vue'),
+        meta: { title: '成员主页', portalAudience: 'member' },
+      },
+      {
         path: 'services',
         name: 'MemberServices',
         component: () => import('@/views/member/services/index.vue'),

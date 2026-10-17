@@ -1,4 +1,5 @@
 import { findAccountByToken } from '../data/accounts'
+import { currentMockAvatar, mockMemberProfiles } from './member-profiles'
 import {
   findMockMember,
   mockCohorts,
@@ -55,7 +56,7 @@ function listMembers(config) {
   return {
     code: 200,
     msg: '操作成功',
-    rows: filtered.slice(start, start + pageSize),
+    rows: filtered.slice(start, start + pageSize).map((row) => ({...row, avatar:currentMockAvatar(row.userId), headline:mockMemberProfiles.get(Number(row.userId))?.headline || ''})),
     total: filtered.length,
     departments: mockDepartments.map((name) => ({ value: name, label: name })),
   }

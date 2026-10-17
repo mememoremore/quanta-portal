@@ -60,6 +60,14 @@ function accountFromRequest(request) {
   return accounts[token.replace(/^e2e-token-/, '')]
 }
 
+function profileFor(id, state, own = false) {
+  const account = Object.values(accounts).find(a=>a.user.userId === Number(id))
+  if (!account && (Number(id) < 1 || Number(id) > 22)) return null
+  const user = account?.user || {userId:Number(id),nickName:`测试成员${id}`,memberDepartment:'FRONTEND',memberTitle:'实习生',memberCohort:'第21届'}
+  const data = {headline:'喜欢把想法做成有温度的界面。',bio:'正在学习 Vue 和 TypeScript，关注交互体验与前端工程化。',skills:['Vue','TypeScript','交互设计'],githubUrl:'https://github.com/example',websiteUrl:'',contactEmail:'',showContactEmail:false,...state.profiles[id]}
+  return {userId:user.userId,nickName:user.nickName,memberDepartment:user.memberDepartment,memberTitle:user.memberTitle || '实习生',memberCohort:user.memberCohort || '第21届',...(own?{memberNo:'QT02102'}:{}),...data,avatar:state.avatars[id] || '',contactEmail:own || data.showContactEmail ? data.contactEmail : ''}
+}
+
 function responseFor(request, state) {
   const url = new URL(request.url())
   const path = url.pathname
@@ -81,13 +89,33 @@ function responseFor(request, state) {
   if (method === 'POST' && path === '/register') return { code: 200, msg: '注册成功' }
   if (method === 'GET' && path === '/getInfo') {
     return account
-      ? { code: 200, user: account.user, roles: account.roles, permissions: account.permissions }
+      ? { code: 200, user: {...account.user,avatar:state.avatars[account.user.userId] || ''}, roles: account.roles, permissions: account.permissions }
       : { code: 401, msg: '登录状态已失效' }
   }
   if (method === 'GET' && path === '/getRouters') {
     return { code: 200, data: adminRoutes.filter((route) => account?.permissions.includes('*:*:*') || account?.permissions.includes(route.meta.permission)) }
   }
   if (method === 'POST' && path === '/logout') return { code: 200 }
+  if (path === '/qt/member/profile' && method === 'GET') return state.profileUnavailable ? {code:404,msg:'接口未提供'} : {code:200,data:profileFor(account?.user.userId,state,true)}
+  if (path === '/qt/member/profile' && method === 'PUT') {
+    if(state.profileSaveFailure)return {code:500,msg:'模拟档案保存失败'}
+    state.profiles[account.user.userId]=request.postDataJSON()
+    return {code:200}
+  }
+  if (method === 'POST' && path === '/system/user/profile/avatar') {
+    if(state.avatarFailure)return {code:500,msg:'模拟头像上传失败'}
+    const raw=request.postDataBuffer(),start=raw.indexOf(Buffer.from('\r\n\r\n'))+4,end=raw.lastIndexOf(Buffer.from('\r\n--'))
+    state.avatars[account.user.userId]=`data:image/jpeg;base64,${raw.subarray(start,end).toString('base64')}`
+    return {code:200,imgUrl:state.avatars[account.user.userId]}
+  }
+  if(method === 'GET' && /^\/qt\/member\/\d+\/profile$/.test(path)) {
+    const data=profileFor(path.split('/')[3],state)
+    return data ? {code:200,data} : {code:404,msg:'成员不存在'}
+  }
+  if(method === 'GET' && /^\/qt\/member\/\d+\/posts$/.test(path)) {
+    const rows=Number(path.split('/')[3]) === state.forumPost.authorId ? [state.forumPost] : []
+    return {code:200,rows,total:rows.length}
+  }
 
   if (method === 'GET' && path === '/qt/interview/my') {
     return { code: 200, data: { application: null, profile: null, newApplicationsOpen: state.recruitmentOpen, canUpdate: state.recruitmentOpen } }
@@ -107,10 +135,10 @@ function responseFor(request, state) {
       : url.searchParams.get('scope') === 'mine' && account?.user.userId !== post.authorId
         ? []
         : [post]
-    return { code: 200, rows, total: rows.length }
+    return { code: 200, rows:rows.map(p=>({...p,authorAvatar:state.avatars[p.authorId] || ''})), total: rows.length }
   }
-  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: state.forumPost }
-  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows: [], total: 0 }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...state.forumPost,authorAvatar:state.avatars[state.forumPost.authorId] || ''} }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows:state.forumComments, total:state.forumComments.length }
   if ((method === 'POST' && path === '/qt/forum/posts') || (method === 'PUT' && /^\/qt\/forum\/posts\/\d+$/.test(path))) {
     if (state.forumPublishFailure) return { code: 500, msg: '模拟发布失败' }
     state.forumPost = { ...state.forumPost, ...request.postDataJSON(), postId: method === 'POST' ? 2 : state.forumPost.postId }
@@ -149,7 +177,7 @@ function responseFor(request, state) {
 
 export const test = base.extend({
   api: async ({ page }, use) => {
-    const state = { recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumPublishFailure: false, unexpected: [], requests: [] }
+    const state = { recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumComments:[], forumPublishFailure: false, profiles:{}, avatars:{}, profileUnavailable:false, profileSaveFailure:false, avatarFailure:false, unexpected: [], requests: [] }
     await page.route('**/*', async (route) => {
       const request = route.request()
       const url = new URL(request.url())

@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import MemberAvatar from '@/components/MemberAvatar.vue'
 
 defineProps({
   audience: { type: String, required: true },
@@ -41,11 +42,13 @@ onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick)
       :aria-expanded="open"
       @click.stop="open = !open"
     >
-      <span class="portal-user-menu__avatar" aria-hidden="true">{{ displayName.slice(0, 1) }}</span>
+      <MemberAvatar v-if="audience === 'member'" :member-id="userStore.user?.userId" :src="userStore.user?.avatar || ''" :name="displayName" :size="32" eager />
+      <span v-else class="portal-user-menu__avatar" aria-hidden="true">{{ displayName.slice(0, 1) }}</span>
       <span class="portal-user-menu__name">{{ displayName }}</span>
       <span class="portal-user-menu__chevron" aria-hidden="true">⌄</span>
     </button>
     <div v-if="open" class="portal-user-menu__panel" role="menu">
+      <RouterLink v-if="audience === 'member'" to="/member/profile" role="menuitem" @click="close">个人中心</RouterLink>
       <RouterLink :to="`/${audience}/security`" role="menuitem" @click="close">
         账号与安全
       </RouterLink>

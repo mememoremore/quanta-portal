@@ -1,16 +1,12 @@
 import { request } from '@/utils/request'
+import { assetUrl, normalizeProfile, validMemberId, validateProfile } from '@/utils/member-profile'
+import { mapForumPost } from './forum'
 
 const departmentNames = {
   PRODUCT: '产品',
   DESIGN: '设计',
   FRONTEND: '前端',
   BACKEND: '后端',
-}
-
-function assetUrl(value = '') {
-  if (!value || /^https?:\/\//i.test(value) || value.startsWith('data:')) return value
-  const base = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
-  return `${base}${value.startsWith('/') ? value : `/${value}`}`
 }
 
 export function departmentLabel(value = '') {
@@ -30,8 +26,51 @@ export function mapMember(row = {}) {
     cohort: row.memberCohort || '未分届',
     phone: row.phonenumber || '',
     avatar: assetUrl(row.avatar || ''),
+    headline: row.headline || '',
     isActive: row.memberStatus ? row.memberStatus === 'ACTIVE' : memberFlag,
   }
+}
+
+function mapProfile(row) {
+  if (!row || !validMemberId(row.userId)) throw new Error('服务端未返回有效的成员档案')
+  return { ...mapMember(row), ...normalizeProfile(row) }
+}
+
+export async function getOwnMemberProfile() {
+  const response = await request({ url: '/qt/member/profile', method: 'get' })
+  return mapProfile(response.data)
+}
+
+export async function saveMemberProfile(value) {
+  const data = normalizeProfile(value)
+  const error = validateProfile(data)
+  if (error) throw new Error(error)
+  await request({ url: '/qt/member/profile', method: 'put', data })
+  return data
+}
+
+export async function getPublicMemberProfile(id) {
+  if (!validMemberId(id)) throw new Error('无效的成员编号')
+  const response = await request({ url: `/qt/member/${Number(id)}/profile`, method: 'get' })
+  const profile = mapProfile(response.data)
+  if (profile.id !== Number(id)) throw new Error('服务端返回的成员档案编号不匹配')
+  const { name, department, title, cohort, avatar } = profile
+  return { id:Number(id), name, department, title, cohort, avatar, ...normalizeProfile(profile), contactEmail:profile.showContactEmail ? profile.contactEmail : '' }
+}
+
+export async function getMemberPosts(id, params = {}) {
+  if (!validMemberId(id)) throw new Error('无效的成员编号')
+  const response = await request({ url: `/qt/member/${Number(id)}/posts`, method: 'get', params: { pageNum: 1, pageSize: 10, ...params } })
+  return { rows: (response.rows || []).map(mapForumPost).filter((post) => post.authorId === Number(id)), total: Number(response.total) || 0 }
+}
+
+export async function uploadMemberAvatar(file) {
+  const data = new FormData()
+  data.append('avatarfile', file)
+  const response = await request({ url: '/system/user/profile/avatar', method: 'post', data })
+  const url = assetUrl(response.imgUrl)
+  if (!url) throw new Error('服务端未返回有效的头像图片地址')
+  return url
 }
 
 export async function getMemberDirectory(params = {}) {

@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import * as authApi from '@/api/auth'
 import { getToken, removeToken, setToken } from '@/utils/token'
 import { isDualTokenEnabled } from '@/utils/request'
+import { clearMemberAvatars, setMemberAvatar, sessionMemberId } from '@/utils/member-avatars'
 import {
   clearAudience,
   getAudience,
@@ -79,6 +80,7 @@ export const useUserStore = defineStore('user', () => {
       ...credentials,
       loginType: loginTypeFor(requestedAudience),
     })
+    clearMemberAvatars()
     token.value = response.token
     audience.value = requestedAudience
     setToken(response.token)
@@ -101,6 +103,8 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUserInfo() {
     const response = await authApi.getInfo()
     user.value = response.user || null
+    sessionMemberId.value = user.value?.userId || null
+    if (user.value) setMemberAvatar(user.value.userId, user.value.avatar || '')
     roles.value = response.roles || []
     permissions.value = response.permissions || []
     return response
@@ -115,6 +119,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function reset() {
+    clearMemberAvatars()
     token.value = ''
     user.value = null
     roles.value = []

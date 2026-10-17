@@ -1,11 +1,16 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import MemberAvatar from '@/components/MemberAvatar.vue'
+import { memberDestination } from '@/utils/member-profile'
+import { sessionMemberId } from '@/utils/member-avatars'
 import { getMemberDirectory } from '@/api/portal/members'
 
 const members = ref([])
-const keyword = ref('')
-const department = ref('')
-const cohort = ref('')
+const route = useRoute(), router = useRouter()
+const keyword = ref(String(route.query?.q || ''))
+const department = ref(String(route.query?.department || ''))
+const cohort = ref(String(route.query?.cohort || ''))
 const loading = ref(true)
 const errorMessage = ref('')
 
@@ -31,6 +36,7 @@ async function load() {
 }
 
 onMounted(load)
+watch([keyword,department,cohort], () => router.replace({ query:{ q:keyword.value || undefined, department:department.value || undefined, cohort:cohort.value || undefined } }))
 </script>
 
 <template>
@@ -44,12 +50,13 @@ onMounted(load)
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }}</p>
     <div v-if="loading" class="member-loading portal-card">正在加载通讯录…</div>
     <div v-else-if="visibleMembers.length" class="member-directory__grid">
-      <article v-for="member in visibleMembers" :key="member.id" class="member-directory__card portal-card">
-        <div class="member-directory__avatar"><img v-if="member.avatar" :src="member.avatar" alt="" /><span v-else>{{ member.name.slice(0, 1) }}</span></div>
+      <RouterLink v-for="member in visibleMembers" :key="member.id" class="member-directory__card portal-card" :to="{path:memberDestination(member.id,sessionMemberId) || '/member/directory', state:{memberReturn:route.fullPath}}">
+        <MemberAvatar :member-id="member.id" :src="member.avatar" :name="member.name" :size="52" />
         <div><h2>{{ member.name }}</h2><p>{{ member.memberNo || '暂无编号' }}</p></div>
         <span class="member-directory__department">{{ member.department }}</span>
         <dl><div><dt>职位</dt><dd>{{ member.title }}</dd></div><div><dt>届次</dt><dd>{{ member.cohort }}</dd></div></dl>
-      </article>
+        <p v-if="member.headline" class="member-directory__headline">{{ member.headline }}</p><span class="member-directory__visit">查看成员主页 ↗</span>
+      </RouterLink>
     </div>
     <div v-else class="member-empty portal-card">没有找到符合条件的成员</div>
   </section>
@@ -60,7 +67,8 @@ onMounted(load)
 .member-directory__filters { display: grid; padding: 16px; grid-template-columns: minmax(260px, 1fr) 180px 160px; gap: 12px; }
 .member-directory__filters input, .member-directory__filters select { box-sizing: border-box; width: 100%; padding: 11px 13px; border: 1px solid var(--portal-line); border-radius: 11px; background: #fff; color: var(--portal-ink); font: inherit; }
 .member-directory__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.member-directory__card { position: relative; display: grid; padding: 22px; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.member-directory__card { position: relative; display: grid; padding: 22px; grid-template-columns: auto minmax(0,1fr); gap: 14px; align-items: center; color:inherit; text-decoration:none; }
+.member-directory__headline, .member-directory__visit { grid-column:1/-1; overflow-wrap:anywhere; }.member-directory__visit { color:var(--portal-orange-strong); font-size:12px; }.member-directory__card h2 { overflow-wrap:anywhere; }
 .member-directory__avatar { display: grid; width: 52px; height: 52px; overflow: hidden; border-radius: 16px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-size: 20px; font-weight: 850; place-items: center; }
 .member-directory__avatar img { width: 100%; height: 100%; object-fit: cover; }
 .member-directory__card h2, .member-directory__card p { margin: 0; }

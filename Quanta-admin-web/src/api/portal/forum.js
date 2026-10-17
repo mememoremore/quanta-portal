@@ -1,4 +1,5 @@
 import { request } from '@/utils/request'
+import { assetUrl } from '@/utils/member-profile'
 
 export const FORUM_CATEGORIES = Object.freeze([
   { value: 'PROJECT', label: '项目协作' },
@@ -19,6 +20,7 @@ export function mapForumPost(row = {}) {
     summary: row.summary || row.content?.replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]+\)/g, ' ').replace(/[#*`![\]()]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140) || '',
     authorId: Number(row.authorId || row.userId),
     authorName: row.authorName || row.nickName || '塔员',
+    authorAvatar: assetUrl(row.authorAvatar || ''),
     authorDepartment: row.authorDepartment || row.department || '',
     commentCount: Number(row.commentCount || 0),
     viewCount: row.viewCount != null && row.viewCount !== '' && Number.isSafeInteger(Number(row.viewCount)) && Number(row.viewCount) >= 0 ? Number(row.viewCount) : null,
@@ -33,6 +35,7 @@ export function mapForumComment(row = {}) {
     parentId: row.parentId == null ? null : Number(row.parentId),
     authorId: Number(row.authorId || row.userId),
     authorName: row.authorName || row.nickName || '塔员',
+    authorAvatar: assetUrl(row.authorAvatar || ''),
     replyToUserName: row.replyToUserName || '',
     createdAt: row.createdAt || row.createTime || '',
   }

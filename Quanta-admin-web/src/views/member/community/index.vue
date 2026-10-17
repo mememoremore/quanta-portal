@@ -1,19 +1,24 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import MemberAuthor from '@/components/MemberAuthor.vue'
 import { FORUM_CATEGORIES, listForumPosts, forumCategoryLabel } from '@/api/portal/forum'
 import { markdownImagePreviews } from './image-previews'
 import './community.css'
 
 const posts = ref([])
 const total = ref(0)
-const pageNum = ref(1)
+const route = useRoute(), router = useRouter()
+const query = route?.query || {}
+const pageNum = ref(Math.max(1, Math.floor(Number(query.page)) || 1))
 const pageSize = 10
-const scope = ref('latest')
-const category = ref('')
+const scope = ref(query.scope === 'mine' ? 'mine' : 'latest')
+const category = ref(FORUM_CATEGORIES.some((item) => item.value === query.category) ? query.category : '')
 const loading = ref(true)
 const errorMessage = ref('')
 
 async function load() {
+  router.replace({ query:{ page:pageNum.value > 1 ? pageNum.value : undefined, scope:scope.value === 'mine' ? 'mine' : undefined, category:category.value || undefined } })
   loading.value = true
   errorMessage.value = ''
   try {
@@ -90,10 +95,10 @@ onMounted(load)
         <div v-if="loading" class="member-loading portal-card">正在加载讨论…</div>
         <div v-else-if="posts.length" class="community-feed__items">
           <article v-for="post in posts" :key="post.postId" class="community-post-card portal-card">
-            <div class="community-post-card__author"><span class="community-avatar">{{ post.authorName.slice(0, 1) }}</span><strong>{{ post.authorName }}</strong><span v-if="post.authorDepartment">· {{ post.authorDepartment }}</span><time :datetime="post.createdAt" :title="post.createdAt">{{ displayTime(post.createdAt) }}</time></div>
-            <RouterLink class="community-post-card__title" :to="`/member/community/${post.postId}`">{{ post.title }}</RouterLink>
+            <div class="community-post-card__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt" :title="post.createdAt">{{ displayTime(post.createdAt) }}</time></div>
+            <RouterLink class="community-post-card__title" :to="{path:`/member/community/${post.postId}`, state:{postReturn:route.fullPath}}">{{ post.title }}</RouterLink>
             <p>{{ post.summary || '打开帖子查看完整内容与讨论。' }}</p>
-            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="`/member/community/${post.postId}`" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
+            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="{path:`/member/community/${post.postId}`, state:{postReturn:route.fullPath}}" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
             <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><span>{{ post.commentCount }} 条评论</span><span v-if="post.viewCount != null">{{ post.viewCount }} 次浏览</span></div>
           </article>
         </div>
