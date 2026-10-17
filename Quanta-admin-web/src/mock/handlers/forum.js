@@ -1,6 +1,6 @@
 import { findAccountByToken } from '../data/accounts'
 import { mockForumPosts, mockForumComments } from '../data/forum'
-import { currentMockAvatar } from './member-profiles'
+import { currentMockAvatar, currentMockCommunityNickname } from './member-profiles'
 
 const account = (config) => findAccountByToken(config.headers?.Authorization || '')
 const unauthenticated = { code: 401, msg: '请先登录塔员账号' }
@@ -12,7 +12,7 @@ const now = () => new Date().toLocaleString('zh-CN', { hour12: false }).replaceA
 function scopedRows(rows, params = {}) {
   const pageNum = Math.max(1, Number(params.pageNum) || 1)
   const pageSize = Math.max(1, Number(params.pageSize) || 10)
-  return { code: 200, rows: rows.slice((pageNum - 1) * pageSize, pageNum * pageSize).map((row) => ({ ...row, authorAvatar:currentMockAvatar(row.authorId) })), total: rows.length }
+  return { code: 200, rows: rows.slice((pageNum - 1) * pageSize, pageNum * pageSize).map((row) => ({ ...row, authorAvatar:currentMockAvatar(row.authorId), authorCommunityNickname:currentMockCommunityNickname(row.authorId) })), total: rows.length }
 }
 
 function findPost(config) { return mockForumPosts.find((item) => item.postId === Number(config.path.match(/\/posts\/(\d+)/)?.[1])) }
@@ -57,7 +57,7 @@ export const forumHandlers = [
   { method: 'get', match: (path) => /^\/qt\/forum\/posts\/\d+$/.test(path), handle(config) {
     if (!account(config)) return unauthenticated
     const post = findPost(config)
-    return post ? { code: 200, data: { ...post, authorAvatar:currentMockAvatar(post.authorId) } } : { code: 404, msg: '帖子不存在或已删除' }
+    return post ? { code: 200, data: { ...post, authorAvatar:currentMockAvatar(post.authorId), authorCommunityNickname:currentMockCommunityNickname(post.authorId) } } : { code: 404, msg: '帖子不存在或已删除' }
   } },
   { method: 'put', match: (path) => /^\/qt\/forum\/posts\/\d+$/.test(path), handle(config) {
     const current = account(config)

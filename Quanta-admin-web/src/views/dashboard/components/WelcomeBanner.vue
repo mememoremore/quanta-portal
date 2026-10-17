@@ -7,7 +7,6 @@ defineProps({
 <template>
   <section class="welcome-banner">
     <div class="welcome-banner__copy">
-      <span class="welcome-banner__eyebrow">QUANTA ADMIN CONSOLE</span>
       <h2>你好，{{ name }}！</h2>
       <p>连接成员、招新与日常事务，让每一次协作都有迹可循。</p>
     </div>
@@ -19,34 +18,37 @@ defineProps({
 .welcome-banner {
   position: relative;
   display: flex;
-  min-height: 168px;
-  padding: 36px 40px;
-  color: white;
+  min-height: 156px;
+  padding: 27px 30px;
+  color: var(--quanta-text);
   overflow: hidden;
   background:
-    radial-gradient(circle at 86% 16%, rgb(255 103 0 / 22%), transparent 26%),
-    linear-gradient(115deg, #202124 0%, #27282c 100%);
-  border: 1px solid rgb(255 255 255 / 6%);
-  border-radius: 26px;
-  box-shadow: 0 24px 60px rgb(32 33 36 / 14%);
+    linear-gradient(110deg, #fff 55%, #fff3e9);
+  border: 1px solid #e9ecf1;
+  border-radius: 15px;
   align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .welcome-banner__copy {
   position: relative;
   z-index: 1;
+  min-width: 0;
+  flex: 1;
 }
 
 .welcome-banner h2 {
-  margin: 8px 0 10px;
-  font-size: 30px;
+  margin: 0 0 12px;
+  font-size: 27px;
   letter-spacing: -.04em;
 }
 
 .welcome-banner p {
   margin: 0;
-  color: #b7b8bb;
-  font-size: 14px;
+  color: #7f8998;
+  font-size: 13px;
+  line-height: 1.8;
 }
 
 .welcome-banner__eyebrow {
@@ -57,21 +59,20 @@ defineProps({
 }
 
 .welcome-banner__mark {
-  position: absolute;
-  right: 28px;
-  width: 210px;
-  height: 210px;
-  opacity: .16;
+  width: 104px;
+  height: 104px;
+  opacity: 1;
   object-fit: cover;
-  border-radius: 44px;
-  transform: rotate(-7deg);
+  border-radius: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgb(32 33 36 / 9%);
 }
 
 @media (max-width: 600px) {
-  .welcome-banner { min-height: 0; padding: 24px; border-radius: 20px; }
+  .welcome-banner { min-height: 0; padding: 21px 18px; border-radius: 15px; gap: 12px; }
   .welcome-banner__copy { min-width: 0; }
-  .welcome-banner h2 { font-size: 26px; overflow-wrap: anywhere; }
+  .welcome-banner h2 { font-size: 22px; overflow-wrap: anywhere; }
   .welcome-banner p { line-height: 1.7; overflow-wrap: anywhere; }
-  .welcome-banner__mark { right: -26px; width: 140px; height: 140px; opacity: .08; }
+  .welcome-banner__mark { width: 55px; height: 55px; border-radius: 15px; }
 }
 </style>

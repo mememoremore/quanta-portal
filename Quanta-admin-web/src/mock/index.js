@@ -11,9 +11,11 @@ import { clothingOrderHandlers } from './handlers/clothing-orders'
 import { metricsHandlers } from './handlers/metrics'
 import { forumHandlers } from './handlers/forum'
 import { memberProfileHandlers } from './handlers/member-profiles'
+import { memberAdminHandlers } from './handlers/member-admin'
 
 const handlers = [
   ...memberProfileHandlers,
+  ...memberAdminHandlers,
   ...authHandlers,
   ...dashboardHandlers,
   ...memberHandlers,

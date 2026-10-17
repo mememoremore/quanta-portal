@@ -1,5 +1,5 @@
 import { findAccountByToken } from '../data/accounts'
-import { mockMaterials } from '../data/materials'
+import { mockMaterials, mockMaterialFolders } from '../data/materials'
 import { MATERIAL_EXTENSIONS, MATERIAL_MAX_SIZE, isMaterialCategory } from '@/utils/material-categories'
 
 const has = (account, permission) => account?.permissions.includes('*:*:*') || account?.permissions.includes(permission)
@@ -17,11 +17,15 @@ export const materialHandlers = [
       const filtered = mockMaterials.filter((item) =>
         (!params.categoryScope || isMaterialCategory(item.category)) &&
         (!params.category || item.category === params.category) &&
+        (params.fileName || params.folderId === undefined || Number(item.folderId || 0) === Number(params.folderId)) &&
         (!params.fileName || item.fileName.toLowerCase().includes(String(params.fileName).toLowerCase())),
       )
       const pageNum = Math.max(1, Number(params.pageNum) || 1)
       const pageSize = Math.max(1, Number(params.pageSize) || 20)
-      return { code: 200, rows: filtered.slice((pageNum - 1) * pageSize, pageNum * pageSize), total: filtered.length }
+      return { code: 200, rows: filtered.slice((pageNum - 1) * pageSize, pageNum * pageSize).map(row => {
+        const folder = mockMaterialFolders.find(item => item.folderId === row.folderId)
+        return { ...row, folderName: folder?.folderName || '', folderPath: folder ? `${row.category} / ${folder.folderName}` : '' }
+      }), total: filtered.length }
     },
   },
   {
@@ -40,9 +44,11 @@ export const materialHandlers = [
       const ownCategory = current.user.deptCode || departmentCodes[current.user.memberDepartment]
       if (!isSuperAdmin && category !== ownCategory) return { code: 403, msg: '只能上传本部门资料' }
       if (config.data.get('visibility') !== 'MEMBER') return { code: 400, msg: '资料必须对全部塔员可见' }
-      const materialId = Date.now()
+      const folderId = Number(config.data.get('folderId') || 0)
+      if (folderId && !mockMaterialFolders.some(folder => folder.folderId === folderId && folder.category === category)) return { code: 400, msg: '资料分类与目标类型不一致' }
+      const materialId = Math.max(0, ...mockMaterials.map(item => item.materialId)) + 1
       mockMaterials.unshift({
-        materialId, fileName: file.name, category,
+        materialId, fileName: file.name, category, folderId,
         fileSize: file.size, uploaderName: current.user.nickName,
         uploadTime: new Date().toLocaleString('zh-CN', { hour12: false }).replaceAll('/', '-'),
         visibility: 'MEMBER',
@@ -73,6 +79,28 @@ export const materialHandlers = [
       const index = mockMaterials.findIndex((item) => item.materialId === id)
       if (index >= 0) mockMaterials.splice(index, 1)
       return { code: 200, msg: '删除成功' }
+    },
+  },
+  {
+    method: 'get', path: '/qt/materials/folders', handle(config) {
+      const current = account(config)
+      if (!current) return { code: 401, msg: '登录状态已失效' }
+      if (!isMaterialCategory(config.params?.category)) return { code: 400, msg: '请选择所属部门' }
+      return { code: 200, data: mockMaterialFolders.filter(folder => folder.category === config.params.category && folder.parentId === Number(config.params.parentId || 0)) }
+    },
+  },
+  {
+    method: 'post', path: '/qt/materials/folders', handle(config) {
+      const current = account(config)
+      if (!current) return { code: 401, msg: '登录状态已失效' }
+      if (!canAccessBackoffice(current)) return { code: 403, msg: '没有管理学习资料的权限' }
+      const { category, folderName, parentId } = config.data || {}
+      const ownCategory = current.user.deptCode || departmentCodes[current.user.memberDepartment]
+      if (!current.roles.some(role => ['admin', 'ceo'].includes(role)) && !has(current, '*:*:*') && category !== ownCategory) return { code: 403, msg: '只能操作本部门资料分类' }
+      if (!isMaterialCategory(category) || parentId !== 0 || !folderName || folderName.length > 50 || /[\\/]/.test(folderName)) return { code: 400, msg: '分类名称无效' }
+      if (mockMaterialFolders.some(folder => folder.category === category && folder.folderName === folderName && folder.parentId === 0)) return { code: 409, msg: '同级目录下已存在同名文件夹' }
+      mockMaterialFolders.push({ folderId: Math.max(0, ...mockMaterialFolders.map(folder => folder.folderId)) + 1, category, parentId: 0, folderName, depth: 1 })
+      return { code: 200 }
     },
   },
 ]

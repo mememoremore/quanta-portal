@@ -6,6 +6,7 @@ import { ArrowUp, SwitchButton } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { usePermissionStore } from '@/stores/permission'
+import { adminDepartmentLabel, adminRoleLabel } from '@/utils/admin-display'
 
 defineProps({ mobile: { type: Boolean, default: false } })
 
@@ -17,6 +18,7 @@ const { sidebarCollapsed } = storeToRefs(appStore)
 const { user, displayName } = storeToRefs(userStore)
 
 const initial = computed(() => displayName.value.slice(0, 1).toUpperCase())
+const identityLabel = computed(() => [adminDepartmentLabel(user.value), adminRoleLabel(user.value, userStore.roles)].filter(Boolean).join(' · '))
 
 async function handleCommand(command) {
   if (command !== 'logout') return
@@ -32,7 +34,7 @@ async function handleCommand(command) {
       <span class="user-panel__avatar">{{ initial }}</span>
       <span v-show="!sidebarCollapsed || mobile" class="user-panel__copy">
         <strong>{{ displayName }}</strong>
-        <small>{{ user?.memberDepartment || 'Quanta' }}</small>
+        <small :title="identityLabel">{{ identityLabel }}</small>
       </span>
       <ElIcon v-show="!sidebarCollapsed || mobile" class="user-panel__arrow"><ArrowUp /></ElIcon>
     </button>

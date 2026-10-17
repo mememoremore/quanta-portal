@@ -19,7 +19,7 @@ export function mapForumPost(row = {}) {
     content: row.content || '',
     summary: row.summary || row.content?.replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]+\)/g, ' ').replace(/[#*`![\]()]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140) || '',
     authorId: Number(row.authorId || row.userId),
-    authorName: row.authorName || row.nickName || '塔员',
+    authorName: String(row.authorCommunityNickname || '').trim() || row.authorName || row.nickName || '塔员',
     authorAvatar: assetUrl(row.authorAvatar || ''),
     authorDepartment: row.authorDepartment || row.department || '',
     commentCount: Number(row.commentCount || 0),
@@ -34,9 +34,9 @@ export function mapForumComment(row = {}) {
     commentId: Number(row.commentId || row.id),
     parentId: row.parentId == null ? null : Number(row.parentId),
     authorId: Number(row.authorId || row.userId),
-    authorName: row.authorName || row.nickName || '塔员',
+    authorName: String(row.authorCommunityNickname || '').trim() || row.authorName || row.nickName || '塔员',
     authorAvatar: assetUrl(row.authorAvatar || ''),
-    replyToUserName: row.replyToUserName || '',
+    replyToUserName: String(row.replyToCommunityNickname || '').trim() || row.replyToUserName || '',
     createdAt: row.createdAt || row.createTime || '',
   }
 }

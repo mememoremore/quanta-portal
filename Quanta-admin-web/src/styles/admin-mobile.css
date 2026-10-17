@@ -18,7 +18,7 @@
   }
   .app-sidebar {
     z-index: 22;
-    width: min(280px, calc(100vw - 52px));
+    width: min(224px, calc(100vw - 64px));
     max-width: 100%;
     transform: translateX(-105%);
     transition: transform .22s ease;
@@ -33,9 +33,9 @@
     height: 40px;
     padding: 0;
     color: #596273;
-    background: #f4f3f1;
-    border: 0;
-    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #e9ecf1;
+    border-radius: 9px;
     cursor: pointer;
     flex: 0 0 40px;
     place-items: center;
@@ -52,7 +52,7 @@
   .app-layout .book-borrows-card,
   .app-layout .clothing-orders-card { min-width: 0; max-width: 100%; }
   .app-layout .el-table { width: 100%; max-width: 100%; }
-  .app-layout .el-button--primary:not(.is-disabled) {
+  .app-layout .el-button--primary:not(.is-disabled):not(.is-link):not(.is-text) {
     --el-button-bg-color: #ff6700;
     --el-button-border-color: #ff6700;
     --el-button-hover-bg-color: #f46a0e;

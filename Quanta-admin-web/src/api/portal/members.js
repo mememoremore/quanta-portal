@@ -46,6 +46,10 @@ export async function saveMemberProfile(value) {
   const error = validateProfile(data)
   if (error) throw new Error(error)
   await request({ url: '/qt/member/profile', method: 'put', data })
+  if (Object.hasOwn(value, 'communityNickname')) {
+    const saved = await getOwnMemberProfile()
+    if (saved.communityNickname !== data.communityNickname) throw new Error('服务端未保存社区昵称，请联系后端确认昵称接口；修改内容已保留')
+  }
   return data
 }
 

@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
 import SidebarMenuItem from './SidebarMenuItem.vue'
 import UserPanel from './UserPanel.vue'
+import { adminMenuGroup } from '@/utils/admin-display'
 
 defineProps({ mobileMenuOpen: { type: Boolean, default: false } })
 
@@ -26,7 +27,7 @@ const groupedRoutes = computed(() => {
   permissionStore.routes
     .filter((item) => !item.meta?.hidden)
     .forEach((item) => {
-      const title = item.meta?.group || '其他'
+      const title = adminMenuGroup(item.meta?.group, item.meta?.title)
       let group = groups.find((entry) => entry.title === title)
       if (!group) {
         group = { title, routes: [] }
@@ -56,6 +57,7 @@ const groupedRoutes = computed(() => {
         :default-active="route.path"
         :collapse="sidebarCollapsed && !isMobile"
         :collapse-transition="false"
+        popper-class="quanta-admin-menu-popper"
         @select="navigate"
       >
         <div v-for="group in groupedRoutes" :key="group.title" class="menu-group">

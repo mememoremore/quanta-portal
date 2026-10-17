@@ -5,13 +5,18 @@ defineProps({
   member: { type: Object, required: true },
   isCurrentCohort: { type: Boolean, default: false },
   pendingAction: { type: String, default: '' },
+  canManageMembers: Boolean,
 })
 
-defineEmits(['remove', 'reset-password', 'retain'])
+defineEmits(['remove', 'reset-password', 'retain', 'edit-member', 'assign-role'])
 </script>
 
 <template>
   <div class="member-table__actions">
+    <template v-if="canManageMembers && isCurrentCohort">
+      <ElButton link type="primary" @click="$emit('edit-member', member)">编辑</ElButton>
+      <ElButton link type="primary" @click="$emit('assign-role', member)">分配权限</ElButton>
+    </template>
     <template v-if="isCurrentCohort">
       <PermissionButton
         size="small"

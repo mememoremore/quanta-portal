@@ -47,4 +47,13 @@ describe('admin navigation', () => {
     expect(globalCss).not.toMatch(/(?:html|body|\*)[^{]*\{[^}]*user-select:\s*none/s)
   })
 
+  it('does not add a trailing arrow to ordinary sidebar links', () => {
+    const wrapper = mount(SidebarMenuItem, {
+      props: { route: { path: '/members', meta: { title: '成员管理', icon: 'UserFilled' } } },
+      global: { stubs: { ElMenuItem: { template: '<div><slot /><slot name="title" /></div>' }, ElIcon: { template: '<i><slot /></i>' } } },
+    })
+    expect(wrapper.findAll('svg')).toHaveLength(1)
+    expect(wrapper.text()).toBe('成员管理')
+  })
+
 })

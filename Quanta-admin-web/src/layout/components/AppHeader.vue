@@ -36,7 +36,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
         <span class="sr-only">{{ sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏' }}</span>
       </button>
       <div class="app-header__copy">
-        <span>QUANTA ADMIN</span>
+        <span>管理后台</span>
         <h1>{{ pageTitle }}</h1>
       </div>
     </div>

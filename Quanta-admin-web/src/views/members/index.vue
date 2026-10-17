@@ -18,6 +18,16 @@ import MemberFilters from './components/MemberFilters.vue'
 import MemberTable from './components/MemberTable.vue'
 import RetainConfirmDialog from './components/RetainConfirmDialog.vue'
 import './members.css'
+import { useUserStore } from '@/stores/user'
+import MemberEditorDrawer from './components/MemberEditorDrawer.vue'
+
+const userStore = useUserStore()
+const canManageMembers = computed(() => userStore.roles.includes('ceo'))
+const editorVisible = ref(false), editorMode = ref('create'), editorMember = ref(null)
+function openEditor(mode, member = null) {
+  if (!canManageMembers.value || !isCurrentCohort.value) return
+  editorMode.value = mode; editorMember.value = member; editorVisible.value = true
+}
 
 const cohorts = ref([])
 const rows = ref([])
@@ -206,6 +216,7 @@ onMounted(initialize)
     <section class="page-card members-card">
       <div class="members-card__toolbar">
         <MemberFilters :name="query.nickName" @search="updateQuery('nickName', $event)" />
+        <ElButton v-if="canManageMembers && isCurrentCohort" type="primary" size="small" @click="openEditor('create')">添加成员</ElButton>
         <PermissionButton
           type="primary"
           size="small"
@@ -236,6 +247,9 @@ onMounted(initialize)
         :department="query.memberDepartment"
         :role-category="query.roleCategory"
         :pending-action="pendingAction"
+        :can-manage-members="canManageMembers"
+        @edit-member="openEditor('identity', $event)"
+        @assign-role="openEditor('access', $event)"
         @department-change="updateQuery('memberDepartment', $event)"
         @role-change="updateQuery('roleCategory', $event)"
         @remove="confirmRemove"
@@ -260,6 +274,7 @@ onMounted(initialize)
       </div>
     </section>
 
+    <MemberEditorDrawer v-if="canManageMembers" v-model="editorVisible" :mode="editorMode" :member="editorMember" :cohort="query.memberCohort" @saved="loadMembers" />
     <ImportMembersDialog
       v-model="importVisible"
       @success="loadMembers"

@@ -70,3 +70,20 @@ markdown.renderer.rules.image = (tokens, index, options, env, renderer) => {
 export function markdownToHtml(source) {
   return markdown.render(String(source || ''))
 }
+
+export function markdownToDocument(source, prefix = 'article') {
+  const safePrefix = String(prefix).replace(/[^a-zA-Z0-9_-]/g, '') || 'article'
+  const env = {}, headings = []
+  const tokens = markdown.parse(String(source || ''), env)
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index]
+    if (token.type !== 'heading_open') continue
+    const inline = tokens[index + 1]
+    const text = (inline?.children || []).filter(child => ['text', 'code_inline', 'image', 'softbreak', 'hardbreak'].includes(child.type))
+      .map(child => ['softbreak', 'hardbreak'].includes(child.type) ? ' ' : child.content).join('').trim()
+    const id = `${safePrefix}-${headings.length + 1}`
+    token.attrSet('id', id)
+    headings.push({ id, text: text || '未命名标题', level: Number(token.tag.slice(1)) })
+  }
+  return { html: markdown.renderer.render(tokens, markdown.options, env), headings }
+}

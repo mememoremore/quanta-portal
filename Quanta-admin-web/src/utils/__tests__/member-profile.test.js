@@ -9,9 +9,11 @@ describe('member profile contract', () => {
     expect(assetUrl(assetUrl('/profile/a.jpg'))).toBe('/api/profile/a.jpg')
   })
   it('keeps only editable fields and normalizes unique skills', () => {
-    expect(normalizeProfile({ userId: 1, name: '不能改名', skills: ['Vue', 'Vue', ' TS '], bio: ' hi ', email: 'login@private.com' })).toEqual({ headline: '', bio: 'hi', skills: ['Vue', 'TS'], githubUrl: '', websiteUrl: '', contactEmail: '', showContactEmail: false })
+    expect(normalizeProfile({ userId: 1, name: '不能改名', skills: ['Vue', 'Vue', ' TS '], bio: ' hi ', email: 'login@private.com' })).toEqual({ communityNickname: '', headline: '', bio: 'hi', skills: ['Vue', 'TS'], githubUrl: '', websiteUrl: '', contactEmail: '', showContactEmail: false })
   })
   it('rejects unsafe links, too many tags and invalid contact email', () => {
+    expect(validateProfile({ communityNickname: '长'.repeat(21) })).toContain('20')
+    expect(validateProfile({ communityNickname: '昵称\n换行' })).toContain('昵称')
     expect(validateProfile({ websiteUrl: 'javascript:alert(1)' })).toContain('http')
     expect(validateProfile({ skills: ['1','2','3','4','5','6'] })).toContain('5')
     expect(validateProfile({ contactEmail: 'bad', showContactEmail: true })).toContain('邮箱')

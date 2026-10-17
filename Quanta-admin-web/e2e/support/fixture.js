@@ -4,6 +4,10 @@ const appOrigin = 'http://127.0.0.1:5177'
 const apiOrigin = 'http://127.0.0.1:18080'
 
 const accounts = {
+  ceo_demo: {
+    loginType: '1', roles: ['ceo'], permissions: ['*:*:*'],
+    user: { userId:105, userName:'ceo_demo', nickName:'测试CEO', isQuantaMember:1, deptCode:'PRODUCT' },
+  },
   freshman_demo: {
     loginType: '0', roles: [], permissions: [],
     user: { userId: 101, userName: 'freshman_demo', nickName: '新生同学', isQuantaMember: 0 },
@@ -26,6 +30,7 @@ const adminRoutes = [
   { path: '/dashboard', name: 'Dashboard', component: 'dashboard/index', meta: { title: '控制台', permission: 'qt:dashboard:stats' } },
   { path: '/members', name: 'Members', component: 'members/index', meta: { title: '成员管理', permission: 'qt:member:list' } },
   { path: '/recruitment', name: 'Recruitment', component: 'recruitment/index', meta: { title: '招新管理', permission: 'qt:interview:admin:list' } },
+  { path: '/learning-materials', name: 'LearningMaterials', component: 'learning-materials/index', meta: { title: '学习资料', icon: 'Notebook', permission: 'qt:material:list' } },
 ]
 
 const candidate = {
@@ -135,16 +140,58 @@ function responseFor(request, state) {
       : url.searchParams.get('scope') === 'mine' && account?.user.userId !== post.authorId
         ? []
         : [post]
-    return { code: 200, rows:rows.map(p=>({...p,authorAvatar:state.avatars[p.authorId] || ''})), total: rows.length }
+    return { code: 200, rows:rows.map(p=>({...p,authorAvatar:state.avatars[p.authorId] || '',authorCommunityNickname:state.profiles[p.authorId]?.communityNickname || ''})), total: rows.length }
   }
-  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...state.forumPost,authorAvatar:state.avatars[state.forumPost.authorId] || ''} }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...state.forumPost,authorAvatar:state.avatars[state.forumPost.authorId] || '',authorCommunityNickname:state.profiles[state.forumPost.authorId]?.communityNickname || ''} }
   if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows:state.forumComments, total:state.forumComments.length }
   if ((method === 'POST' && path === '/qt/forum/posts') || (method === 'PUT' && /^\/qt\/forum\/posts\/\d+$/.test(path))) {
     if (state.forumPublishFailure) return { code: 500, msg: '模拟发布失败' }
     state.forumPost = { ...state.forumPost, ...request.postDataJSON(), postId: method === 'POST' ? 2 : state.forumPost.postId }
     return { code: 200, data: state.forumPost }
   }
+  if (path === '/qt/materials/folders' && method === 'GET') {
+    if (state.materialFoldersUnavailable) return { code: 503, msg: '资料分类接口暂不可用' }
+    const category = url.searchParams.get('category')
+    return { code: 200, data: state.materialFolders.filter(folder => folder.category === category && folder.parentId === 0) }
+  }
+  if (path === '/qt/materials/folders' && method === 'POST') {
+    const body = request.postDataJSON()
+    if (state.materialFolders.some(folder => folder.category === body.category && folder.folderName === body.folderName)) return { code: 409, msg: '同级重名' }
+    state.materialFolders.push({ ...body, folderId: Math.max(0, ...state.materialFolders.map(folder => folder.folderId)) + 1, depth: 1 })
+    return { code: 200 }
+  }
+  if (path === '/qt/materials' && method === 'GET') {
+    const category = url.searchParams.get('category'), keyword = url.searchParams.get('fileName'), folderId = url.searchParams.get('folderId')
+    const rows = state.materials.filter(row => (!category || row.category === category) && (keyword ? row.fileName.includes(keyword) : folderId === null || row.folderId === Number(folderId)))
+    const page = Number(url.searchParams.get('pageNum') || 1), size = Number(url.searchParams.get('pageSize') || 20)
+    return { code: 200, rows: rows.slice((page - 1) * size, page * size).map(row => ({ ...row, folderName: state.materialFolders.find(folder => folder.folderId === row.folderId)?.folderName || '' })), total: rows.length }
+  }
+  if (path === '/qt/materials' && method === 'POST') {
+    const raw = request.postDataBuffer().toString('utf8')
+    const field = name => raw.match(new RegExp('name="' + name + '"\\r\\n\\r\\n([^\\r\\n]*)'))?.[1]
+    const fileName = raw.match(/filename="([^"]+)"/)?.[1] || '上传资料.pdf'
+    if (state.materialFailureName === fileName) return { code: 500, msg: '模拟文件上传失败' }
+    const category = field('category'), folderId = Number(field('folderId'))
+    if (!state.materialFolders.some(folder => folder.folderId === folderId && folder.category === category)) return { code: 400, msg: '目标分类不正确' }
+    state.materials.push({ materialId: Math.max(0, ...state.materials.map(row => row.materialId)) + 1, fileName, category, folderId, fileSize: 128, uploaderName: '测试管理员', uploadTime: '2026-10-17 17:00:00', visibility: 'MEMBER' })
+    return { code: 200 }
+  }
   if (method === 'GET' && path === '/dashboard/stats') return { code: 200, data: { members: 12, resumesToday: 3, pendingPayments: 0 } }
+  if (path.startsWith('/qt/member/manage')) {
+    if (!account?.roles.includes('ceo')) return {code:403,msg:'仅CEO可维护成员'}
+    if (!state.memberManagementAvailable) return {code:404,msg:'成员维护接口未提供'}
+    if (method === 'GET' && path.endsWith('/options')) return {code:200,data:{contractVersion:'member-admin-v1',canCreate:true,departments:['FRONTEND','BACKEND','PRODUCT','DESIGN'].map((value,i)=>({value,label:['前端','后端','产品','设计'][i]})),cohorts:[{value:'21',label:'第21届'}],roleProfiles:[{value:'MGMT',label:'管理层',titles:['VP','负责人'],permissions:['按现有管理层模板及部门校验']},{value:'MANAGER',label:'经理层',titles:['经理'],permissions:['本部门管理']},{value:'INTERN',label:'普通塔员（实习生）',titles:['实习生'],permissions:['塔员门户']}]}}
+    const id=Number(path.split('/').pop())
+    if (method === 'GET' && id) return {code:200,data:{userId:id,nickName:`测试成员${id}`,userName:`2024100${id}`,memberDepartment:'PRODUCT',memberTitle:'经理',memberCohort:'21',roleCategory:'MANAGER',version:'1',canEdit:true,canAssignRoles:true,...state.memberEdits?.[id]}}
+    if (method === 'POST' || method === 'PUT') {
+      const data=request.postDataJSON();state.memberMutations ||= [];state.memberEdits ||= {}
+      if(state.memberManagementSaveFailure)return {code:409,msg:'版本冲突，请重新加载'}
+      const userId=id || 23
+      state.memberMutations.push({userId,...data})
+      state.memberEdits[userId]={...state.memberEdits[userId],...data,version:String(Number(data.version||0)+1)}
+      return {code:200,data:{userId,version:state.memberEdits[userId].version}}
+    }
+  }
   if (method === 'GET' && path === '/qt/member/cohorts') {
     return { code: 200, data: [21, 20, 19, 18, 17, 16].map((value) => ({ value, label: `第${value}届`, isCurrent: value === 21 })) }
   }
@@ -153,7 +200,7 @@ function responseFor(request, state) {
     const rows = Array.from({ length: 22 }, (_, index) => ({
       userId: index + 1, nickName: `测试成员${index + 1}`, memberDepartment: index % 2 ? 'BACKEND' : 'PRODUCT',
       memberTitle: '经理', roleCategory: 'MANAGER', memberCohort: String(parseInt(url.searchParams.get('memberCohort') || '21', 10)),
-      phonenumber: '138****0000', joinTime: '2026-09-23 18:30:00', memberStatus: 'active',
+      phonenumber: '138****0000', joinTime: '2026-09-23 18:30:00', memberStatus: 'active', ...state.memberEdits?.[index + 1],
     })).filter((row) => (!url.searchParams.get('nickName') || row.nickName.includes(url.searchParams.get('nickName')))
       && (!url.searchParams.get('memberDepartment') || row.memberDepartment === url.searchParams.get('memberDepartment'))
       && (!url.searchParams.get('roleCategory') || row.roleCategory === url.searchParams.get('roleCategory')))
@@ -177,7 +224,15 @@ function responseFor(request, state) {
 
 export const test = base.extend({
   api: async ({ page }, use) => {
-    const state = { recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumComments:[], forumPublishFailure: false, profiles:{}, avatars:{}, profileUnavailable:false, profileSaveFailure:false, avatarFailure:false, unexpected: [], requests: [] }
+    const materialFolders = ['FRONTEND', 'BACKEND', 'PRODUCT', 'DESIGN'].flatMap((category, i) => ['培训资料', '技术分享', '项目实践'].map((folderName, j) => ({ category, parentId: 0, depth: 1, folderId: i * 3 + j + 1, folderName })))
+    const materials = [
+      { materialId: 1, category: 'FRONTEND', folderId: 1, fileName: 'Vue 入门培训.pdf' },
+      { materialId: 2, category: 'FRONTEND', folderId: 2, fileName: '浏览器技术分享.pdf' },
+      { materialId: 3, category: 'FRONTEND', folderId: 3, fileName: '门户项目实践.pdf' },
+      { materialId: 4, category: 'FRONTEND', folderId: 0, fileName: '历史未分类资料.pdf' },
+      { materialId: 5, category: 'BACKEND', folderId: 4, fileName: 'Java 培训资料.pdf' },
+    ].map(row => ({ ...row, fileSize: 1024, uploaderName: '测试上传者', uploadTime: '2026-10-17', visibility: 'MEMBER' }))
+    const state = { materialFolders, materials, materialFailureName: '', materialFoldersUnavailable: false, recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumComments:[], forumPublishFailure: false, profiles:{}, avatars:{}, profileUnavailable:false, profileSaveFailure:false, avatarFailure:false, unexpected: [], requests: [] }
     await page.route('**/*', async (route) => {
       const request = route.request()
       const url = new URL(request.url())
@@ -214,10 +269,11 @@ export async function loginAs(page, audience) {
     member: { url: '/login/member', username: 'member_demo', button: '登录并进入塔员门户' },
     admin: { url: '/admin/login', username: 'admin_demo', button: '登录' },
     viewer: { url: '/admin/login', username: 'viewer_demo', button: '登录' },
+    ceo: { url:'/admin/login',username:'ceo_demo',button:'登录' },
   }[audience]
   await page.goto(identity.url)
-  await page.getByPlaceholder(audience === 'admin' || audience === 'viewer' ? '用户名' : audience === 'freshman' ? '请输入学号' : '请输入学号或用户名').fill(identity.username)
-  await page.getByPlaceholder(audience === 'admin' || audience === 'viewer' ? '密码' : '请输入密码', { exact: true }).fill('demo-password')
+  await page.getByPlaceholder(['admin','viewer','ceo'].includes(audience) ? '用户名' : audience === 'freshman' ? '请输入学号' : '请输入学号或用户名').fill(identity.username)
+  await page.getByPlaceholder(['admin','viewer','ceo'].includes(audience) ? '密码' : '请输入密码', { exact: true }).fill('demo-password')
   await page.getByRole('button', { name: identity.button, exact: true }).click()
   const destination = audience === 'freshman' ? '/freshman/home' : audience === 'member' ? '/member/home' : '/admin/dashboard'
   await expect(page).toHaveURL(new URL(destination, appOrigin).href)

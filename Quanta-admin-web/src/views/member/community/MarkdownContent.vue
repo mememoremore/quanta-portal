@@ -1,9 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount } from 'vue'
-import { markdownToHtml } from './markdown'
+import { computed, onBeforeUnmount, useId, watch } from 'vue'
+import { markdownToDocument, markdownToHtml } from './markdown'
 
-const props = defineProps({ source: { type: String, default: '' } })
-const html = computed(() => markdownToHtml(props.source))
+const props = defineProps({ source: { type: String, default: '' }, outline: Boolean })
+const emit = defineEmits(['outline'])
+const prefix = `quanta-article-${useId()}`
+const rendered = computed(() => props.outline ? markdownToDocument(props.source, prefix) : { html: markdownToHtml(props.source), headings: [] })
+const html = computed(() => rendered.value.html)
+watch(() => rendered.value.headings, headings => emit('outline', headings), { immediate: true, flush: 'post' })
 const timers = new Set()
 
 async function copyCode(event) {

@@ -6,6 +6,7 @@ import { normalizeProfile, validateProfile } from '@/utils/member-profile'
 export const mockMemberProfiles = new Map()
 const userFor = (id) => mockAccounts.find((a) => Number(a.user.userId) === Number(id))?.user || mockMembers.find((u) => Number(u.userId) === Number(id))
 export const currentMockAvatar = (id) => userFor(id)?.avatar || ''
+export const currentMockCommunityNickname = (id) => mockMemberProfiles.get(Number(id))?.communityNickname || ''
 export function mockPublicProfile(id, own = false) {
   const user = userFor(id)
   if (!user) return null

@@ -10,7 +10,13 @@ describe('member portal profile API', () => {
   it('saves only editable cloud fields, never login email or identity', async () => {
     request.mockResolvedValue({ code: 200 })
     await saveMemberProfile({ headline: 'Hi', userId: 9, memberDepartment: 'CEO', email: 'login@private.com', skills: ['Vue'], contactEmail: 'me@example.com' })
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ url: '/qt/member/profile', method: 'put', data: { headline: 'Hi', bio: '', skills: ['Vue'], githubUrl: '', websiteUrl: '', contactEmail: 'me@example.com', showContactEmail: false } }))
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ url: '/qt/member/profile', method: 'put', data: { communityNickname: '', headline: 'Hi', bio: '', skills: ['Vue'], githubUrl: '', websiteUrl: '', contactEmail: 'me@example.com', showContactEmail: false } }))
+  })
+  it('does not report a nickname saved if the backend silently ignores the field', async () => {
+    request.mockResolvedValueOnce({ code: 200 }).mockResolvedValueOnce({ data: { userId: 9, nickName: '实名' } })
+    await expect(saveMemberProfile({ communityNickname: '社区昵称' })).rejects.toThrow('昵称')
+    request.mockResolvedValueOnce({ code: 200 }).mockResolvedValueOnce({ data: { userId: 9, nickName: '实名', communityNickname: '社区昵称' } })
+    await expect(saveMemberProfile({ communityNickname: '社区昵称' })).resolves.toMatchObject({ communityNickname: '社区昵称' })
   })
   it('loads the two distinct private/public endpoints', async () => {
     request.mockResolvedValue({ data: { userId: 9, nickName: '王同学', bio: '公开简介' } })

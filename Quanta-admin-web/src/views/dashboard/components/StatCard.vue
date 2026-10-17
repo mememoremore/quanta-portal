@@ -9,51 +9,30 @@ defineProps({
 
 <template>
   <article class="stat-card page-card">
-    <div class="stat-card__icon" :class="`stat-card__icon--${tone}`">
-      <ElIcon :size="24"><component :is="icon" /></ElIcon>
-    </div>
-    <div>
-      <strong>{{ value ?? '--' }}</strong>
-      <p>{{ label }}</p>
-    </div>
+    <div class="stat-card__heading"><p>{{ label }}</p><div class="stat-card__icon" :class="`stat-card__icon--${tone}`"><ElIcon :size="19"><component :is="icon" /></ElIcon></div></div>
+    <strong>{{ value ?? '--' }}</strong>
   </article>
 </template>
 
 <style scoped>
 .stat-card {
   position: relative;
-  display: flex;
-  min-height: 118px;
-  padding: 24px;
-  align-items: center;
-  gap: 18px;
-  transition: transform .2s ease, box-shadow .2s ease;
+  display: grid;
+  min-height: 140px;
+  padding: 22px;
+  gap: 16px;
 }
 
-.stat-card::before {
-  position: absolute;
-  top: 0;
-  left: 24px;
-  width: 42px;
-  height: 3px;
-  content: "";
-  background: var(--quanta-primary);
-  border-radius: 0 0 4px 4px;
-}
-
-.stat-card:hover {
-  box-shadow: 0 22px 58px rgb(32 33 36 / 10%);
-  transform: translateY(-3px);
-}
+.stat-card__heading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
 
 .stat-card__icon {
   display: grid;
-  width: 56px;
-  height: 56px;
-  color: #5d61a8;
-  background: #f0f1ff;
-  border-radius: 17px;
-  flex: 0 0 56px;
+  width: 34px;
+  height: 34px;
+  color: #ff6700;
+  background: #fff5ee;
+  border-radius: 10px;
+  flex: 0 0 34px;
   place-items: center;
 }
 
@@ -74,20 +53,21 @@ defineProps({
 
 .stat-card strong {
   display: block;
-  color: #1f2438;
-  font-size: 28px;
+  color: #252a32;
+  font-size: 33px;
   line-height: 1.15;
 }
 
 .stat-card p {
-  margin: 6px 0 0;
-  color: #7e8597;
-  font-size: 13px;
+  margin: 0;
+  color: #84909f;
+  font-size: 12px;
 }
 
 @media (max-width: 600px) {
-  .stat-card { min-width: 0; min-height: 106px; padding: 20px; gap: 16px; }
-  .stat-card > div:last-child { min-width: 0; overflow-wrap: anywhere; }
-  .stat-card__icon { width: 48px; height: 48px; flex-basis: 48px; border-radius: 15px; }
+  .stat-card { display: flex; min-width: 0; min-height: 86px; padding: 18px; gap: 14px; align-items: center; justify-content: space-between; }
+  .stat-card__heading { flex-direction: row-reverse; justify-content: flex-end; }
+  .stat-card__heading p { overflow-wrap: anywhere; }
+  .stat-card strong { font-size: 28px; }
 }
 </style>

@@ -1,0 +1,85 @@
+import { test, expect, loginAs } from './support/fixture.js'
+
+for (const width of [390,1440]) {
+  test(`${width}px 编辑保留原工具栏，目录仅桌面显示`, async ({page,api},testInfo) => {
+    await page.setViewportSize({width,height:940})
+    await loginAs(page,'member');await page.goto('/member/community/new')
+    const card=page.locator('.community-editor__card')
+    await expect(card).toBeVisible()
+    await expect(page.locator('.community-editor__toolbar')).toContainText('代码块')
+    await expect(page.locator('.portal-header__brand')).toHaveAttribute('href',width<700?'/member/home':'/')
+    if(width<700) await expect(card).toHaveCSS('padding','0px')
+    else {
+      await expect(card).toHaveCSS('padding','36px')
+      await expect(page.locator('.community-editor__preview')).toBeVisible()
+    }
+    await page.screenshot({path:testInfo.outputPath(`original-editor-${width}.png`),fullPage:true})
+    api.forumPost.content='![示意图片](/quanta-logo-small.jpg)\n\n## 前言\n\n正文。\n\n### 自动检查\n\n```yaml\non: [push]\n```\n\n## 总结\n\n结束。'
+    await page.goto('/member/community/1')
+    await expect(page.locator('.community-detail__post')).toBeVisible()
+    if(width<700) {
+      await expect(page.getByRole('complementary',{name:'文章目录'})).toHaveCount(0)
+      const picture=page.locator('.community-markdown > p:first-child > img')
+      await expect(picture).toBeVisible()
+      const gap=(await picture.boundingBox()).y-((await page.locator('.community-detail__author').boundingBox()).y+(await page.locator('.community-detail__author').boundingBox()).height)
+      expect(gap).toBeLessThanOrEqual(24)
+    } else {
+      const toc=page.getByRole('complementary',{name:'文章目录'})
+      await expect(toc).toBeVisible()
+      await expect(toc.getByRole('link')).toHaveCount(3)
+      await toc.getByRole('link',{name:'总结',exact:true}).click()
+      await expect(toc.getByRole('link',{name:'总结',exact:true})).toHaveAttribute('aria-current','location')
+      expect(new URL(page.url()).hash).toBe('')
+    }
+    await expect(page.locator('.community-markdown .hljs-attr').first()).toBeVisible()
+    await page.screenshot({path:testInfo.outputPath(`article-with-outline-${width}.png`),fullPage:true})
+  })
+}
+
+test('昵称仅用于论坛和名片，实名与原成员主页不变',async({page,api},testInfo)=>{
+  await page.setViewportSize({width:390,height:940})
+  await loginAs(page,'member');await page.goto('/member/profile')
+  await page.getByLabel('社区昵称',{exact:true}).fill('一只橘猫')
+  await expect(page.locator('.member-preview-card h2')).toHaveText('塔员同学')
+  await expect(page.locator('.member-preview-card__nickname')).toContainText('一只橘猫')
+  await page.getByRole('button',{name:'保存修改',exact:true}).click()
+  await expect(page.getByText('个人档案已保存',{exact:true})).toBeVisible()
+  expect(api.profiles[102].nickName).toBeUndefined()
+  await page.reload();await expect(page.getByLabel('社区昵称',{exact:true})).toHaveValue('一只橘猫')
+  const homepage=page.getByRole('link',{name:'查看我的成员主页',exact:true})
+  await expect(homepage).toHaveCSS('align-items','center')
+  await expect(homepage).toHaveCSS('justify-content','center')
+  await expect(page.locator('.portal-header')).not.toContainText('一只橘猫')
+  await page.screenshot({path:testInfo.outputPath('profile-nickname-h5.png'),fullPage:true})
+  await homepage.click();await expect(page.locator('.member-public-name h1')).toHaveText('塔员同学')
+  await expect(page.locator('.member-public-card')).not.toContainText('一只橘猫')
+  await page.goto('/member/community/1')
+  await expect(page.locator('.community-detail__author')).toContainText('一只橘猫')
+})
+
+test('只有CEO看到新成员入口；接口未接入禁用保存，接入后确认原子权限调整',async({page,api},testInfo)=>{
+  await loginAs(page,'ceo');await page.goto('/admin/members')
+  await page.getByRole('button',{name:'添加成员',exact:true}).click()
+  const drawer=page.locator('.member-editor-drawer')
+  await expect(drawer.getByRole('alert')).toContainText('接口尚未接通')
+  await expect(drawer.getByRole('button',{name:'创建成员',exact:true})).toBeDisabled()
+  api.memberManagementAvailable=true
+  await drawer.getByRole('button',{name:'重新加载',exact:true}).click()
+  await expect(drawer.getByRole('textbox',{name:'真实姓名',exact:true})).toBeVisible()
+  await drawer.getByRole('button',{name:'取消',exact:true}).click()
+  await page.getByRole('button',{name:'分配权限',exact:true}).first().click()
+  await expect(drawer).toContainText('本部门管理')
+  await expect.poll(async()=>{const box=await drawer.boundingBox();return Math.abs(box.x+box.width-page.viewportSize().width)}).toBeLessThan(1)
+  await page.screenshot({path:testInfo.outputPath('ceo-permissions-desktop.png'),fullPage:true})
+  await drawer.locator('.el-select').filter({has:page.getByRole('combobox',{name:'成员身份层级',exact:true})}).click()
+  await page.getByRole('option',{name:'管理层',exact:true}).click()
+  await expect(drawer).toContainText('按现有管理层模板及部门校验')
+  await drawer.getByRole('button',{name:'保存修改',exact:true}).click()
+  await page.locator('.el-message-box').getByRole('button',{name:'确认保存',exact:true}).click()
+  await expect(drawer).not.toBeVisible()
+  expect(api.memberMutations).toHaveLength(1)
+  expect(api.memberMutations[0]).toMatchObject({mode:'access',roleCategory:'MGMT',memberTitle:'VP',memberDepartment:'PRODUCT'})
+  expect(api.memberMutations[0].roleIds).toBeUndefined()
+  await expect(page.locator('.member-table')).toContainText('VP')
+  await page.screenshot({path:testInfo.outputPath('ceo-members-desktop.png'),fullPage:true})
+})

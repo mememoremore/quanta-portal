@@ -8,6 +8,7 @@ function update(key, v) { emit('update:modelValue', { ...props.modelValue, [key]
 <template>
   <form class="member-profile-form" @submit.prevent="emit('save')">
     <fieldset :disabled="disabled || saving">
+      <label>社区昵称<small>选填 · 20字以内</small><input :value="modelValue.communityNickname || ''" maxlength="20" aria-label="社区昵称" placeholder="留空时论坛显示实名" @input="update('communityNickname', $event.target.value)" /><span>帖子和评论优先使用昵称；名片保留实名并展示昵称，其他位置仍显示实名。</span></label>
       <label v-for="field in fields" :key="field.key" :class="{ 'is-half':field.type === 'url' }">{{ field.label }}<small v-if="field.max <= 300 && !field.type && field.key !== 'skills'">{{ field.max }}字以内</small><textarea v-if="field.area" :value="value(field.key)" :maxlength="field.max" :aria-label="field.label" rows="4" @input="update(field.key,$event.target.value)" /><input v-else :value="value(field.key)" :maxlength="field.max" :aria-label="field.label" :type="field.type || 'text'" :placeholder="field.placeholder" @input="update(field.key,$event.target.value)" /><span v-if="field.hint">{{ field.hint }}</span></label>
       <label class="member-profile-form__check"><input type="checkbox" :checked="modelValue.showContactEmail" @change="update('showContactEmail',$event.target.checked)" />在成员主页展示联系邮箱</label>
     </fieldset>

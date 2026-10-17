@@ -3,57 +3,14 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { downloadPortalMaterial, getPortalMaterials } from '@/api/portal/content'
 import { saveBlob } from '@/utils/download'
-import { MATERIAL_CATEGORIES, isMaterialCategory, materialCategoryLabel } from '@/utils/material-categories'
+import { MATERIAL_CATEGORIES, materialCategoryLabel } from '@/utils/material-categories'
+
+import { useMaterialLibrary } from '@/composables/useMaterialLibrary'
+import { MATERIAL_TYPES } from '@/utils/material-types'
 
 const tabs = [{ value: '', label: '全部' }, ...MATERIAL_CATEGORIES]
-const materials = ref([])
-const total = ref(0)
-const pageNum = ref(1)
-const pageSize = 20
-const category = ref('')
-const keyword = ref('')
-const searchText = ref('')
-const loading = ref(true)
+const { rows: materials, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage } = useMaterialLibrary(getPortalMaterials, { allowAll: true })
 const downloadingId = ref(null)
-const errorMessage = ref('')
-
-async function load() {
-  loading.value = true
-  errorMessage.value = ''
-  try {
-    const result = await getPortalMaterials({
-      pageNum: pageNum.value,
-      pageSize,
-      ...(category.value ? { category: category.value } : {}),
-      ...(keyword.value ? { fileName: keyword.value } : {}),
-    })
-    materials.value = result.rows.filter((row) => isMaterialCategory(row.category))
-    total.value = result.total
-  } catch (error) {
-    materials.value = []
-    errorMessage.value = error.message || '学习资料加载失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-function chooseCategory(value) {
-  if (category.value === value) return
-  category.value = value
-  pageNum.value = 1
-  load()
-}
-
-function search() {
-  keyword.value = searchText.value.trim()
-  pageNum.value = 1
-  load()
-}
-
-function goToPage(next) {
-  pageNum.value = next
-  load()
-}
 
 async function download(material) {
   downloadingId.value = material.materialId
@@ -86,16 +43,22 @@ onMounted(load)
   <section class="member-page member-materials">
     <header class="member-page__heading">
       <div><p>LEARNING CENTER</p><h1>学习资料</h1><span>浏览并下载 Quanta 四个方向共享的学习资源。</span></div>
-      <form class="member-materials__search" @submit.prevent="search"><input v-model="searchText" type="search" placeholder="搜索当前分类的资料" aria-label="搜索资料" /><button class="member-primary-button">搜索</button></form>
+      <form class="member-materials__search" @submit.prevent="search"><input v-model="searchText" type="search" placeholder="搜索当前分类的资料" aria-label="搜索资料名称" /><button class="member-primary-button">搜索</button></form>
     </header>
 
     <div class="member-materials__tabs" role="tablist" aria-label="学习资料分类">
       <button v-for="tab in tabs" :key="tab.value" type="button" role="tab" :aria-selected="category === tab.value" :class="{ 'is-active': category === tab.value }" @click="chooseCategory(tab.value)">{{ tab.label }}</button>
     </div>
 
-    <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }} <button type="button" @click="load">重试</button></p>
+    <div v-if="category" class="member-materials__types" role="group" aria-label="资料类型">
+      <button type="button" :aria-pressed="!materialType && !keyword" @click="chooseType('')">全部类型</button>
+      <button v-for="type in MATERIAL_TYPES" :key="type.value" type="button" :data-material-type="type.value" :aria-pressed="materialType === type.value && !keyword" @click="chooseType(type.value)">{{ type.label }}</button>
+    </div>
+    <div v-if="keyword" class="member-materials__search-state" role="status"><span>“{{ keyword }}” · {{ category ? '当前部门全部类型的搜索结果' : '全部部门的搜索结果' }}</span><button type="button" @click="clearSearch">清除搜索</button></div>
+
+    <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }} <button type="button" @click="load">重试</button><button v-if="materialType" type="button" @click="chooseType('')">查看全部资料</button></p>
     <div v-if="loading" class="member-loading portal-card">正在加载学习资料…</div>
-    <div v-else-if="materials.length" class="member-materials__list portal-card">
+    <div v-else-if="materials.length && !errorMessage" class="member-materials__list portal-card">
       <article v-for="material in materials" :key="material.materialId">
         <div class="member-materials__icon">{{ fileType(material.fileName) }}</div>
         <div class="member-materials__details"><h2>{{ material.fileName }}</h2><p><span class="member-materials__category">{{ materialCategoryLabel(material.category) }}</span>{{ fileSize(material.fileSize) }} · {{ material.uploader }} · {{ material.uploadedAt || '时间待确认' }}</p></div>
@@ -112,6 +75,15 @@ onMounted(load)
 </template>
 
 <style src="../member.css"></style>
+<style scoped>
+.member-materials__types { display: flex; flex-wrap: wrap; gap: 8px; }
+.member-materials__types button { padding: 8px 13px; border: 1px solid var(--portal-line); border-radius: 9px; background: #fff; color: var(--portal-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.member-materials__types button[aria-pressed=true] { border-color: #ffd2b3; background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
+.member-materials__search-state { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--portal-muted); overflow-wrap: anywhere; }
+.member-materials__search-state button { flex-shrink: 0; padding: 7px 0; border: 0; background: transparent; color: var(--portal-orange-strong); font: inherit; cursor: pointer; }
+@media (max-width: 700px) { .member-materials__types button { min-height: 44px; } }
+@media (max-width: 480px) { .member-materials__search input { font-size: 16px; } .member-materials__list p { overflow-wrap: anywhere; line-height: 1.8; } }
+</style>
 <style scoped>
 .member-materials__search { display: flex; width: min(430px, 100%); gap: 10px; }
 .member-materials__search input { min-width: 0; padding: 11px 14px; border: 1px solid var(--portal-line); border-radius: 12px; background: #fff; font: inherit; flex: 1; }
@@ -131,4 +103,10 @@ onMounted(load)
 .member-materials__pagination > div { display: flex; gap: 8px; }
 @media (max-width: 700px) { .member-materials__search { width: 100%; } .member-materials__list { padding-inline: 16px; } }
 @media (max-width: 480px) { .member-materials__search { display: grid; grid-template-columns: 1fr; } .member-materials__search button { width: 100%; } .member-materials__list article { grid-template-columns: auto minmax(0, 1fr); gap: 11px; } .member-materials__list article > button { width: 100%; grid-column: 1 / -1; } .member-materials__list h2 { white-space: normal; overflow-wrap: anywhere; } .member-materials__pagination { align-items: stretch; flex-direction: column; } .member-materials__pagination > div > button { flex: 1; } }
+@media (max-width: 700px) {
+  .member-materials__tabs { display: grid; width: 100%; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .member-materials__tabs button { min-width: 0; padding-inline: 4px; text-align: center; }
+  .member-materials__types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .member-materials__types button { min-width: 0; padding-inline: 4px; text-align: center; }
+}
 </style>

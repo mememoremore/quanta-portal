@@ -15,6 +15,7 @@ export function assetUrl(value = '') {
 export function normalizeProfile(value = {}) {
   const skills = Array.isArray(value.skills) ? value.skills : text(value.skills).split(/[,，]/)
   return {
+    communityNickname: text(value.communityNickname),
     headline: text(value.headline), bio: text(value.bio),
     skills: [...new Set(skills.map(text).filter(Boolean))],
     githubUrl: text(value.githubUrl), websiteUrl: text(value.websiteUrl),
@@ -31,6 +32,7 @@ export function profileLink(value) {
 
 export function validateProfile(value) {
   const data = normalizeProfile(value)
+  if (data.communityNickname.length > 20 || Array.from(data.communityNickname).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return '社区昵称最多 20 字，不能包含换行或控制字符'
   if (data.headline.length > 80) return '一句话介绍最多 80 字'
   if (data.bio.length > 300) return '个人简介最多 300 字'
   if (data.skills.length > 5 || data.skills.some((s) => s.length > 20)) return '最多 5 个技能标签，每个不超过 20 字'

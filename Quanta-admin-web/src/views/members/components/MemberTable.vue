@@ -15,6 +15,7 @@ defineProps({
   department: { type: String, default: '' },
   roleCategory: { type: String, default: '' },
   pendingAction: { type: String, default: '' },
+  canManageMembers: Boolean,
 })
 
 const emit = defineEmits([
@@ -23,6 +24,8 @@ const emit = defineEmits([
   'remove',
   'reset-password',
   'retain',
+  'edit-member',
+  'assign-role',
 ])
 
 const statusMap = {
@@ -72,6 +75,9 @@ function statusOf(status) {
         :member="row"
         :is-current-cohort="isCurrentCohort"
         :pending-action="pendingAction"
+        :can-manage-members="canManageMembers"
+        @edit-member="emit('edit-member', $event)"
+        @assign-role="emit('assign-role', $event)"
         @remove="emit('remove', $event)"
         @reset-password="emit('reset-password', $event)"
         @retain="emit('retain', $event)"
@@ -161,12 +167,15 @@ function statusOf(status) {
         </StatusTag>
       </template>
     </ElTableColumn>
-    <ElTableColumn label="操作" min-width="190" fixed="right">
+    <ElTableColumn label="操作" :min-width="canManageMembers ? 330 : 190" fixed="right">
       <template #default="{ row }">
         <MemberActions
           :member="row"
           :is-current-cohort="isCurrentCohort"
           :pending-action="pendingAction"
+          :can-manage-members="canManageMembers"
+          @edit-member="emit('edit-member', $event)"
+          @assign-role="emit('assign-role', $event)"
           @remove="emit('remove', $event)"
           @reset-password="emit('reset-password', $event)"
           @retain="emit('retain', $event)"

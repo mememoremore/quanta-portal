@@ -1,195 +1,85 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { FolderOpened } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Upload } from '@element-plus/icons-vue'
 import PermissionButton from '@/components/PermissionButton.vue'
-import { downloadMaterial, getMaterials, removeMaterial, uploadMaterial } from '@/api/materials'
+import MaterialFilters from '@/components/materials/MaterialFilters.vue'
+import MaterialUploadDrawer from '@/components/materials/MaterialUploadDrawer.vue'
+import { downloadMaterial, getMaterials, removeMaterial } from '@/api/materials'
+import { useMaterialLibrary } from '@/composables/useMaterialLibrary'
 import { saveBlob } from '@/utils/download'
 import { usePermission } from '@/composables/usePermission'
 import { useUserStore } from '@/stores/user'
-import {
-  MATERIAL_CATEGORIES, MATERIAL_EXTENSIONS, getMaterialUploadPolicy,
-  isMaterialCategory, materialCategoryLabel, materialFileError,
-} from '@/utils/material-categories'
+import { getMaterialUploadPolicy, materialCategoryLabel } from '@/utils/material-categories'
+import { materialRowTypeLabel, materialTypeLabel } from '@/utils/material-types'
 import './learning-materials.css'
 
-const rows = ref([])
-const total = ref(0)
-const pageNum = ref(1)
-const pageSize = 20
-const category = ref('')
-const keyword = ref('')
-const searchText = ref('')
-const uploadCategory = ref('')
-const uploadRef = ref(null)
-const selectedFile = ref(null)
-const loading = ref(false)
-const failed = ref(false)
-const uploading = ref(false)
+const library = useMaterialLibrary(getMaterials)
+const { rows, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage } = library
 const userStore = useUserStore()
 const { hasAny, hasRole } = usePermission()
+const uploadOpen = ref(false)
 const uploadPolicy = computed(() => getMaterialUploadPolicy({
-  roles: userStore.roles,
-  permissions: userStore.permissions,
-  departmentCode: userStore.departmentCode,
-  canAccessAdmin: userStore.canAccessAdmin,
+  roles: userStore.roles, permissions: userStore.permissions,
+  departmentCode: userStore.departmentCode, canAccessAdmin: userStore.canAccessAdmin,
 }))
-const canDelete = computed(() =>
-  (hasRole('qt_mgmt') || hasRole('ceo') || hasRole('admin')) && hasAny('qt:material:remove'))
-const selectedUploadCategory = computed(() => uploadPolicy.value.canChoose
-  ? uploadCategory.value
-  : uploadPolicy.value.category)
-const visibilityLabels = { ALL: '所有人可见', MEMBER: '仅塔员可见', DEPT: '仅本部门可见' }
+const canDelete = computed(() => (hasRole('qt_mgmt') || hasRole('ceo') || hasRole('admin')) && hasAny('qt:material:remove'))
+const downloadingId = ref(null)
 
-async function loadList() {
-  loading.value = true
-  failed.value = false
-  try {
-    const result = await getMaterials({
-      pageNum: pageNum.value,
-      pageSize,
-      ...(category.value ? { category: category.value } : {}),
-      ...(keyword.value ? { fileName: keyword.value } : {}),
-    })
-    rows.value = result.rows.filter((row) => isMaterialCategory(row.category))
-    total.value = result.total
-  } catch (error) {
-    failed.value = true
-    rows.value = []
-    ElMessage.error(error.message || '学习资料加载失败')
-  } finally {
-    loading.value = false
-  }
+function fileSize(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return value || '未知大小'
+  return number >= 1048576 ? `${(number / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.ceil(number / 1024))} KB`
 }
-
-function applyFilters() {
-  keyword.value = searchText.value.trim()
-  pageNum.value = 1
-  loadList()
-}
-
-function changeCategory(value) {
-  category.value = value
-  pageNum.value = 1
-  loadList()
-}
-
-function clearSelectedFile() {
-  selectedFile.value = null
-  uploadRef.value?.clearFiles()
-}
-
-function selectFile(uploadFile) {
-  const file = uploadFile?.raw
-  if (!file) return
-  const error = materialFileError(file)
-  if (error) {
-    ElMessage.warning(error)
-    clearSelectedFile()
-    return
-  }
-  selectedFile.value = file
-}
-
-function replaceFile(files) {
-  const file = files?.[0]
-  if (!file) return
-  uploadRef.value?.clearFiles()
-  uploadRef.value?.handleStart(file)
-}
-
-function fileSize(size) {
-  return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.ceil(size / 1024))} KB`
-}
-
-async function confirmUpload() {
-  if (uploading.value || !uploadPolicy.value.allowed || !selectedUploadCategory.value || !selectedFile.value) return
-  uploading.value = true
-  try {
-    await uploadMaterial(selectedFile.value, { category: selectedUploadCategory.value })
-    ElMessage.success('上传成功')
-    clearSelectedFile()
-    pageNum.value = 1
-    await loadList()
-  } catch (error) {
-    ElMessage.error(error.message || '上传失败')
-  } finally {
-    uploading.value = false
-  }
-}
+function fileType(name) { return String(name || '').split('.').pop()?.slice(0, 4).toUpperCase() || 'DOC' }
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm(`确认删除“${row.fileName}”吗？`, '删除学习资料', {
-      type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消',
-    })
+    await ElMessageBox.confirm(`确认删除“${row.fileName}”吗？`, '删除学习资料', { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' })
     await removeMaterial(row.materialId)
     ElMessage.success('删除成功')
-    await loadList()
-  } catch (error) {
-    if (error !== 'cancel' && error !== 'close') ElMessage.error(error.message || '删除失败')
-  }
+    if (rows.value.length === 1 && pageNum.value > 1) pageNum.value -= 1
+    await load()
+  } catch (error) { if (error !== 'cancel' && error !== 'close') ElMessage.error(error.message || '删除失败') }
 }
-
 async function handleDownload(row) {
+  downloadingId.value = row.materialId
   try {
     const result = await downloadMaterial(row)
     saveBlob(result.blob, result.fileName)
-    ElMessage.success('下载成功')
-  } catch (error) {
-    ElMessage.error(error.message || '下载失败')
-  }
+    ElMessage.success('下载已开始')
+  } catch (error) { ElMessage.error(error.message || '下载失败') }
+  finally { downloadingId.value = null }
 }
-
-onMounted(loadList)
+function uploaded() { pageNum.value = 1; load() }
+onMounted(load)
 </script>
 
 <template>
   <div class="learning-materials-view">
-    <section v-if="uploadPolicy.allowed" class="page-card learning-upload-card">
-      <header><h2>上传学习资料</h2><span>分享给全部塔员 · 单文件不超过 20 MB</span></header>
-      <div class="learning-upload-card__category">
-        <span>资料分类</span>
-        <ElSelect v-if="uploadPolicy.canChoose" v-model="uploadCategory" placeholder="选择资料所属部门" aria-label="资料所属部门">
-          <ElOption v-for="item in MATERIAL_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" />
-        </ElSelect>
-        <strong v-else>{{ materialCategoryLabel(uploadPolicy.category) }}</strong>
-      </div>
-      <ElUpload ref="uploadRef" drag action="#" :auto-upload="false" :show-file-list="false" :limit="1" :on-change="selectFile" :on-exceed="replaceFile" :disabled="uploading || !selectedUploadCategory" :accept="MATERIAL_EXTENSIONS.map((item) => `.${item}`).join(',')">
-        <ElIcon class="learning-upload-card__icon"><FolderOpened /></ElIcon>
-        <p>{{ selectedFile ? '重新选择文件，或拖拽文件替换' : '点击或拖拽文件到此处选择' }}</p>
-        <span>PDF、Word、PPT、Excel、TXT、Markdown、图片 · 最大 20 MB</span>
-      </ElUpload>
-      <div v-if="selectedFile" class="learning-upload-card__selected" role="status">
-        <span class="learning-upload-card__file-icon" aria-hidden="true">{{ selectedFile.name.split('.').pop()?.toUpperCase() }}</span>
-        <div class="learning-upload-card__file-info"><strong :title="selectedFile.name">{{ selectedFile.name }}</strong><span>{{ fileSize(selectedFile.size) }} · {{ materialCategoryLabel(selectedUploadCategory) }} · <span class="learning-upload-card__pending">待上传</span></span></div>
-        <button type="button" :disabled="uploading" @click="clearSelectedFile">移除</button>
-      </div>
-      <div class="learning-upload-card__actions"><ElButton type="primary" class="quanta-primary-button" data-testid="confirm-material-upload" :loading="uploading" :disabled="!selectedFile || !selectedUploadCategory" @click="confirmUpload">确认上传</ElButton></div>
-    </section>
-    <p v-else-if="uploadPolicy.reason" class="learning-upload-warning" role="alert">{{ uploadPolicy.reason }}</p>
-
+    <header class="learning-materials-view__heading">
+      <div><p>QUANTA KNOWLEDGE</p><h1>学习资料</h1><span>把经验归档，让知识在塔员之间流动。</span></div>
+      <ElButton v-if="uploadPolicy.allowed" type="primary" :icon="Upload" data-testid="open-material-upload" @click="uploadOpen = true">上传资料</ElButton>
+    </header>
+    <p v-if="uploadPolicy.reason" class="learning-upload-warning" role="alert">{{ uploadPolicy.reason }}</p>
     <section class="page-card learning-list-card">
-      <header><h2>资料列表</h2><span>按分类浏览和下载</span></header>
-      <form class="learning-list-card__filters" @submit.prevent="applyFilters">
-        <ElSelect :model-value="category" aria-label="筛选资料分类" @update:model-value="changeCategory">
-          <ElOption label="全部" value="" />
-          <ElOption v-for="item in MATERIAL_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" />
-        </ElSelect>
-        <ElInput v-model="searchText" clearable placeholder="搜索文件名称" aria-label="搜索文件名称" />
-        <ElButton native-type="submit" type="primary">搜索</ElButton>
-      </form>
-      <div v-if="failed && !loading" class="learning-list-card__error"><span>资料暂时无法加载。</span><ElButton type="primary" link @click="loadList">重新加载</ElButton></div>
-      <ElTable v-else v-loading="loading" class="learning-materials-table" :data="rows" size="small" row-key="materialId" empty-text="暂无学习资料">
-        <ElTableColumn prop="fileName" label="文件名" min-width="260"><template #default="{ row }"><ElButton link class="learning-materials-table__download" @click="handleDownload(row)">{{ row.fileName }}</ElButton></template></ElTableColumn>
-        <ElTableColumn label="分类" min-width="100"><template #default="{ row }"><span class="learning-materials-table__tag">{{ materialCategoryLabel(row.category) }}</span></template></ElTableColumn>
-        <ElTableColumn prop="fileSize" label="大小" min-width="100" />
-        <ElTableColumn prop="uploader" label="上传者" min-width="120" />
-        <ElTableColumn prop="uploadedAt" label="上传时间" min-width="170" />
-        <ElTableColumn label="可见性" min-width="130"><template #default="{ row }"><span class="learning-materials-table__visibility" :class="{ 'is-restricted': row.visibility !== 'ALL' }">{{ visibilityLabels[row.visibility] || row.visibility }}</span></template></ElTableColumn>
-        <ElTableColumn v-if="canDelete" label="操作" min-width="90"><template #default="{ row }"><PermissionButton link type="danger" permissions="qt:material:remove" :roles="['qt_mgmt', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></template></ElTableColumn>
-      </ElTable>
-      <ElPagination v-if="total > pageSize" v-model:current-page="pageNum" class="learning-list-card__pagination" background layout="prev, pager, next, total" :page-size="pageSize" :total="total" @current-change="loadList" />
+      <MaterialFilters v-model:search-text="searchText" :category="category" :material-type="materialType" :keyword="keyword" @category="chooseCategory" @type="chooseType" @search="search" @clear="clearSearch" />
+      <div class="learning-materials-view__list-label"><strong>{{ materialTypeLabel(materialType) || (keyword ? '搜索结果' : '全部资料') }} <span>{{ total }}</span></strong><small>全部塔员均可查看</small></div>
+      <div v-if="errorMessage" class="learning-list-card__error" role="alert"><span>{{ errorMessage }}</span><ElButton link type="primary" @click="load">重试</ElButton><ElButton link @click="chooseType('')">查看全部资料</ElButton></div>
+      <template v-else>
+        <ElTable v-loading="loading" class="learning-materials-table" :data="rows" row-key="materialId" empty-text="该类型暂时没有资料">
+          <ElTableColumn label="资料名称" min-width="280"><template #default="{ row }"><div class="learning-materials-table__name"><span class="learning-materials-table__icon">{{ fileType(row.fileName) }}</span><div><ElButton link class="learning-materials-table__download" @click="handleDownload(row)">{{ row.fileName }}</ElButton><small>{{ fileSize(row.fileSize) }} · {{ materialCategoryLabel(row.category) }}{{ materialRowTypeLabel(row, materialType) ? ' · ' + materialRowTypeLabel(row, materialType) : '' }}</small></div></div></template></ElTableColumn>
+          <ElTableColumn prop="uploader" label="上传人" min-width="100" />
+          <ElTableColumn prop="uploadedAt" label="上传时间" min-width="165" />
+          <ElTableColumn label="操作" :min-width="canDelete ? 120 : 80"><template #default="{ row }"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" permissions="qt:material:remove" :roles="['qt_mgmt', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></template></ElTableColumn>
+        </ElTable>
+        <div v-loading="loading" class="learning-materials-mobile">
+          <article v-for="row in rows" :key="row.materialId"><div class="learning-materials-table__name"><span class="learning-materials-table__icon">{{ fileType(row.fileName) }}</span><div><strong>{{ row.fileName }}</strong><small>{{ fileSize(row.fileSize) }} · {{ row.uploader }}</small><small>{{ materialCategoryLabel(row.category) }}{{ materialRowTypeLabel(row, materialType) ? ' · ' + materialRowTypeLabel(row, materialType) : '' }}</small></div></div><div class="learning-materials-mobile__actions"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" permissions="qt:material:remove" :roles="['qt_mgmt', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></div></article>
+          <p v-if="!rows.length && !loading" class="learning-materials-mobile__empty">该类型暂时没有资料</p>
+        </div>
+      </template>
+      <footer v-if="!errorMessage" class="learning-list-card__footer"><span>共 {{ total }} 份资料</span><ElPagination :current-page="pageNum" background layout="prev, pager, next" :page-size="pageSize" :total="total" :pager-count="5" @current-change="goToPage" /></footer>
     </section>
+    <MaterialUploadDrawer v-if="uploadPolicy.allowed" v-model="uploadOpen" :policy="uploadPolicy" :initial-category="category" :initial-type="materialType" @uploaded="uploaded" />
   </div>
 </template>

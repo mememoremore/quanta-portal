@@ -8,12 +8,14 @@ import { useUserStore } from '@/stores/user'
 import { createForumComment, deleteForumComment, deleteForumPost, forumCategoryLabel, getForumPost, listForumComments, updateForumComment } from '@/api/portal/forum'
 import { groupForumComments, canManageForumContent } from './comment-tree'
 import MarkdownContent from './MarkdownContent.vue'
+import ArticleToc from './ArticleToc.vue'
 import './community.css'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const post = ref(null)
+const headings = ref([])
 const comments = ref([])
 const commentTotal = ref(0)
 const commentPage = ref(1)
@@ -44,6 +46,7 @@ let postRequestId = 0, commentRequestId = 0
 
 async function loadPost() {
   const current = ++postRequestId
+  headings.value = []
   post.value = null; replyTarget.value = null; editingCommentId.value = null; commentText.value = ''
   loading.value = true
   errorMessage.value = ''
@@ -154,19 +157,22 @@ onBeforeUnmount(() => { postRequestId++; commentRequestId++ })
 </script>
 
 <template>
-  <section class="member-page community-page community-detail">
+  <section class="member-page community-page community-detail" :class="{ 'community-detail--outline': headings.length > 1 }">
     <a class="community-back" :href="returnPath" @click="goBack">← {{ returnPath.startsWith('/member/people/') ? '返回成员主页' : '返回社区' }}</a>
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }} <button type="button" @click="loadPost">重试</button></p>
     <div v-if="loading" class="member-loading portal-card">正在加载帖子…</div>
     <template v-else-if="post">
-      <article class="community-detail__post portal-card">
-        <span class="community-tag">{{ forumCategoryLabel(post.category) }}</span>
-        <h1>{{ post.title }}</h1>
-        <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
-        <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
-        <MarkdownContent :source="post.content" />
-        <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
-      </article>
+      <div class="community-detail__reading" :class="{ 'has-outline': headings.length > 1 }">
+        <article class="community-detail__post portal-card">
+          <span class="community-tag">{{ forumCategoryLabel(post.category) }}</span>
+          <h1>{{ post.title }}</h1>
+          <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
+          <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
+          <MarkdownContent :source="post.content" outline @outline="headings = $event" />
+          <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
+        </article>
+        <ArticleToc :headings="headings" />
+      </div>
 
       <section class="community-comments portal-card" aria-label="评论区">
         <h2>讨论 <small>{{ commentTotal }} 条</small></h2>

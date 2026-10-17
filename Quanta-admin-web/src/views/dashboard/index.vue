@@ -37,6 +37,7 @@ onMounted(loadStats)
 
 <template>
   <div class="dashboard-view">
+    <header class="dashboard-view__heading"><p>QUANTA ADMIN</p><h1>控制台</h1></header>
     <WelcomeBanner :name="displayName" />
 
     <div v-loading="loading" class="dashboard-view__stats">
@@ -58,6 +59,10 @@ onMounted(loadStats)
   max-width: 1640px;
   margin: 0 auto;
 }
+
+.dashboard-view__heading { margin-bottom: 22px; }
+.dashboard-view__heading p { margin: 0 0 7px; color: var(--quanta-primary); font-size: 10px; font-weight: 750; letter-spacing: .17em; }
+.dashboard-view__heading h1 { margin: 0; font-size: 27px; line-height: 1.4; letter-spacing: -.03em; }
 
 .dashboard-view__stats {
   display: grid;
