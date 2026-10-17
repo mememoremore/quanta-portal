@@ -52,6 +52,13 @@
 .community-draft-status { margin: 0; color: var(--portal-muted); font-size: 12px; }
 .community-code-block { min-width: 0; max-width: 100%; }
 .community-code-block__toolbar { display: none; }
+@media (min-width: 701px) {
+  .community-code-block { margin: 20px 0; overflow: hidden; border-radius: 12px; background: #202124; }
+  .community-code-block__toolbar { display: flex; min-height: 42px; padding: 6px 12px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #3d4046; color: #c3c6cf; font-size: 12px; }
+  .community-code-copy { min-height: 32px; padding: 5px 10px; border: 1px solid #555b67; border-radius: 7px; background: #30343b; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+  .community-code-copy:hover { border-color: #8f98a6; background: #3c424b; }
+  .community-markdown .community-code-block pre { margin: 0; border-radius: 0; }
+}
 .community-detail__views { margin: 12px 0 0; color: var(--portal-muted); font-size: 12px; }
 .community-editor__body-label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
 .community-editor__body-label strong { font-size: 17px; }

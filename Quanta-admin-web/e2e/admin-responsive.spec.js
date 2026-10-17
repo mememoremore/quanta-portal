@@ -22,11 +22,22 @@ for (const width of [320, 390, 430, 768, 1440]) {
     await expect(page.locator('.stat-card').first()).toContainText('12')
     await expect(page.locator('.stat-card')).toHaveCount(3)
     await expectInsideMain(page, '.welcome-banner, .stat-card')
+    await expect(page.locator('.stat-card p').first()).toHaveCSS('font-size', '14px')
+    await expect(page.locator('.stat-card strong').first()).toHaveCSS('font-size', width <= 600 ? '28px' : '33px')
+    await expect(page.locator('.stat-card__icon').first()).toHaveCSS('width', width <= 600 ? '44px' : '48px')
+    await expect(page.locator('.stat-card__icon .el-icon').first()).toHaveCSS('font-size', width <= 600 ? '24px' : '26px')
+    await expect(page.locator('.welcome-banner__mark')).toHaveCSS('width', width <= 600 ? '55px' : '120px')
+    await expect(page.locator('.welcome-banner__brand')).toHaveAttribute('aria-hidden', 'true')
     const columns = await page.locator('.dashboard-view__stats').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)
     expect(columns).toBe(width <= 600 ? 1 : width <= 1280 ? 2 : 3)
-    if (width === 390) {
+    if (width === 390 || width === 1440) {
+      await expect(page.locator('#nprogress')).toHaveCount(0)
       await expect(page.locator('.el-message')).toHaveCount(0)
-      await page.screenshot({ path: testInfo.outputPath('admin-dashboard-h5.png') })
+      await page.screenshot({ path: testInfo.outputPath(`admin-dashboard-polished-${width}.png`) })
+    }
+    if (width === 1440) {
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await expect(page.locator('.welcome-banner__mark')).toHaveCSS('transition-duration', '0s')
     }
     expect(api.requests).toContain('GET /dashboard/stats')
   })

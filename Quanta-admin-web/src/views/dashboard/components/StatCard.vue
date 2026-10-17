@@ -9,7 +9,7 @@ defineProps({
 
 <template>
   <article class="stat-card page-card">
-    <div class="stat-card__heading"><p>{{ label }}</p><div class="stat-card__icon" :class="`stat-card__icon--${tone}`"><ElIcon :size="19"><component :is="icon" /></ElIcon></div></div>
+    <div class="stat-card__heading"><p>{{ label }}</p><div class="stat-card__icon" :class="`stat-card__icon--${tone}`" aria-hidden="true"><ElIcon><component :is="icon" /></ElIcon></div></div>
     <strong>{{ value ?? '--' }}</strong>
   </article>
 </template>
@@ -27,14 +27,16 @@ defineProps({
 
 .stat-card__icon {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 48px;
+  height: 48px;
   color: #ff6700;
   background: #fff5ee;
-  border-radius: 10px;
-  flex: 0 0 34px;
+  border-radius: 14px;
+  flex: 0 0 48px;
   place-items: center;
 }
+
+.stat-card__icon .el-icon { font-size: 26px; }
 
 .stat-card__icon--green {
   color: #32a96b;
@@ -60,14 +62,17 @@ defineProps({
 
 .stat-card p {
   margin: 0;
-  color: #84909f;
-  font-size: 12px;
+  color: #687587;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 @media (max-width: 600px) {
   .stat-card { display: flex; min-width: 0; min-height: 86px; padding: 18px; gap: 14px; align-items: center; justify-content: space-between; }
   .stat-card__heading { flex-direction: row-reverse; justify-content: flex-end; }
   .stat-card__heading p { overflow-wrap: anywhere; }
+  .stat-card__icon { width: 44px; height: 44px; flex-basis: 44px; border-radius: 13px; }
+  .stat-card__icon .el-icon { font-size: 24px; }
   .stat-card strong { font-size: 28px; }
 }
 </style>
