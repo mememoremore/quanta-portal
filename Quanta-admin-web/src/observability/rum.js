@@ -90,5 +90,7 @@ export function loadRumSdk({
 }
 
 export function startRum() {
+  // Authentication interactions must not load third-party observers.
+  if (/^\/oauth(?:\/|$)/.test(globalThis.location?.pathname || '')) return false
   return loadRumSdk()
 }

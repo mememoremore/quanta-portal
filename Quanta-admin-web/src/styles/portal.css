@@ -68,7 +68,8 @@ body.portal-scroll-active {
 .portal-user-menu__trigger { display: flex; min-height: 42px; padding: 5px 9px 5px 5px; border: 1px solid var(--portal-line); border-radius: 999px; background: #fff; align-items: center; gap: 8px; color: var(--portal-ink-soft); cursor: pointer; }
 .portal-user-menu__avatar { display: grid; width: 30px; height: 30px; border-radius: 50%; background: var(--portal-ink); color: #fff; font-size: 13px; font-weight: 800; place-items: center; }
 .portal-user-menu__name { max-width: 90px; overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.portal-user-menu__chevron { color: var(--portal-muted); font-size: 13px; }
+.portal-user-menu__chevron { display: inline-flex; width: 14px; height: 14px; align-items: center; justify-content: center; flex: 0 0 14px; color: var(--portal-muted); line-height: 1; }
+.portal-user-menu__chevron svg { display: block; width: 14px; height: 14px; }
 .portal-user-menu__panel { position: absolute; top: calc(100% + 10px); right: 0; display: grid; width: 168px; padding: 8px; border: 1px solid var(--portal-line); border-radius: 14px; background: #fff; box-shadow: var(--portal-shadow-sm); }
 .portal-user-menu__panel a, .portal-user-menu__panel button { width: 100%; padding: 10px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--portal-ink-soft); font: inherit; font-size: 13px; text-align: left; text-decoration: none; cursor: pointer; }
 .portal-user-menu__panel a:hover, .portal-user-menu__panel button:hover { background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
@@ -109,6 +110,7 @@ body.portal-scroll-active {
   .portal-header__actions { flex: 0 0 auto; gap: 6px; }
   .portal-user-menu__name, .portal-user-menu__chevron { display: none; }
   .portal-user-menu__trigger { padding-right: 5px; }
+  .portal-user-menu__trigger--member { width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; justify-content: center; }
   .portal-header__mobile-trigger { display: block; }
   .portal-mobile-drawer.el-drawer { --el-drawer-padding-primary: 0; color: var(--portal-ink); }
   .portal-mobile-drawer .el-drawer__body { padding: 0 16px max(24px, env(safe-area-inset-bottom)); overscroll-behavior: contain; }

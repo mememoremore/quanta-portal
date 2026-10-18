@@ -94,7 +94,7 @@ function responseFor(request, state) {
   if (method === 'POST' && path === '/register') return { code: 200, msg: '注册成功' }
   if (method === 'GET' && path === '/getInfo') {
     return account
-      ? { code: 200, user: {...account.user,avatar:state.avatars[account.user.userId] || ''}, roles: account.roles, permissions: account.permissions }
+      ? { code: 200, user: {...account.user,avatar:state.avatars[account.user.userId] || '', ...state.userInfoOverrides}, roles: account.roles, permissions: account.permissions }
       : { code: 401, msg: '登录状态已失效' }
   }
   if (method === 'GET' && path === '/getRouters') {
@@ -175,6 +175,23 @@ function responseFor(request, state) {
     if (!state.materialFolders.some(folder => folder.folderId === folderId && folder.category === category)) return { code: 400, msg: '目标分类不正确' }
     state.materials.push({ materialId: Math.max(0, ...state.materials.map(row => row.materialId)) + 1, fileName, category, folderId, fileSize: 128, uploaderName: '测试管理员', uploadTime: '2026-10-17 17:00:00', visibility: 'MEMBER' })
     return { code: 200 }
+  }
+  if (path === '/qt/materials/batch-delete' && method === 'POST') {
+    const body = request.postDataJSON()
+    state.materialBatchRequests ||= []
+    state.materialBatchRequests.push(body)
+    if (!account?.roles.includes('ceo') || !account.permissions.some(permission => ['*:*:*', 'qt:material:remove'].includes(permission))) return { code: 403, msg: '仅 CEO 可执行批量删除' }
+    if (state.materialBatchMode === 'missing') return { code: 404, msg: '接口未提供' }
+    if (state.materialBatchMode === 'forbidden') return { code: 403, msg: '仅 CEO 可执行批量删除' }
+    if (state.materialBatchMode === 'conflict') return { code: 409, msg: '资料存在业务引用，整个批次未删除' }
+    const ids = body.materialIds
+    if (!Array.isArray(ids) || !ids.length || ids.length > 20 || new Set(ids).size !== ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0)) return { code: 400, msg: '资料ID无效' }
+    const deletedIds = ids.filter(id => state.materials.some(row => row.materialId === id))
+    const alreadyDeletedIds = ids.filter(id => !deletedIds.includes(id))
+    state.materials = state.materials.filter(row => !ids.includes(row.materialId))
+    return state.materialBatchMode === 'unconfirmed'
+      ? { code: 200 }
+      : { code: 200, data: { deletedIds, alreadyDeletedIds } }
   }
   if (method === 'GET' && path === '/dashboard/stats') return { code: 200, data: { members: 12, resumesToday: 3, pendingPayments: 0 } }
   if (path.startsWith('/qt/member/manage')) {

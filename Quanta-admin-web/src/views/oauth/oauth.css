@@ -1,0 +1,37 @@
+.oauth-page { min-height: 100dvh; padding: 44px 20px; color: #202124; background: #f7f7f9; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+.oauth-shell { width: 100%; max-width: 470px; margin: auto; }
+.oauth-panel { margin-top: 30px; padding: 30px; background: #fff; border: 1px solid #e7e9ef; border-radius: 24px; box-shadow: 0 16px 44px #20212408; }
+.oauth-panel h1 { font-size: 25px; line-height: 1.4; margin: 8px 0 12px; }
+.oauth-panel p { margin: 10px 0 20px; color: #697180; line-height: 1.7; }
+.oauth-panel small { font-size: 12px; color: #697180; }
+.oauth-panel button, .oauth-panel a { cursor: pointer; font: inherit; }
+.oauth-primary, .oauth-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; width: 100%; padding: 12px; border-radius: 12px; text-decoration: none; border: 1px solid #e1e4eb; }
+.oauth-panel .oauth-primary { color: #fff; background: #ff6900; border-color: #ff6900; font-weight: 700; }
+.oauth-panel .oauth-secondary { color: #3b4350; background: #fff; }
+.oauth-panel button:disabled { cursor: not-allowed; opacity: .6; }
+.oauth-panel .oauth-secondary + .oauth-primary { margin-top: 12px; }
+.oauth-actions { display: flex; gap: 12px; }
+.oauth-actions .oauth-secondary + .oauth-primary { margin-top: 0; }
+.oauth-application, .oauth-identity { background: #f7f7f9; padding: 15px; border-radius: 14px; margin: 18px 0; }
+.oauth-application small, .oauth-identity small { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+.oauth-identity { display: flex; align-items: center; gap: 12px; }
+.oauth-identity > span { min-width: 0; overflow-wrap: anywhere; }
+.oauth-identity button { min-height: 44px; margin-left: auto; padding: 0; flex-shrink: 0; border: 0; background: transparent; color: #d65300; font-size: 12px; }
+.oauth-scopes { border-top: 1px solid #e8e9ed; padding: 20px 0; font-size: 14px; }
+.oauth-scopes p { margin: 10px 0; color: #444b57; }
+.oauth-eyebrow { color: #d65300; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+.oauth-success { width: 64px; height: 64px; margin: 4px 0 24px; background: #fff0e6; color: #e45c00; border-radius: 20px; display: grid; place-items: center; font-size: 30px; }
+.oauth-footer { display: block; text-align: center; margin-top: 22px; color: #697180; font-size: 12px; }
+.oauth-login label { display: block; font-size: 14px; margin: 18px 0; }
+.oauth-login input { min-width: 0; width: 100%; padding: 13px; margin-top: 8px; border: 1px solid #dfe3ea; border-radius: 10px; font: inherit; font-size: 16px; background: #fff; }
+.oauth-captcha { display: flex; align-items: center; gap: 10px; }
+.oauth-captcha input { flex: 1; }
+.oauth-captcha button { flex: none; background: #fff; border: 0; padding: 0; }
+.oauth-captcha img { width: 100px; height: 42px; object-fit: contain; }
+.oauth-panel .oauth-error { color: #b63c2b; font-size: 13px; overflow-wrap: anywhere; }
+.oauth-page--complete { display: flex; align-items: center; background: #111; color: #ededed; }
+.oauth-page--complete .oauth-panel { background: #1a1a1a; border-color: #1a1a1a; text-align: center; }
+.oauth-page--complete .oauth-panel p, .oauth-page--complete .oauth-footer { color: #aaa; }
+.oauth-page--complete .oauth-success { margin-left: auto; margin-right: auto; background: #362619; color: #fa7c0e; }
+.oauth-success svg { width: 24px; height: 24px; }
+@media (max-width: 480px) { .oauth-page { padding: 26px 16px; } .oauth-panel { margin-top: 24px; padding: 24px 20px; } .oauth-panel h1 { font-size: 23px; } }

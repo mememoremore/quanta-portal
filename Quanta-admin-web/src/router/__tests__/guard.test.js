@@ -39,6 +39,13 @@ describe('global route guard', () => {
     expect(buildDocumentTitle({ path: '/admin/dashboard', meta: {} })).toBe('管理后台 - Quanta')
   })
 
+  it('leaves OAuth authentication to its neutral page without redirecting to admin login', async () => {
+    const router = createTestRouter()
+    await router.push('/oauth/authorize?interaction=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    expect(router.currentRoute.value.path).toBe('/oauth/authorize')
+    expect(permissionStore.initialized).toBe(false)
+  })
+
   it('redirects unauthenticated visitors and keeps the intended path', async () => {
     const router = createTestRouter()
     await router.push('/members')

@@ -103,4 +103,20 @@ export const materialHandlers = [
       return { code: 200 }
     },
   },
+  // Full local demo mode only; this endpoint is NOT on the production partial-mock allowlist.
+  {
+    method: 'post', path: '/qt/materials/batch-delete', handle(config) {
+      const current = account(config)
+      if (!current) return { code: 401, msg: '登录状态已失效' }
+      if (!current.roles.includes('ceo') || !has(current, 'qt:material:remove')) return { code: 403, msg: '仅 CEO 可执行批量删除' }
+      const ids = config.data?.materialIds
+      if (!Array.isArray(ids) || !ids.length || ids.length > 20 || new Set(ids).size !== ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0)) return { code: 400, msg: '资料ID无效' }
+      const deletedIds = ids.filter(id => mockMaterials.some(row => row.materialId === id))
+      const alreadyDeletedIds = ids.filter(id => !deletedIds.includes(id))
+      for (let i = mockMaterials.length - 1; i >= 0; i -= 1) {
+        if (ids.includes(mockMaterials[i].materialId)) mockMaterials.splice(i, 1)
+      }
+      return { code: 200, data: { deletedIds, alreadyDeletedIds } }
+    },
+  },
 ]

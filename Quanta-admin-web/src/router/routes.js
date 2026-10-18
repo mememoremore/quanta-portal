@@ -2,6 +2,12 @@ import { portalRoutes } from './portal-routes'
 
 export const staticRoutes = [
   {
+    path: '/oauth/authorize',
+    name: 'OAuthAuthorize',
+    component: () => import('@/views/oauth/index.vue'),
+    meta: { title: 'Quanta 授权登录', oauthInteraction: true },
+  },
+  {
     path: '/login',
     redirect: '/admin/login',
   },

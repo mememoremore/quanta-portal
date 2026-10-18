@@ -49,6 +49,13 @@
 .user-panel__arrow { color: #929ba9; font-size: 13px; }
 .app-layout--collapsed .app-sidebar__brand { padding-inline: 17px; }
 .app-layout--collapsed .user-panel { justify-content: center; padding-inline: 10px; }
+@media (min-width: 901px) {
+  .app-sidebar__menu.el-menu--collapse .el-menu-item,
+  .app-sidebar__menu.el-menu--collapse .el-sub-menu__title { padding-inline: 0 !important; justify-content: center; }
+  .app-sidebar__menu.el-menu--collapse .el-menu-tooltip__trigger { display: flex; padding-inline: 0 !important; align-items: center; justify-content: center; }
+  .app-sidebar__menu.el-menu--collapse .el-icon { margin: 0; }
+  .app-sidebar__menu.el-menu--collapse .el-menu-item.is-active::before { left: -12px; }
+}
 .app-header { position: sticky; z-index: 10; top: 0; display: flex; height: var(--quanta-header-height); padding: 0 29px; border-bottom: 1px solid #e9ecf1; background: #fff; align-items: center; justify-content: space-between; gap: 14px; }
 .app-header__title-area { display: flex; min-width: 0; align-items: center; gap: 16px; }
 .app-header__toggle { display: grid; width: 34px; height: 34px; padding: 0; border: 1px solid #e9ecf1; border-radius: 8px; color: #84909f; background: #fff; cursor: pointer; place-items: center; }

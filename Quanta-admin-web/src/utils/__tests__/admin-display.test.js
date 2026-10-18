@@ -24,4 +24,20 @@ describe('admin display-only labels', () => {
     expect(adminMenuGroup('塔员端')).toBe('内容与服务')
     expect(adminMenuGroup('系统配置')).toBe('系统配置')
   })
+  it('tries all department codes before using a possibly corrupted display name', () => {
+    expect(adminDepartmentLabel({ deptCode: 'INVALID', dept: { deptCode: 'FRONTEND', deptName: 'å‰\u008dç«¯éƒ¨' } })).toBe('前端部')
+    expect(adminDepartmentLabel({ dept: { deptName: 'å‰\u008dç«¯éƒ¨' }, memberDepartment: 'BACKEND' })).toBe('后端部')
+  })
+  it('never displays broken encoding and falls back without changing authorization data', () => {
+    const user = { memberDepartment: 'å‰\u008dç«¯éƒ¨', memberTitle: 'ç»\u008fç\u0090\u0086', roleCategory: 'MANAGER' }
+    const roles = ['qt_manager']
+    const before = JSON.stringify(user)
+    expect(adminDepartmentLabel(user)).toBe('部门待完善')
+    expect(adminRoleLabel(user, roles)).toBe('经理')
+    expect(adminRoleLabel({ memberTitle: '经理\uFFFD' }, roles)).toBe('经理')
+    expect(adminRoleLabel({ memberTitle: 'ç»\u008fç\u0090\u0086' })).toBe('身份待完善')
+    expect(adminDepartmentLabel({ memberDepartment: '移动开发部' })).toBe('移动开发部')
+    expect(JSON.stringify(user)).toBe(before)
+    expect(roles).toEqual(['qt_manager'])
+  })
 })

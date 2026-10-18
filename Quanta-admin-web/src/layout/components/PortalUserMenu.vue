@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MemberAvatar from '@/components/MemberAvatar.vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 
 defineProps({
   audience: { type: String, required: true },
@@ -37,6 +38,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick)
   <div ref="menuRoot" class="portal-user-menu" @keydown.esc="close">
     <button
       class="portal-user-menu__trigger"
+      :class="{ 'portal-user-menu__trigger--member': audience === 'member' }"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open"
@@ -45,7 +47,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick)
       <MemberAvatar v-if="audience === 'member'" :member-id="userStore.user?.userId" :src="userStore.user?.avatar || ''" :name="displayName" :size="32" eager />
       <span v-else class="portal-user-menu__avatar" aria-hidden="true">{{ displayName.slice(0, 1) }}</span>
       <span class="portal-user-menu__name">{{ displayName }}</span>
-      <span class="portal-user-menu__chevron" aria-hidden="true">⌄</span>
+      <span class="portal-user-menu__chevron" aria-hidden="true"><ArrowDown /></span>
     </button>
     <div v-if="open" class="portal-user-menu__panel" role="menu">
       <RouterLink v-if="audience === 'member'" to="/member/profile" role="menuitem" @click="close">个人中心</RouterLink>

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { Fold, Expand, Menu } from '@element-plus/icons-vue'
+import { Fold, Expand } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '@/stores/app'
 
@@ -29,7 +29,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
   <header class="app-header">
     <div class="app-header__title-area">
       <button class="app-header__mobile-toggle" type="button" :aria-label="mobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'" :aria-expanded="mobileMenuOpen" @click="emit('toggle-mobile-menu')">
-        <ElIcon :size="20"><Menu /></ElIcon>
+        <ElIcon :size="20"><component :is="mobileMenuOpen ? Fold : Expand" /></ElIcon>
       </button>
       <button class="app-header__toggle" type="button" @click="appStore.toggleSidebar">
         <ElIcon :size="20"><component :is="sidebarCollapsed ? Expand : Fold" /></ElIcon>

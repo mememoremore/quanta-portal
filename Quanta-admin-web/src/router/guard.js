@@ -45,6 +45,8 @@ export function setupRouterGuard(router) {
     const targetAudience = audienceForPath(redirect) || getAudience() || 'admin'
     userStore.reset()
     permissionStore.resetRoutes()
+    // OAuth owns its inline login state and must retain the transaction.
+    if (router.currentRoute.value.meta?.oauthInteraction) return
     const loginPath = loginPathFor(targetAudience)
     if (router.currentRoute.value.path !== loginPath) {
       await router.replace({
@@ -59,6 +61,7 @@ export function setupRouterGuard(router) {
     const userStore = useUserStore(pinia)
     const permissionStore = usePermissionStore(pinia)
 
+    if (to.meta?.oauthInteraction === true) return true
     const targetAudience = audienceForPath(to.path)
 
     if (publicPaths.has(to.path)) {

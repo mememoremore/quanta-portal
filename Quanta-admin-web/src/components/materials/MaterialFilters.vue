@@ -7,7 +7,7 @@ import 'element-plus/theme-chalk/el-input.css'
 import { MATERIAL_CATEGORIES } from '@/utils/material-categories'
 import { MATERIAL_TYPES } from '@/utils/material-types'
 
-defineProps({ category: { type: String, default: 'FRONTEND' }, materialType: { type: String, default: '' }, searchText: { type: String, default: '' }, keyword: { type: String, default: '' } })
+defineProps({ category: { type: String, default: 'FRONTEND' }, materialType: { type: String, default: '' }, searchText: { type: String, default: '' }, keyword: { type: String, default: '' }, disabled: Boolean })
 const emit = defineEmits(['category', 'type', 'update:searchText', 'search', 'clear'])
 </script>
 
@@ -15,21 +15,23 @@ const emit = defineEmits(['category', 'type', 'update:searchText', 'search', 'cl
   <div class="material-filters">
     <div class="material-filters__top">
       <div class="material-filters__departments" role="group" aria-label="资料所属部门">
-        <button v-for="item in MATERIAL_CATEGORIES" :key="item.value" type="button" :aria-pressed="category === item.value" @click="emit('category', item.value)">{{ item.label }}</button>
+        <button v-for="item in MATERIAL_CATEGORIES" :key="item.value" type="button" :disabled="disabled" :aria-pressed="category === item.value" @click="emit('category', item.value)">{{ item.label }}</button>
       </div>
-      <form class="material-filters__search" @submit.prevent="emit('search')">
-        <ElInput :model-value="searchText" clearable :prefix-icon="Search" placeholder="搜索当前部门全部资料" aria-label="搜索资料名称" @update:model-value="emit('update:searchText', $event)" />
-        <ElButton type="primary" native-type="submit">搜索</ElButton>
+      <form class="material-filters__search" @submit.prevent="!disabled && emit('search')">
+        <ElInput :model-value="searchText" :disabled="disabled" clearable :prefix-icon="Search" placeholder="搜索当前部门全部资料" aria-label="搜索资料名称" @update:model-value="emit('update:searchText', $event)" />
+        <ElButton type="primary" native-type="submit" :disabled="disabled">搜索</ElButton>
       </form>
     </div>
     <div class="material-filters__types" role="group" aria-label="资料类型">
       <span>资料类型</span>
-      <div><button v-for="item in MATERIAL_TYPES" :key="item.value" type="button" :aria-pressed="materialType === item.value && !keyword" @click="emit('type', item.value)">{{ item.label }}</button></div>
-      <button type="button" class="material-filters__reset" :aria-pressed="!materialType && !keyword" @click="emit('type', '')">全部资料</button>
+      <div>
+        <button type="button" class="material-filters__reset" :disabled="disabled" :aria-pressed="!materialType && !keyword" @click="emit('type', '')">全部资料</button>
+        <button v-for="item in MATERIAL_TYPES" :key="item.value" type="button" :disabled="disabled" :aria-pressed="materialType === item.value && !keyword" @click="emit('type', materialType === item.value ? '' : item.value)">{{ item.label }}</button>
+      </div>
     </div>
     <div v-if="keyword" class="material-filters__search-state" role="status">
       <span>“{{ keyword }}” · 当前部门全部类型的搜索结果</span>
-      <button type="button" @click="emit('clear')">清除搜索</button>
+      <button type="button" :disabled="disabled" @click="emit('clear')">清除搜索</button>
     </div>
   </div>
 </template>
@@ -47,8 +49,8 @@ const emit = defineEmits(['category', 'type', 'update:searchText', 'search', 'cl
 .material-filters__types > div { display: flex; gap: 8px; }
 .material-filters__types button { padding: 9px 17px; border: 1px solid var(--material-line); border-radius: 9px; background: #fff; color: #778292; font: inherit; font-size: 12px; cursor: pointer; }
 .material-filters__types button[aria-pressed=true] { border-color: #ffcea9; background: #fff1e7; color: #e95d00; font-weight: 650; }
-.material-filters__types .material-filters__reset { margin-left: auto; padding: 7px 0; border: 0; background: transparent; font-size: 12px; }
-.material-filters__types .material-filters__reset[aria-pressed=true] { color: #e95d00; background: transparent; }
+.material-filters button:disabled { cursor: not-allowed; opacity: .6; }
+.material-filters button:focus-visible { outline: 2px solid #ff6700; outline-offset: 2px; }
 .material-filters__search-state { display: flex; padding: 10px 22px 16px; gap: 12px; justify-content: space-between; align-items: center; color: #778292; font-size: 12px; overflow-wrap: anywhere; }
 .material-filters__search-state button { flex-shrink: 0; padding: 5px; border: 0; background: transparent; color: #e95d00; font: inherit; font-size: 12px; cursor: pointer; }
 @media (max-width: 700px) {
@@ -59,9 +61,8 @@ const emit = defineEmits(['category', 'type', 'update:searchText', 'search', 'cl
   .material-filters__search :deep(input) { font-size: 16px; }
   .material-filters__types { padding: 17px 16px; gap: 10px; }
   .material-filters__types > span { width: 100%; }
-  .material-filters__types > div { width: 100%; gap: 7px; }
+  .material-filters__types > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 7px; }
   .material-filters__types > div button { padding: 10px 3px; min-height: 42px; flex: 1; }
-  .material-filters__types .material-filters__reset { margin-left: 0; }
   .material-filters__search-state { padding-inline: 16px; }
 }
 </style>
