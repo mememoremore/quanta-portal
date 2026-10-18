@@ -1,6 +1,16 @@
 export const challengeOrigin = String(import.meta.env.VITE_CHALLENGE_ORIGIN || 'https://challenge.quantacenter.com').replace(/\/$/, '')
 const callbackPath = '/api/auth/quanta/callback'
 
+function isTrustedClient(client) {
+  if (!client) return false
+  if (client.clientId === 'quanta-challenge' && client.origin === challengeOrigin && client.redirectUri === `${challengeOrigin}${callbackPath}`) return true
+  // Explicit, exact test tuple only; never trust a callback supplied by the interaction itself.
+  return import.meta.env.VITE_QUANTA_OAUTH_LOCAL_TEST === 'true'
+    && client.clientId === 'quanta-challenge-local'
+    && client.origin === 'https://localhost:3443'
+    && client.redirectUri === `https://localhost:3443${callbackPath}`
+}
+
 export function interactionId(value) {
   if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{32,128}$/.test(value)) throw new Error('授权请求无效，请从 Challenge 重新发起登录。')
   return value
@@ -17,7 +27,7 @@ export function assertUnexpired(value, now = Date.now()) {
 export function validateInteraction(data, id, now = Date.now()) {
   interactionId(id)
   const client = data?.client
-  if (data?.interactionId !== id || !['pending', 'approved'].includes(data.status) || client?.clientId !== 'quanta-challenge' || client.origin !== challengeOrigin || client.redirectUri !== `${challengeOrigin}${callbackPath}` || !Array.isArray(data.scopes) || data.scopes.length !== 2 || !data.scopes.includes('openid') || !data.scopes.includes('profile') || typeof data.csrfToken !== 'string' || !/^[A-Za-z0-9_-]{32,128}$/.test(data.csrfToken) || typeof data.consentRequired !== 'boolean') throw new Error('授权服务返回了不受信任的请求，请重新发起登录。')
+  if (data?.interactionId !== id || !['pending', 'approved'].includes(data.status) || !isTrustedClient(client) || !Array.isArray(data.scopes) || data.scopes.length !== 2 || !data.scopes.includes('openid') || !data.scopes.includes('profile') || typeof data.csrfToken !== 'string' || !/^[A-Za-z0-9_-]{32,128}$/.test(data.csrfToken) || typeof data.consentRequired !== 'boolean') throw new Error('授权服务返回了不受信任的请求，请重新发起登录。')
   assertUnexpired(data.expiresAt, now)
   return data
 }

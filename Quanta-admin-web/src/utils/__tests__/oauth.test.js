@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { interactionId, isOAuthMember, validateInteraction, validateApproval, validateDeniedRedirect } from '../oauth'
 
 const id = 'a'.repeat(43)
@@ -6,6 +6,23 @@ const now = Date.parse('2026-10-18T05:00:00Z')
 const context = () => ({ interactionId: id, status: 'pending', expiresAt: new Date(now + 600000).toISOString(), csrfToken: 's'.repeat(43), consentRequired: true, scopes: ['openid', 'profile'], client: { clientId: 'quanta-challenge', name: 'Quanta Challenge', origin: 'https://challenge.quantacenter.com', redirectUri: 'https://challenge.quantacenter.com/api/auth/quanta/callback' } })
 
 describe('OAuth interaction boundary', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('accepts the exact local test client only with explicit opt-in', () => {
+    const local = { ...context(), client: { clientId: 'quanta-challenge-local', name: 'Quanta Challenge 本地联调', origin: 'https://localhost:3443', redirectUri: 'https://localhost:3443/api/auth/quanta/callback' } }
+    vi.stubEnv('VITE_QUANTA_OAUTH_LOCAL_TEST', 'false')
+    expect(() => validateInteraction(local, id, now)).toThrow()
+    vi.stubEnv('VITE_QUANTA_OAUTH_LOCAL_TEST', 'true')
+    expect(validateInteraction(local, id, now)).toEqual(local)
+    expect(validateInteraction(context(), id, now)).toEqual(context())
+    for (const client of [
+      { ...local.client, clientId: 'quanta-challenge' }, { ...local.client, clientId: 'unknown' },
+      { ...local.client, origin: 'https://localhost:3444' }, { ...local.client, origin: 'https://localhost.evil.test:3443' },
+      { ...local.client, redirectUri: 'https://localhost:3443/api/auth/quanta/callback?next=evil' },
+      { ...local.client, redirectUri: 'https://challenge.quantacenter.com/api/auth/quanta/callback' },
+    ]) expect(() => validateInteraction({ ...local, client }, id, now)).toThrow()
+  })
+
   it('accepts only a single opaque interaction identifier', () => {
     expect(interactionId(id)).toBe(id)
     for (const value of [undefined, [id], '../../login', 'abc', '<script>', 'a'.repeat(129)]) expect(() => interactionId(value)).toThrow()

@@ -27,6 +27,7 @@ let generation = 0
 let alive = true
 const expired = computed(() => Boolean(context.value && Date.parse(approval.value?.expiresAt || context.value.expiresAt) <= clock.value))
 const name = computed(() => displayPersonName(identity.value, '塔员'))
+const returnOrigin = computed(() => context.value?.client.origin || challengeOrigin)
 const id = () => interactionId(route.query.interaction)
 
 async function identify(expectedGeneration = generation) {
@@ -102,8 +103,8 @@ onMounted(load)
       <LoginBrand :tone="phase === 'complete' && !expired ? 'light' : 'dark'" />
       <section class="oauth-panel" aria-live="polite">
         <template v-if="phase === 'loading'"><h1>正在验证授权请求</h1><p>请稍候…</p></template>
-        <template v-else-if="expired"><h1>本次授权已过期</h1><p>为保护账号安全，请返回 Challenge 重新发起登录。</p><a class="oauth-primary" :href="`${challengeOrigin}/auth/login`">返回 Challenge</a></template>
-        <template v-else-if="phase === 'error'"><h1>暂时无法继续登录</h1><p role="alert">{{ message }}</p><button class="oauth-secondary" @click="load">重新检查</button><a class="oauth-primary" :href="`${challengeOrigin}/auth/login`">返回 Challenge</a></template>
+        <template v-else-if="expired"><h1>本次授权已过期</h1><p>为保护账号安全，请返回 Challenge 重新发起登录。</p><a class="oauth-primary" :href="`${returnOrigin}/auth/login`">返回 Challenge</a></template>
+        <template v-else-if="phase === 'error'"><h1>暂时无法继续登录</h1><p role="alert">{{ message }}</p><button class="oauth-secondary" @click="load">重新检查</button><a class="oauth-primary" :href="`${returnOrigin}/auth/login`">返回 Challenge</a></template>
         <MemberLogin v-else-if="phase === 'login'" @signed-in="identify()" />
         <template v-else-if="phase === 'ineligible'"><h1>该登录方式仅向塔员开放</h1><p>当前账号没有有效塔员身份，请切换账号后重试。</p><button class="oauth-primary" :disabled="busy" @click="switchAccount">切换塔员账号</button><button class="oauth-secondary" :disabled="busy" @click="decide('deny')">取消并返回 Challenge</button></template>
         <template v-else-if="phase === 'complete'">

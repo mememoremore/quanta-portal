@@ -6,6 +6,15 @@ body {
   overflow: hidden;
 }
 
+/* Native touch feedback across all pages and body-mounted overlays; keep keyboard focus intact. */
+@media (pointer: coarse) {
+  html,
+  body,
+  body * {
+    -webkit-tap-highlight-color: rgb(255 103 0 / 16%);
+  }
+}
+
 #nprogress .bar {
   background: var(--quanta-primary);
 }

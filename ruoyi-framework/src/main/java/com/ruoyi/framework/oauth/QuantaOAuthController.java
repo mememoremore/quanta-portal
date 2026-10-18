@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.utils.ip.IpUtils;
 import com.ruoyi.framework.web.service.RefreshSession;
@@ -30,6 +30,9 @@ public class QuantaOAuthController
     private final QuantaOAuthFlow flow;
 
     private final TokenService tokenService;
+
+    // Keep the MVC request boundary independent of the flow's Jackson 2 tree model.
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public QuantaOAuthController(QuantaOAuthFlow flow, TokenService tokenService)
     {
@@ -70,13 +73,14 @@ public class QuantaOAuthController
     }
 
     @PostMapping("/oauth2/interaction/{interactionId}/decision")
-    public void decide(@PathVariable String interactionId, @RequestBody JsonNode body, HttpServletRequest request,
+    public void decide(@PathVariable String interactionId, @RequestBody Map<String, Object> body, HttpServletRequest request,
             HttpServletResponse response) throws IOException
     {
         LoginUser loginUser = tokenService.getLoginUser(request);
         RefreshSession refresh = tokenService.peekRefresh(request);
         write(response, flow.decide(interactionId, browser(request), request.getHeader("X-CSRF-Token"),
-                request.getHeader(HttpHeaders.ORIGIN), loginUser, refresh == null ? null : refresh.getUserId(), body,
+                request.getHeader(HttpHeaders.ORIGIN), loginUser, refresh == null ? null : refresh.getUserId(),
+                mapper.valueToTree(body),
                 IpUtils.getIpAddr(request)));
     }
 
