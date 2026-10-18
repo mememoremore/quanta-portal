@@ -60,7 +60,7 @@ describe('login view', () => {
     const { wrapper, userStore } = await mountLogin()
     const loginSpy = vi.spyOn(userStore, 'login')
 
-    await wrapper.find('.login-card__submit').trigger('click')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(loginSpy).not.toHaveBeenCalled()
@@ -75,13 +75,28 @@ describe('login view', () => {
     expect(router.currentRoute.value.path).toBe('/')
   })
 
+  it('logs in with a password present only on the input element', async () => {
+    const { wrapper, userStore } = await mountLogin()
+    mockManager(userStore)
+
+    wrapper.get('input[name="username"]').element.value = 'qt_ceo'
+    wrapper.get('input[name="password"]').element.value = 'secret-from-dom'
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(userStore.login).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'qt_ceo', password: 'secret-from-dom' }),
+      'admin',
+    )
+  })
+
   it('logs in and enters the dashboard', async () => {
     const { wrapper, router, userStore } = await mountLogin()
     mockManager(userStore)
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.find('.login-card__submit').trigger('click')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(userStore.login).toHaveBeenCalledOnce()
@@ -104,7 +119,7 @@ describe('login view', () => {
 
     await wrapper.find('input[autocomplete="username"]').setValue('member')
     await wrapper.find('input[autocomplete="current-password"]').setValue('member123')
-    await wrapper.find('.login-card__submit').trigger('click')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/admin/login')
@@ -127,7 +142,7 @@ describe('login view', () => {
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.find('.login-card__submit').trigger('click')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/admin/dashboard')
@@ -139,7 +154,7 @@ describe('login view', () => {
 
     await wrapper.find('input[autocomplete="username"]').setValue('admin')
     await wrapper.find('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.find('.login-card__submit').trigger('click')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/admin/recruitment')

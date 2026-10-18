@@ -166,14 +166,30 @@ describe('portal login', () => {
     await flushPromises()
   })
 
+  it('submits a password present only on the input element', async () => {
+    const { wrapper, store } = await mountLogin('member')
+    const login = vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
+    vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
+
+    wrapper.get('input[name="username"]').element.value = 'qt_ceo'
+    wrapper.get('input[name="password"]').element.value = 'secret-from-dom'
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(login).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'qt_ceo', password: 'secret-from-dom' }),
+      'member',
+    )
+  })
+
   it('submits the audience selected by the route', async () => {
     const { wrapper, store } = await mountLogin('freshman')
     const login = vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
     vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
 
-    await wrapper.get('input[autocomplete="username"]').setValue('qt_fresh')
-    await wrapper.get('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.get('.el-button').trigger('click')
+    await wrapper.get('input[name="username"]').setValue('qt_fresh')
+    await wrapper.get('input[name="password"]').setValue('admin123')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(login).toHaveBeenCalledWith(expect.objectContaining({ username: 'qt_fresh' }), 'freshman')
@@ -184,9 +200,9 @@ describe('portal login', () => {
     vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
     vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
 
-    await wrapper.get('input[autocomplete="username"]').setValue('qt_member')
-    await wrapper.get('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.get('.el-button').trigger('click')
+    await wrapper.get('input[name="username"]').setValue('qt_member')
+    await wrapper.get('input[name="password"]').setValue('admin123')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/member/home')
@@ -197,9 +213,9 @@ describe('portal login', () => {
     vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
     vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
 
-    await wrapper.get('input[autocomplete="username"]').setValue('qt_member')
-    await wrapper.get('input[autocomplete="current-password"]').setValue('admin123')
-    await wrapper.get('.el-button').trigger('click')
+    await wrapper.get('input[name="username"]').setValue('qt_member')
+    await wrapper.get('input[name="password"]').setValue('admin123')
+    await wrapper.get('form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/member/home')

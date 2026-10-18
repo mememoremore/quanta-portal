@@ -56,17 +56,32 @@ async function loadCaptcha() {
   }
 }
 
+function syncFieldFromDom(name, current, { trim = false } = {}) {
+  const existing = trim ? String(current || '').trim() : String(current || '')
+  if (existing) return existing
+  const input = formRef.value?.$el?.querySelector?.(`input[name="${name}"]`)
+  const value = String(input?.value || '')
+  return trim ? value.trim() : value
+}
+
+function rejectedByServer(error) {
+  return Boolean(error?.payload)
+}
+
 async function submit() {
   if (loading.value) return
-  if (!form.username.trim() || !form.password) {
-    await formRef.value?.validate().catch(() => false)
-    return
-  }
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (valid !== true) return
-
   loading.value = true
   try {
+    form.username = syncFieldFromDom('username', form.username, { trim: true })
+    form.password = syncFieldFromDom('password', form.password)
+    if (!form.username.trim() || !form.password) {
+      ElMessage.warning(form.password ? '请输入用户名' : '请输入密码')
+      await formRef.value?.validate().catch(() => false)
+      return
+    }
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (valid !== true) return
+
     await userStore.login({ ...form }, 'admin')
     await userStore.fetchUserInfo()
     if (!userStore.canAccessAdmin) {
@@ -82,8 +97,10 @@ async function submit() {
   } catch (error) {
     userStore.reset()
     permissionStore.resetRoutes()
-    form.password = ''
-    form.code = ''
+    if (rejectedByServer(error)) {
+      form.password = ''
+      form.code = ''
+    }
     ElMessage.error(error.message || '登录失败')
     if (captchaEnabled.value) await loadCaptcha()
   } finally {
@@ -143,11 +160,12 @@ onMounted(loadCaptcha)
 
         <ElForm ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="submit">
           <ElFormItem prop="username">
-            <ElInput v-model="form.username" :prefix-icon="User" placeholder="用户名" autocomplete="username" />
+            <ElInput v-model="form.username" name="username" :prefix-icon="User" placeholder="用户名" autocomplete="username" />
           </ElFormItem>
           <ElFormItem prop="password">
             <ElInput
               v-model="form.password"
+              name="password"
               :prefix-icon="Lock"
               placeholder="密码"
               type="password"
@@ -168,9 +186,8 @@ onMounted(loadCaptcha)
           <ElButton
             class="login-card__submit quanta-primary-button"
             type="primary"
-            native-type="button"
+            native-type="submit"
             :loading="loading"
-            @click="submit"
           >
             登录
           </ElButton>

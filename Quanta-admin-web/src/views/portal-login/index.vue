@@ -142,12 +142,32 @@ async function sendEmailCode() {
   }
 }
 
+function syncFieldFromDom(name, current, { trim = false } = {}) {
+  const existing = trim ? String(current || '').trim() : String(current || '')
+  if (existing) return existing
+  const input = formRef.value?.$el?.querySelector?.(`input[name="${name}"]`)
+  const value = String(input?.value || '')
+  return trim ? value.trim() : value
+}
+
+function rejectedByServer(error) {
+  return Boolean(error?.payload)
+}
+
 async function submit() {
   if (loading.value) return
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (valid !== true) return
   loading.value = true
   try {
+    form.username = syncFieldFromDom('username', form.username, { trim: true })
+    form.password = syncFieldFromDom('password', form.password)
+    if (!form.username.trim() || !form.password) {
+      ElMessage.warning(form.password ? '请输入学号或用户名' : '请输入密码')
+      await formRef.value?.validate().catch(() => false)
+      return
+    }
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (valid !== true) return
+
     await userStore.login({ ...form }, audience.value)
     await userStore.fetchUserInfo()
     const intended = safeAudienceRedirect(route.query.redirect, audience.value)
@@ -155,8 +175,10 @@ async function submit() {
     ElMessage.success('登录成功')
   } catch (error) {
     userStore.reset()
-    form.password = ''
-    form.code = ''
+    if (rejectedByServer(error)) {
+      form.password = ''
+      form.code = ''
+    }
     ElMessage.error(error.message || '登录失败')
     if (captchaEnabled.value) await loadCaptcha()
   } finally {
@@ -244,10 +266,10 @@ onBeforeUnmount(() => clearInterval(emailCodeTimer))
         </p>
         <ElForm v-if="!isRegisterMode" key="login" ref="formRef" :model="form" :rules="rules" size="large" @submit.prevent="submit">
           <ElFormItem prop="username" :label="isFreshman ? '学号' : '学号/用户名'">
-            <ElInput v-model.trim="form.username" autocomplete="username" :placeholder="isFreshman ? '请输入学号' : '请输入学号或用户名'" />
+            <ElInput v-model.trim="form.username" name="username" autocomplete="username" :placeholder="isFreshman ? '请输入学号' : '请输入学号或用户名'" />
           </ElFormItem>
           <ElFormItem prop="password" label="密码">
-            <ElInput v-model="form.password" autocomplete="current-password" type="password" show-password placeholder="请输入密码" @keyup.enter="submit" />
+            <ElInput v-model="form.password" name="password" autocomplete="current-password" type="password" show-password placeholder="请输入密码" @keyup.enter="submit" />
           </ElFormItem>
           <ElFormItem v-if="captchaEnabled" prop="code" label="验证码">
             <div class="portal-login__captcha">
@@ -258,7 +280,7 @@ onBeforeUnmount(() => clearInterval(emailCodeTimer))
               </button>
             </div>
           </ElFormItem>
-          <ElButton class="portal-login__submit" type="primary" native-type="button" :loading="loading" @click="submit">
+          <ElButton class="portal-login__submit" type="primary" native-type="submit" :loading="loading">
             登录并进入{{ audienceLabel }}门户
           </ElButton>
         </ElForm>
