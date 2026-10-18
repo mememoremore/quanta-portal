@@ -158,7 +158,7 @@ describe('request and mock adapter', () => {
     expect(shouldUseMock({ url: '/qt/member/cohorts', method: 'get' }, false, routes)).toBe(false)
   })
 
-  it('routes the confirmed broken cohort endpoint through the explicit Web mock list', () => {
-    expect(shouldUseMock({ url: '/qt/member/cohorts', method: 'get' }, false)).toBe(true)
+  it('asks the real backend for cohorts so tab ids stay numeric', () => {
+    expect(shouldUseMock({ url: '/qt/member/cohorts', method: 'get' }, false)).toBe(false)
   })
 })

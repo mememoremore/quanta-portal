@@ -9,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.constant.CacheConstants;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
@@ -25,6 +26,7 @@ import com.ruoyi.qt.util.QtDictUtils;
 import com.ruoyi.qt.util.QtInterviewRounds;
 import com.ruoyi.qt.util.QtInterviewStatuses;
 import com.ruoyi.system.service.ISysConfigService;
+import com.ruoyi.system.service.ISysUserService;
 
 @Service
 public class QtInterviewServiceImpl implements IQtInterviewService
@@ -48,6 +50,9 @@ public class QtInterviewServiceImpl implements IQtInterviewService
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private ISysUserService userService;
+
     @Override
     public boolean isNewApplicationsOpen()
     {
@@ -65,6 +70,7 @@ public class QtInterviewServiceImpl implements IQtInterviewService
         {
             throw new ServiceException(APPLY_CLOSED_MESSAGE);
         }
+        lockRealName(application, oldApplication);
         int rows;
         if (oldApplication == null)
         {
@@ -88,6 +94,31 @@ public class QtInterviewServiceImpl implements IQtInterviewService
             qtInterviewMapper.updateInterviewProfile(profile);
         }
         return rows;
+    }
+
+    /**
+     * 真名只在账号还没有时从报名写入一次。已有真名后，本人再改报名不会覆盖账号，报名表也保留原姓名。
+     */
+    private void lockRealName(QtInterviewApplication application, QtInterviewApplication oldApplication)
+    {
+        if (application == null || application.getUserId() == null)
+        {
+            return;
+        }
+        SysUser user = userService.selectUserById(application.getUserId());
+        String existing = user == null ? "" : StringUtils.trim(user.getRealName());
+        if (StringUtils.isNotEmpty(existing))
+        {
+            String locked = oldApplication == null ? "" : StringUtils.trim(oldApplication.getRealName());
+            application.setRealName(StringUtils.isNotEmpty(locked) ? locked : existing);
+            return;
+        }
+        String realName = StringUtils.trim(application.getRealName());
+        application.setRealName(realName);
+        if (StringUtils.isNotEmpty(realName))
+        {
+            userService.updateRealName(application.getUserId(), realName);
+        }
     }
 
     /**

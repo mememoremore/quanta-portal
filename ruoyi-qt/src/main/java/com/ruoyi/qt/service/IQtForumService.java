@@ -8,7 +8,12 @@ public interface IQtForumService
 {
     List<QtForumPost> selectPostList(QtForumPost query, boolean mine);
 
+    List<QtForumPost> selectPostListByAuthor(Long authorId);
+
     QtForumPost selectPostById(Long postId);
+
+    /** 详情访问：校验存在后原子递增浏览量并返回最新帖子 */
+    QtForumPost viewPost(Long postId);
 
     QtForumPost insertPost(QtForumPost post);
 

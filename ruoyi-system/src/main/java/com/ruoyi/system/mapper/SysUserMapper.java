@@ -77,6 +77,16 @@ public interface SysUserMapper
     public int updateUser(SysUser user);
 
     /**
+     * 只更新实名，避免通用资料更新把该字段清空。
+     */
+    public int updateRealName(@Param("userId") Long userId, @Param("realName") String realName);
+
+    /**
+     * 只更新塔员部门、职位，不改昵称、真名和角色。
+     */
+    public int updateMemberPlacement(SysUser user);
+
+    /**
      * 修改用户头像
      * 
      * @param userId 用户ID

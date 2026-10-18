@@ -88,6 +88,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 1
     </select>
 
+    <select id="selectLatestRecordByUser" resultMap="QtMemberRecordResult">
+        select r.record_id, r.user_id, r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
+               r.create_by, r.create_time, r.update_by, r.update_time, c.cohort_name
+        from qt_member_record r
+        left join qt_cohort c on r.cohort_id = c.cohort_id
+        where r.user_id = #{userId}
+        order by r.record_id desc
+        limit 1
+    </select>
+
     <select id="selectRecordsByCohort" resultMap="QtMemberRecordResult">
         select r.record_id, r.user_id, r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
                r.create_by, r.create_time, r.update_by, r.update_time, c.cohort_name
@@ -104,6 +114,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <update id="updateRecord" parameterType="QtMemberRecord">
         update qt_member_record
         <set>
+            <if test="cohortId != null">cohort_id = #{cohortId},</if>
             <if test="roleCategory != null">role_category = #{roleCategory},</if>
             <if test="memberStatus != null">member_status = #{memberStatus},</if>
             <if test="joinTime != null">join_time = #{joinTime},</if>

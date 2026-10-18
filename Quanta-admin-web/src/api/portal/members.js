@@ -1,5 +1,6 @@
 import { request } from '@/utils/request'
 import { assetUrl, normalizeProfile, validMemberId, validateProfile } from '@/utils/member-profile'
+import { displayPersonName } from '@/utils/person-name'
 import { mapForumPost } from './forum'
 
 const departmentNames = {
@@ -17,7 +18,7 @@ export function mapMember(row = {}) {
   const memberFlag = String(row.isQuantaMember ?? '') === '1'
   return {
     id: Number(row.userId),
-    name: row.nickName || row.userName || row.memberNo || 'Quanta 成员',
+    name: displayPersonName(row) || row.memberNo || 'Quanta 成员',
     userName: row.userName || '',
     memberNo: row.memberNo || '',
     departmentCode: row.memberDepartment || '',

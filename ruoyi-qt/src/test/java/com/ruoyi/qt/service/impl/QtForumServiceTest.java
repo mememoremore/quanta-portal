@@ -153,6 +153,7 @@ class QtForumServiceTest
         QtForumComment parent = new QtForumComment();
         parent.setCommentId(3L);
         parent.setPostId(5L);
+        parent.setAuthorId(4L);
         parent.setAuthorName("甲");
         when(commentMapper.selectCommentById(3L)).thenReturn(parent);
         doAnswer(inv -> {
@@ -166,6 +167,7 @@ class QtForumServiceTest
                 org.mockito.ArgumentCaptor.forClass(QtForumComment.class);
         verify(commentMapper).insertComment(captor.capture());
         assertEquals("甲", captor.getValue().getReplyToUserName());
+        assertEquals(4L, captor.getValue().getReplyToUserId());
         assertEquals(5L, captor.getValue().getPostId());
         assertEquals(8L, captor.getValue().getAuthorId());
         verify(postMapper).refreshCommentCount(5L);
@@ -202,6 +204,30 @@ class QtForumServiceTest
         verify(commentMapper).promoteReplies(comment);
         verify(commentMapper).deleteCommentById(3L);
         verify(postMapper).refreshCommentCount(5L);
+    }
+
+    @Test
+    void viewPostIncrementsViewCountOnce()
+    {
+        login(8L, Set.of());
+        QtForumPost first = postWithAuthor(5L, 8L);
+        first.setViewCount(2L);
+        QtForumPost updated = postWithAuthor(5L, 8L);
+        updated.setViewCount(3L);
+        when(postMapper.selectPostById(5L)).thenReturn(first, updated);
+        when(postMapper.incrementViewCount(5L)).thenReturn(1);
+        QtForumPost result = service.viewPost(5L);
+        assertEquals(3L, result.getViewCount());
+        verify(postMapper).incrementViewCount(5L);
+    }
+
+    @Test
+    void selectPostListByAuthorUsesServerSideAuthorId()
+    {
+        login(8L, Set.of());
+        when(postMapper.selectPostList(org.mockito.ArgumentMatchers.argThat(query -> query.getAuthorId() == 12L)))
+                .thenReturn(List.of(postWithAuthor(1L, 12L)));
+        assertEquals(1, service.selectPostListByAuthor(12L).size());
     }
 
     @Test

@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.qt.controller.QtBookBorrowController;
 import com.ruoyi.qt.controller.QtBookController;
@@ -108,6 +109,7 @@ class QtAuthUtilsTest
         login(8L, "0", Set.of());
         ServiceException error = assertThrows(ServiceException.class, QtAuthUtils::requireQuantaMember);
         assertEquals("仅塔员可访问该功能", error.getMessage());
+        assertEquals(HttpStatus.FORBIDDEN, error.getCode());
     }
 
     @Test
@@ -133,7 +135,7 @@ class QtAuthUtilsTest
     {
         login(8L, "0", Set.of());
         assertThrows(ServiceException.class, () -> new QtLabMemberController().list(new QtLabMember()));
-        assertThrows(ServiceException.class, () -> new QtMaterialController().list(new QtMaterial()));
+        assertThrows(ServiceException.class, () -> new QtMaterialController().list(new QtMaterial(), null));
         assertThrows(ServiceException.class, () -> new QtBookController().list(new QtBook()));
         assertThrows(ServiceException.class, () -> new QtBookBorrowController().list(new QtBookBorrow()));
         assertThrows(ServiceException.class, () -> new QtWorkstationController().list(new QtWorkstation()));

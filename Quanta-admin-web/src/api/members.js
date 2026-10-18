@@ -1,5 +1,6 @@
 import { request } from '@/utils/request'
 import { requestBlob } from '@/utils/download'
+import { displayPersonName } from '@/utils/person-name'
 
 const roleLabels = {
   MGMT: '管理层',
@@ -18,16 +19,27 @@ function normalizeRoleCategory(code) {
   return upper || 'INTERN'
 }
 
+// 真正的届在 qt_member_record.cohort_id，历史账号的 member_cohort 可能是编号或届次名称。
+// 列表优先展示届次名称，纯编号兜底拼「第 N 届」。
+function cohortLabel(user = {}) {
+  const cohortName = String(user.cohortName || '').trim()
+  if (cohortName) return cohortName
+  const memberCohort = String(user.memberCohort || '').trim()
+  if (/^\d+$/.test(memberCohort)) return `第${memberCohort}届`
+  return memberCohort
+}
+
 export function mapMember(user = {}) {
   const roleCode = normalizeRoleCategory(user.roleCategory)
   return {
     id: user.userId,
-    name: user.nickName || user.userName || '-',
+    name: displayPersonName(user, '-'),
     department: user.memberDepartment || user.dept?.deptName || '-',
     roleCode,
     roleLabel: roleLabels[roleCode] || user.memberTitle || '-',
     title: user.memberTitle || roleLabels[roleCode] || '-',
-    cohort: String(user.memberCohort || ''),
+    cohort: cohortLabel(user),
+    cohortId: String(user.memberCohort || ''),
     phoneMasked: user.phonenumber || '-',
     joinedAt: user.joinTime || user.createTime || '-',
     status: user.memberStatus || (user.status === '1' ? 'resigned' : 'active'),

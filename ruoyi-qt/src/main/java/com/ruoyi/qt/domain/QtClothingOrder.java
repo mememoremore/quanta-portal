@@ -111,6 +111,9 @@ public class QtClothingOrder extends BaseEntity
     @Excel(name = "用户昵称")
     private String nickName;
 
+    /** 实名 */
+    private String realName;
+
     /** 成员编号 */
     @Excel(name = "成员编号")
     private String memberNo;
@@ -355,6 +358,16 @@ public class QtClothingOrder extends BaseEntity
     public void setNickName(String nickName)
     {
         this.nickName = nickName;
+    }
+
+    public String getRealName()
+    {
+        return realName;
+    }
+
+    public void setRealName(String realName)
+    {
+        this.realName = realName;
     }
 
     public String getMemberNo()

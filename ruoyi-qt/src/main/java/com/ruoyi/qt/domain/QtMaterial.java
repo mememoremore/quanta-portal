@@ -25,6 +25,8 @@ public class QtMaterial extends BaseEntity
     private String filePath;
     private Long fileSize;
     private String category;
+    /** 所属目录，0 表示分类根 */
+    private Long folderId;
     /** ALL / MEMBER / DEPT */
     private String visibility;
     /** 查询参数：STANDARD 表示仅查四个标准分类（非表字段） */
@@ -33,6 +35,10 @@ public class QtMaterial extends BaseEntity
     private String uploaderName;
     private String uploaderDepartment;
     private String downloadUrl;
+    /** 列表/搜索展示：直接父目录名称 */
+    private String folderName;
+    /** 列表/搜索展示：部门标签 + 目录路径 */
+    private String folderPath;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date uploadTime;
 
@@ -94,6 +100,36 @@ public class QtMaterial extends BaseEntity
     public void setCategory(String category)
     {
         this.category = category;
+    }
+
+    public Long getFolderId()
+    {
+        return folderId;
+    }
+
+    public void setFolderId(Long folderId)
+    {
+        this.folderId = folderId;
+    }
+
+    public String getFolderName()
+    {
+        return folderName;
+    }
+
+    public void setFolderName(String folderName)
+    {
+        this.folderName = folderName;
+    }
+
+    public String getFolderPath()
+    {
+        return folderPath;
+    }
+
+    public void setFolderPath(String folderPath)
+    {
+        this.folderPath = folderPath;
     }
 
     public static boolean isStandardCategory(String category)

@@ -57,7 +57,7 @@ public class QtForumController extends BaseController
     public AjaxResult getPost(@PathVariable Long postId)
     {
         QtAuthUtils.requireQuantaMember();
-        return success(qtForumService.selectPostById(postId));
+        return success(qtForumService.viewPost(postId));
     }
 
     @PreAuthorize("isAuthenticated()")

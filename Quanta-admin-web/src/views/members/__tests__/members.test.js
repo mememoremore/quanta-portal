@@ -26,5 +26,12 @@ describe('members view', () => {
     expect(wrapper.text()).toContain('第21届（当前）')
     expect(wrapper.text()).toContain('陈思远')
     expect(wrapper.text()).toContain('导入名单')
+    expect(wrapper.text()).toContain('未分届')
+
+    const tabs = wrapper.findAll('[role="tab"]')
+    await tabs.at(-1).trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('林一')
+    expect(wrapper.text()).not.toContain('陈思远')
   })
 })

@@ -12,8 +12,8 @@ const REAL_AUTH_PATHS = new Set([
 ])
 
 // 只登记已经过真实后端联调、确认暂不可用的接口。
-// 每一项都必须同步记录到 docs/Quanta管理端Web接口Mock清单.md。
-export const mockApiRoutes = [{ method: 'get', path: '/qt/member/cohorts' }]
+// 届次列表由真实后端返回数字编号。不要放回这里：部分 Mock 会把编号改成 21st，分配权限会被拒绝。
+export const mockApiRoutes = []
 
 function normalizeRequest(config = {}) {
   return {

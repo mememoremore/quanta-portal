@@ -45,7 +45,7 @@ function listMembers(config) {
   const pageSize = Math.max(1, Number(params.pageSize) || 20)
 
   const filtered = sortById(mockMembers).filter((member) => {
-    if (cohort && member.memberCohort !== cohort) return false
+    if (cohort === 'unassigned' ? member.memberCohort : cohort && member.memberCohort !== cohort) return false
     if (department && member.memberDepartment !== department) return false
     if (roleCategory && member.roleCategory !== roleCategory) return false
     if (keyword && !member.nickName.toLowerCase().includes(keyword)) return false
@@ -58,7 +58,7 @@ function listMembers(config) {
     msg: '操作成功',
     rows: filtered.slice(start, start + pageSize).map((row) => ({...row, avatar:currentMockAvatar(row.userId), headline:mockMemberProfiles.get(Number(row.userId))?.headline || ''})),
     total: filtered.length,
-    departments: mockDepartments.map((name) => ({ value: name, label: name })),
+    departments: mockDepartments,
   }
 }
 

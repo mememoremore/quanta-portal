@@ -17,7 +17,7 @@ function guard(config) {
   const account=findAccountByToken(config.headers?.Authorization || '')
   return !account ? {code:401,msg:'请先登录'} : !account.roles.includes('ceo') ? {code:403,msg:'仅 CEO 可维护成员'} : null
 }
-const find=(config)=>mockMembers.find(row=>Number(row.userId)===Number(config.path.split('/').pop()) && (!config.params?.memberCohort || String(row.memberCohort)===String(config.params.memberCohort)))
+const find=(config)=>mockMembers.find(row=>Number(row.userId)===Number(config.path.split('/').pop()) && (config.params?.memberCohort === 'unassigned' || !config.params?.memberCohort || String(row.memberCohort)===String(config.params.memberCohort)))
 const protectedMember = row => ['CEO','ADMIN'].includes(String(row?.memberTitle || '').toUpperCase())
 export const memberAdminHandlers=[
   {method:'get',path:'/qt/member/manage/options',handle(config){return guard(config)||{code:200,data:mockMemberManagementOptions}}},
@@ -38,7 +38,7 @@ export const memberAdminHandlers=[
   }},
   {method:'put',match:path=>/^\/qt\/member\/manage\/\d+$/.test(path),handle(config){
     const error=guard(config);if(error)return error
-    const row=mockMembers.find(item=>Number(item.userId)===Number(config.path.split('/').pop()) && String(item.memberCohort)===String(config.data?.memberCohort))
+    const row=mockMembers.find(item=>Number(item.userId)===Number(config.path.split('/').pop()))
     if(!row)return {code:404,msg:'成员不存在'}
     if(protectedMember(row))return {code:403,msg:'该账号受保护'}
     if(String(row.version||1)!==String(config.data?.version))return {code:409,msg:'成员资料已被更新，请重新加载'}

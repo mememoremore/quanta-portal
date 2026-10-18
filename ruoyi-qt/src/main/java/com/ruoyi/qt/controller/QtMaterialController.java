@@ -26,7 +26,9 @@ import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.common.utils.file.FileValidator;
 import com.ruoyi.common.utils.file.MimeTypeUtils;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.qt.domain.QtMaterial;
+import com.ruoyi.qt.service.IQtMaterialFolderService;
 import com.ruoyi.qt.service.IQtMaterialService;
 import com.ruoyi.qt.util.QtAuthUtils;
 
@@ -40,13 +42,21 @@ public class QtMaterialController extends BaseController
     @Autowired
     private IQtMaterialService qtMaterialService;
 
+    @Autowired
+    private IQtMaterialFolderService qtMaterialFolderService;
+
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public TableDataInfo list(QtMaterial query)
+    public TableDataInfo list(QtMaterial query, @RequestParam(value = "folderId", required = false) Long folderId)
     {
         QtAuthUtils.requireQuantaMember();
+        qtMaterialFolderService.applyFolderFilter(query, folderId);
         startPage();
         List<QtMaterial> list = qtMaterialService.selectMaterialList(query);
+        if (StringUtils.isNotEmpty(query.getFileName()))
+        {
+            qtMaterialFolderService.enrichFolderPaths(list);
+        }
         fillDownloadUrl(list);
         return getDataTable(list);
     }

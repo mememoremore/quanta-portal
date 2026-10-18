@@ -1,4 +1,5 @@
 import { request } from '@/utils/request'
+import { displayPersonName } from '@/utils/person-name'
 
 function normalizeActivity(row = {}) {
   return {
@@ -16,7 +17,7 @@ function normalizeSignup(row = {}) {
   return {
     signupId: Number(row.signupId),
     activityId: Number(row.activityId),
-    nickName: row.nickName || row.userName || '',
+    nickName: displayPersonName(row),
     studentNo: row.studentNo || row.userName || '',
     major: row.major || '',
     phonenumber: row.phonenumber || '',

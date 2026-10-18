@@ -8,4 +8,6 @@ public interface QtLabMemberMapper
     List<QtLabMember> selectLabMemberList(QtLabMember query);
 
     List<QtLabMember> selectAdminMemberList(QtLabMember query);
+
+    QtLabMember selectVisibleQuantaMember(Long userId);
 }

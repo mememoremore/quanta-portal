@@ -365,6 +365,18 @@ public class SysUserServiceImpl implements ISysUserService
         return userMapper.updateUser(user);
     }
 
+    @Override
+    public int updateRealName(Long userId, String realName)
+    {
+        return userMapper.updateRealName(userId, realName);
+    }
+
+    @Override
+    public int updateMemberPlacement(SysUser user)
+    {
+        return userMapper.updateMemberPlacement(user);
+    }
+
     /**
      * 修改用户头像
      * 

@@ -21,6 +21,9 @@ public class MimeTypeUtils
     
     public static final String[] IMAGE_EXTENSION = { "bmp", "gif", "jpg", "jpeg", "png", "webp" };
 
+    /** 塔员头像：JPG / PNG / WebP */
+    public static final String[] AVATAR_IMAGE_EXTENSION = { "jpg", "jpeg", "png", "webp" };
+
     public static final String[] FLASH_EXTENSION = { "swf", "flv" };
 
     public static final String[] MEDIA_EXTENSION = { "swf", "flv", "mp3", "wav", "wma", "wmv", "mid", "avi", "mpg",

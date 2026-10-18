@@ -7,8 +7,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap id="QtLabMemberResult" type="QtLabMember">
         <id property="userId" column="user_id"/>
         <result property="nickName" column="nick_name"/>
+        <result property="realName" column="real_name"/>
         <result property="userName" column="user_name"/>
         <result property="avatar" column="avatar"/>
+        <result property="headline" column="headline"/>
         <result property="phonenumber" column="phonenumber"/>
         <result property="sex" column="sex"/>
         <result property="memberNo" column="member_no"/>
@@ -19,6 +21,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="className" column="class_name"/>
         <result property="isQuantaMember" column="is_quanta_member"/>
         <result property="cohortId" column="cohort_id"/>
+        <result property="cohortName" column="cohort_name"/>
         <result property="roleCategory" column="role_category"/>
         <result property="memberStatus" column="member_status"/>
         <result property="joinTime" column="join_time"/>
@@ -28,16 +31,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <select id="selectLabMemberList" parameterType="QtLabMember" resultMap="QtLabMemberResult">
-        select u.user_id, u.nick_name, u.user_name, u.avatar, u.sex,
+        select u.user_id, u.nick_name, u.real_name, u.user_name, u.avatar, u.sex,
                u.member_no, u.member_department, u.member_title, u.member_cohort,
-               u.student_no, u.class_name, u.is_quanta_member
+               u.student_no, u.class_name, u.is_quanta_member,
+               ifnull(mp.headline, '') as headline
         from sys_user u
+        left join qt_member_profile mp on u.user_id = mp.user_id
         where u.del_flag = '0'
           and u.status = '0'
           and u.is_quanta_member = '1'
         <if test="nickName != null and nickName != ''">
             and (
                 u.nick_name like concat('%', #{nickName}, '%')
+                or u.real_name like concat('%', #{nickName}, '%')
                 or u.user_name like concat('%', #{nickName}, '%')
                 or u.member_department like concat('%', #{nickName}, '%')
                 or u.member_no like concat('%', #{nickName}, '%')
@@ -53,19 +59,32 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectAdminMemberList" parameterType="QtLabMember" resultMap="QtLabMemberResult">
-        select u.user_id, u.nick_name, u.user_name, u.avatar, u.phonenumber, u.sex,
+        select u.user_id, u.nick_name, u.real_name, u.user_name, u.avatar, u.phonenumber, u.sex,
                u.member_no, u.member_department, u.member_title, u.member_cohort,
                u.student_no, u.class_name, u.is_quanta_member, u.major,
-               r.cohort_id, r.role_category, r.member_status, r.join_time, r.retain_flag,
+               ifnull(mp.headline, '') as headline,
+               r.cohort_id, c.cohort_name, r.role_category, r.member_status, r.join_time, r.retain_flag,
                case when r.role_category in ('MANAGER','INTERN') and ifnull(r.retain_flag,'0') = '0'
                          and c.is_current = '1' and r.member_status = 'ACTIVE' then '1' else '0' end as can_retain
         from sys_user u
+        left join qt_member_profile mp on u.user_id = mp.user_id
         left join qt_member_record r on u.user_id = r.user_id
         left join qt_cohort c on r.cohort_id = c.cohort_id
         where u.del_flag = '0'
           and u.is_quanta_member = '1'
         <if test="cohortId != null">
-            and r.cohort_id = #{cohortId}
+            and (
+                r.cohort_id = #{cohortId}
+                or (r.record_id is null and (u.member_cohort = #{cohortId} or u.member_cohort = #{cohortName}))
+            )
+        </if>
+        <if test="unassignedCohort != null and unassignedCohort">
+            and r.record_id is null
+            and not exists (
+                select 1 from qt_cohort c2
+                where cast(c2.cohort_id as char) = u.member_cohort
+                   or c2.cohort_name = u.member_cohort
+            )
         </if>
         <if test="memberStatus != null and memberStatus != ''">
             and r.member_status = #{memberStatus}
@@ -76,6 +95,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <if test="nickName != null and nickName != ''">
             and (
                 u.nick_name like concat('%', #{nickName}, '%')
+                or u.real_name like concat('%', #{nickName}, '%')
                 or u.user_name like concat('%', #{nickName}, '%')
                 or u.member_department like concat('%', #{nickName}, '%')
                 or u.member_no like concat('%', #{nickName}, '%')
@@ -84,9 +104,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <if test="memberDepartment != null and memberDepartment != ''">
             and u.member_department like concat('%', #{memberDepartment}, '%')
         </if>
-        <if test="memberCohort != null and memberCohort != ''">
-            and u.member_cohort = #{memberCohort}
-        </if>
         order by u.member_cohort desc, u.member_no asc, u.user_id asc
+    </select>
+
+    <select id="selectVisibleQuantaMember" parameterType="Long" resultMap="QtLabMemberResult">
+        select u.user_id, u.nick_name, u.real_name, u.user_name, u.avatar, u.sex,
+               u.member_no, u.member_department, u.member_title, u.member_cohort,
+               u.student_no, u.class_name, u.is_quanta_member,
+               ifnull(mp.headline, '') as headline
+        from sys_user u
+        left join qt_member_profile mp on u.user_id = mp.user_id
+        where u.user_id = #{userId}
+          and u.del_flag = '0'
+          and u.status = '0'
+          and u.is_quanta_member = '1'
     </select>
 </mapper>

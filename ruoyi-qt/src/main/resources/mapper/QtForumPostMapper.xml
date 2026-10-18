@@ -11,18 +11,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="content" column="content"/>
         <result property="authorId" column="author_id"/>
         <result property="authorName" column="author_name"/>
+        <result property="authorCommunityNickname" column="author_community_nickname"/>
         <result property="authorDepartment" column="author_department"/>
+        <result property="authorAvatar" column="author_avatar"/>
         <result property="commentCount" column="comment_count"/>
+        <result property="viewCount" column="view_count"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
     <select id="selectPostList" parameterType="QtForumPost" resultMap="QtForumPostResult">
-        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count,
+        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
                p.create_time, p.update_time,
-               u.nick_name as author_name, u.member_department as author_department
+               ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
+               nullif(trim(mp.community_nickname), '') as author_community_nickname,
+               u.member_department as author_department, u.avatar as author_avatar
         from qt_forum_post p
         left join sys_user u on p.author_id = u.user_id
+        left join qt_member_profile mp on mp.user_id = u.user_id
         <where>
             <if test="authorId != null">and p.author_id = #{authorId}</if>
             <if test="category != null and category != ''">and p.category = #{category}</if>
@@ -31,11 +37,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectPostById" parameterType="Long" resultMap="QtForumPostResult">
-        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count,
+        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
                p.create_time, p.update_time,
-               u.nick_name as author_name, u.member_department as author_department
+               ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
+               nullif(trim(mp.community_nickname), '') as author_community_nickname,
+               u.member_department as author_department, u.avatar as author_avatar
         from qt_forum_post p
         left join sys_user u on p.author_id = u.user_id
+        left join qt_member_profile mp on mp.user_id = u.user_id
         where p.post_id = #{postId}
     </select>
 
@@ -60,5 +69,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update qt_forum_post p
         set p.comment_count = (select count(*) from qt_forum_comment c where c.post_id = p.post_id)
         where p.post_id = #{postId}
+    </update>
+
+    <update id="incrementViewCount" parameterType="Long">
+        update qt_forum_post
+        set view_count = view_count + 1
+        where post_id = #{postId}
     </update>
 </mapper>

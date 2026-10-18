@@ -19,10 +19,13 @@ import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.qt.domain.QtMaterial;
 import com.ruoyi.qt.mapper.QtMaterialMapper;
+import com.ruoyi.qt.service.IQtMaterialFolderService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +39,9 @@ class QtMaterialServiceRulesTest
     @Mock
     private QtMaterialMapper qtMaterialMapper;
 
+    @Mock
+    private IQtMaterialFolderService qtMaterialFolderService;
+
     @InjectMocks
     private QtMaterialServiceImpl service;
 
@@ -43,6 +49,19 @@ class QtMaterialServiceRulesTest
     void clear()
     {
         SecurityContextHolder.clearContext();
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubFolderValidation()
+    {
+        lenient().doAnswer(invocation -> {
+            QtMaterial target = invocation.getArgument(0);
+            if (target.getFolderId() == null)
+            {
+                target.setFolderId(0L);
+            }
+            return null;
+        }).when(qtMaterialFolderService).validateMaterialFolderTarget(any(QtMaterial.class));
     }
 
     @Test

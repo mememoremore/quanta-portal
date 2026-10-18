@@ -20,7 +20,7 @@ describe('member API adapter', () => {
       mapMember({
         userId: 7,
         nickName: '测试成员',
-        memberDepartment: '研发部',
+        memberDepartment: 'BACKEND',
         memberTitle: '经理',
         roleCategory: 'manager',
         memberCohort: '21',
@@ -30,12 +30,18 @@ describe('member API adapter', () => {
     ).toMatchObject({
       id: 7,
       name: '测试成员',
-      department: '研发部',
+      department: 'BACKEND',
       roleCode: 'MANAGER',
       roleLabel: '经理层',
-      cohort: '21',
+      cohort: '第21届',
       status: 'active',
     })
+  })
+
+  it('prefers the cohort name and falls back to a numeric member cohort label', () => {
+    expect(mapMember({ memberCohort: '21', cohortName: '第21届' }).cohort).toBe('第21届')
+    expect(mapMember({ memberCohort: '第21届' }).cohort).toBe('第21届')
+    expect(mapMember({ memberCohort: '' }).cohort).toBe('')
   })
 
   it('filters by cohort, department, role and name', async () => {
@@ -43,7 +49,7 @@ describe('member API adapter', () => {
       pageNum: 1,
       pageSize: 20,
       memberCohort: '21',
-      memberDepartment: '研发部',
+      memberDepartment: 'BACKEND',
       roleCategory: 'MANAGER',
       nickName: '赵',
     })

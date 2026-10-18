@@ -27,4 +27,9 @@ describe('CEO member management contract', () => {
     expect(config.data).toEqual({mode:'access',version:'1',memberDepartment:'FRONTEND',memberTitle:'经理',memberCohort:'21',roleCategory:'MANAGER'})
     expect(config.data).not.toHaveProperty('nickName')
   })
+  it('requires a valid cohort for identity saves but allows assigning one later', () => {
+    expect(()=>managedMemberPayload({...form,memberCohort:''},options,'identity')).toThrow('请选择届数')
+    expect(()=>managedMemberPayload({...form,memberCohort:'22'},options,'identity')).toThrow('请选择有效的届数')
+    expect(managedMemberPayload({...form,memberCohort:''},options,'access')).toMatchObject({memberCohort:'',mode:'access'})
+  })
 })

@@ -35,6 +35,14 @@ describe('user store', () => {
     expect(authApi.refreshSession).toHaveBeenCalledOnce()
   })
 
+  it('shows the real name in the account menu and keeps the old nickname when there is none', () => {
+    const store = useUserStore()
+    store.user = { realName: '张三', nickName: '20251003142', userName: '20251003142' }
+    expect(store.displayName).toBe('张三')
+    store.user = { nickName: '学长', userName: 'senior' }
+    expect(store.displayName).toBe('学长')
+  })
+
   it('submits the correct login type and persists audience only after success', async () => {
     const store = useUserStore()
     await store.login({ username: 'freshman', password: 'secret' }, 'freshman')

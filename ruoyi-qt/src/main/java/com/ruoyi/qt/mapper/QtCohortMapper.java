@@ -23,6 +23,8 @@ public interface QtCohortMapper
 
     QtMemberRecord selectRecord(@Param("userId") Long userId, @Param("cohortId") Long cohortId);
 
+    QtMemberRecord selectLatestRecordByUser(Long userId);
+
     List<QtMemberRecord> selectRecordsByCohort(Long cohortId);
 
     int insertRecord(QtMemberRecord record);

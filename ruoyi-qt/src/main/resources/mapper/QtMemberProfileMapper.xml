@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtMemberProfileMapper">
+
+    <resultMap id="QtMemberProfileResult" type="QtMemberProfile">
+        <id property="userId" column="user_id"/>
+        <result property="communityNickname" column="community_nickname"/>
+        <result property="headline" column="headline"/>
+        <result property="bio" column="bio"/>
+        <result property="skills" column="skills"/>
+        <result property="githubUrl" column="github_url"/>
+        <result property="websiteUrl" column="website_url"/>
+        <result property="contactEmail" column="contact_email"/>
+        <result property="showContactEmail" column="show_contact_email"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByUserId" parameterType="Long" resultMap="QtMemberProfileResult">
+        select user_id, community_nickname, headline, bio, skills, github_url, website_url, contact_email,
+               case when show_contact_email = '1' then 1 else 0 end as show_contact_email,
+               update_time
+        from qt_member_profile
+        where user_id = #{userId}
+    </select>
+
+    <insert id="upsert" parameterType="QtMemberProfile">
+        insert into qt_member_profile
+        (user_id, community_nickname, headline, bio, skills, github_url, website_url, contact_email, show_contact_email, update_time)
+        values
+        (#{userId}, #{communityNickname}, #{headline}, #{bio}, #{skills}, #{githubUrl}, #{websiteUrl}, #{contactEmail},
+         if(#{showContactEmail}, '1', '0'), now())
+        on duplicate key update
+            community_nickname = values(community_nickname),
+            headline = values(headline),
+            bio = values(bio),
+            skills = values(skills),
+            github_url = values(github_url),
+            website_url = values(website_url),
+            contact_email = values(contact_email),
+            show_contact_email = values(show_contact_email),
+            update_time = now()
+    </insert>
+</mapper>

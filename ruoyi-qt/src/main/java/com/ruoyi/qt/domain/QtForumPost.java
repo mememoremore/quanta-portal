@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
@@ -24,8 +26,14 @@ public class QtForumPost extends BaseEntity
     private String content;
     private Long authorId;
     private String authorName;
+    /** 当前社区昵称，查询时关联档案，不落库 */
+    private String authorCommunityNickname;
     private String authorDepartment;
+    /** 作者当前头像，查询时关联 sys_user，不落库 */
+    private String authorAvatar;
     private Long commentCount;
+    @JsonProperty(access = Access.READ_ONLY)
+    private Long viewCount;
 
     public Long getPostId()
     {
@@ -87,6 +95,16 @@ public class QtForumPost extends BaseEntity
         this.authorName = authorName;
     }
 
+    public String getAuthorCommunityNickname()
+    {
+        return authorCommunityNickname;
+    }
+
+    public void setAuthorCommunityNickname(String authorCommunityNickname)
+    {
+        this.authorCommunityNickname = authorCommunityNickname;
+    }
+
     public String getAuthorDepartment()
     {
         return authorDepartment;
@@ -97,6 +115,16 @@ public class QtForumPost extends BaseEntity
         this.authorDepartment = authorDepartment;
     }
 
+    public String getAuthorAvatar()
+    {
+        return authorAvatar;
+    }
+
+    public void setAuthorAvatar(String authorAvatar)
+    {
+        this.authorAvatar = authorAvatar;
+    }
+
     public Long getCommentCount()
     {
         return commentCount;
@@ -105,5 +133,15 @@ public class QtForumPost extends BaseEntity
     public void setCommentCount(Long commentCount)
     {
         this.commentCount = commentCount;
+    }
+
+    public Long getViewCount()
+    {
+        return viewCount;
+    }
+
+    public void setViewCount(Long viewCount)
+    {
+        this.viewCount = viewCount;
     }
 }

@@ -1,7 +1,9 @@
 package com.ruoyi.qt.util;
 
 import java.util.function.Consumer;
+import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -56,7 +58,7 @@ public final class QtAuthUtils
     {
         if (!isQuantaMember())
         {
-            throw new ServiceException("仅塔员可访问该功能");
+            throw new ServiceException("仅塔员可访问该功能", HttpStatus.FORBIDDEN);
         }
     }
 
@@ -76,6 +78,34 @@ public final class QtAuthUtils
         {
             throw new ServiceException("仅 CEO 可执行该操作");
         }
+    }
+
+    /**
+     * 成员维护只认角色键 ceo。若依管理员和 userId=1 不能代替 CEO。
+     */
+    public static void requireMemberCeo()
+    {
+        if (!hasExactRole(ROLE_CEO))
+        {
+            throw new ServiceException("仅 CEO 可维护成员", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    public static boolean hasExactRole(String role)
+    {
+        SysUser user = SecurityUtils.getLoginUser().getUser();
+        if (user == null || user.getRoles() == null)
+        {
+            return false;
+        }
+        for (SysRole item : user.getRoles())
+        {
+            if (item != null && role.equals(item.getRoleKey()))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void requireManagement()

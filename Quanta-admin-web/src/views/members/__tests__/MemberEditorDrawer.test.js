@@ -48,4 +48,15 @@ describe('CEO member maintenance',()=>{
     expect(wrapper.get('input[aria-label="真实姓名"]').element.value).toBe('修改后的实名')
     expect(wrapper.emitted('saved')).toBeUndefined()
   })
+  it('lets the CEO pick a cohort on identity saves but keeps it read-only for access',async()=>{
+    api.getManagedMember.mockResolvedValue({...detail,memberCohort:''})
+    const identity=await setup()
+    expect(identity.get('[aria-label="维护成员届数"]').attributes('disabled')).toBeUndefined()
+    expect(identity.text()).toContain('请选择届数')
+    identity.unmount()
+    const pinia=createPinia();useUserStore(pinia).roles=['ceo']
+    const access=mount(MemberEditorDrawer,{props:{modelValue:true,mode:'access',member:{id:7,name:'实名'},cohort:'21'},global:{plugins:[pinia,ElementPlus],stubs:{ElDrawer:{template:'<div><slot/><slot name="footer"/></div>'}}}})
+    await flushPromises()
+    expect(access.get('[aria-label="维护成员届数"]').attributes('disabled')).toBeDefined()
+  })
 })

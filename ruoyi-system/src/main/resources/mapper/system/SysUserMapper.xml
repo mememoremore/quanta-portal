@@ -9,6 +9,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="deptId"        column="dept_id"         />
         <result property="userName"      column="user_name"       />
         <result property="nickName"      column="nick_name"       />
+        <result property="realName"      column="real_name"       />
         <result property="email"         column="email"           />
         <result property="phonenumber"   column="phonenumber"     />
         <result property="sex"           column="sex"             />
@@ -56,7 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 	
 	<sql id="selectUserVo">
-        select u.user_id, u.dept_id, u.user_name, u.nick_name, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.pwd_update_date, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, u.member_no, u.member_department, u.member_title, u.member_cohort, u.student_no, u.class_name, u.is_quanta_member, u.major,
+        select u.user_id, u.dept_id, u.user_name, u.nick_name, u.real_name, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.pwd_update_date, u.create_by, u.create_time, u.update_by, u.update_time, u.remark, u.member_no, u.member_department, u.member_title, u.member_cohort, u.student_no, u.class_name, u.is_quanta_member, u.major,
         d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num, d.leader, d.status as dept_status,
         r.role_id, r.role_name, r.role_key, r.role_sort, r.data_scope, r.status as role_status
         from sys_user u
@@ -66,7 +67,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </sql>
     
     <select id="selectUserList" parameterType="SysUser" resultMap="SysUserResult">
-		select u.user_id, u.dept_id, u.nick_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, u.member_no, u.member_department, u.member_title, u.member_cohort, u.student_no, u.class_name, u.is_quanta_member, u.major, d.dept_name, d.leader from sys_user u
+		select u.user_id, u.dept_id, u.nick_name, u.real_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, u.member_no, u.member_department, u.member_title, u.member_cohort, u.student_no, u.class_name, u.is_quanta_member, u.major, d.dept_name, d.leader from sys_user u
 		left join sys_dept d on u.dept_id = d.dept_id
 		where u.del_flag = '0'
 		<if test="userId != null and userId != 0">
@@ -250,6 +251,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  		update sys_user set login_ip = #{loginIp}, login_date = #{loginDate} where user_id = #{userId}
 	</update>
 	
+	<update id="updateRealName">
+		update sys_user set real_name = #{realName}, update_time = sysdate() where user_id = #{userId}
+	</update>
+
+	<update id="updateMemberPlacement" parameterType="SysUser">
+		update sys_user
+		<set>
+			<if test="memberDepartment != null and memberDepartment != ''">member_department = #{memberDepartment},</if>
+			<if test="memberTitle != null and memberTitle != ''">member_title = #{memberTitle},</if>
+			<if test="memberCohort != null and memberCohort != ''">member_cohort = #{memberCohort},</if>
+			<if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+			update_time = sysdate()
+		</set>
+		where user_id = #{userId}
+	</update>
+
 	<update id="resetUserPwd" parameterType="SysUser">
  		update sys_user set pwd_update_date = sysdate(), password = #{password}, update_time = sysdate() where user_id = #{userId}
 	</update>

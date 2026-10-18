@@ -11,6 +11,9 @@ application-local.yml
 .env
 .env.local
 .env.*.local
+.code_deploy/deploy.env.local
+.code_deploy/release/
+/.mimosa/
 
 # Private keys and certificates
 *.pem

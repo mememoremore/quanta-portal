@@ -13,6 +13,7 @@ import { useUserStore } from '@/stores/user'
 import { createForumPost, FORUM_CATEGORIES, getForumPost, updateForumPost, uploadForumImage } from '@/api/portal/forum'
 import MarkdownContent from './MarkdownContent.vue'
 import { useForumDraft } from './draft'
+import { restoreForumMarkdown } from './markdown'
 import { prepareForumImage } from './image-upload'
 import './community.css'
 
@@ -45,7 +46,7 @@ onMounted(async () => {
     }
     title.value = post.title
     category.value = post.category
-    content.value = post.content
+    content.value = restoreForumMarkdown(post.content)
     editAuthorized.value = true
     draft.initialize()
   } catch (error) {

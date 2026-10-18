@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtMaterialFolderMapper">
+
+    <resultMap id="QtMaterialFolderResult" type="QtMaterialFolder">
+        <id property="folderId" column="folder_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="category" column="category"/>
+        <result property="folderName" column="folder_name"/>
+        <result property="depth" column="depth"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="folderColumns">
+        folder_id, parent_id, category, folder_name, depth, create_by, create_time, update_by, update_time
+    </sql>
+
+    <select id="selectFolderById" resultMap="QtMaterialFolderResult">
+        select <include refid="folderColumns"/> from qt_material_folder where folder_id = #{folderId}
+    </select>
+
+    <select id="selectFolderList" resultMap="QtMaterialFolderResult">
+        select <include refid="folderColumns"/> from qt_material_folder
+        where category = #{category} and parent_id = #{parentId}
+        order by folder_name asc
+    </select>
+
+    <select id="selectFolderByParentAndName" resultMap="QtMaterialFolderResult">
+        select <include refid="folderColumns"/> from qt_material_folder
+        where parent_id = #{parentId} and category = #{category} and folder_name = #{folderName}
+        limit 1
+    </select>
+
+    <select id="selectFoldersByCategory" resultMap="QtMaterialFolderResult">
+        select <include refid="folderColumns"/> from qt_material_folder
+        where category = #{category}
+        order by parent_id asc, folder_name asc
+    </select>
+
+    <insert id="insertFolder" parameterType="QtMaterialFolder" useGeneratedKeys="true" keyProperty="folderId">
+        insert into qt_material_folder
+        (parent_id, category, folder_name, depth, create_by, create_time)
+        values
+        (#{parentId}, #{category}, #{folderName}, #{depth}, #{createBy}, now())
+    </insert>
+
+    <update id="updateFolder" parameterType="QtMaterialFolder">
+        update qt_material_folder
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="folderName != null and folderName != ''">folder_name = #{folderName},</if>
+            <if test="depth != null">depth = #{depth},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = now(),
+        </trim>
+        where folder_id = #{folderId}
+    </update>
+
+    <delete id="deleteFolderById">
+        delete from qt_material_folder where folder_id = #{folderId}
+    </delete>
+
+    <select id="countChildFolders" resultType="int">
+        select count(*) from qt_material_folder where parent_id = #{folderId}
+    </select>
+
+    <select id="countMaterialsInFolder" resultType="int">
+        select count(*) from qt_material where folder_id = #{folderId}
+    </select>
+
+    <update id="updateFolderDepth">
+        update qt_material_folder set depth = #{depth}, update_time = now() where folder_id = #{folderId}
+    </update>
+
+    <select id="selectChildFolderIds" resultType="long">
+        select folder_id from qt_material_folder where parent_id = #{parentId}
+    </select>
+
+</mapper>

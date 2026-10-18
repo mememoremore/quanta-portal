@@ -10,6 +10,7 @@ import {
   loginTypeFor,
   setAudience,
 } from '@/utils/session-audience'
+import { displayPersonName } from '@/utils/person-name'
 
 const departmentAliases = {
   产品: 'PRODUCT',
@@ -41,7 +42,7 @@ export const useUserStore = defineStore('user', () => {
   const audience = ref(getAudience())
 
   const isAuthenticated = computed(() => Boolean(token.value))
-  const displayName = computed(() => user.value?.nickName || user.value?.userName || '未登录')
+  const displayName = computed(() => displayPersonName(user.value || {}, '未登录'))
   const departmentCode = computed(() =>
     normalizeDepartmentCode(
       user.value?.deptCode ||

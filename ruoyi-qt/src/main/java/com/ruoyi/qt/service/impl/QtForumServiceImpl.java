@@ -40,6 +40,14 @@ public class QtForumServiceImpl implements IQtForumService
     }
 
     @Override
+    public List<QtForumPost> selectPostListByAuthor(Long authorId)
+    {
+        QtForumPost query = new QtForumPost();
+        query.setAuthorId(authorId);
+        return postMapper.selectPostList(query);
+    }
+
+    @Override
     public QtForumPost selectPostById(Long postId)
     {
         QtForumPost post = postMapper.selectPostById(postId);
@@ -48,6 +56,18 @@ public class QtForumServiceImpl implements IQtForumService
             throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
         }
         return post;
+    }
+
+    @Override
+    @Transactional
+    public QtForumPost viewPost(Long postId)
+    {
+        selectPostById(postId);
+        if (postMapper.incrementViewCount(postId) == 0)
+        {
+            throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
+        }
+        return selectPostById(postId);
     }
 
     @Override
@@ -107,6 +127,7 @@ public class QtForumServiceImpl implements IQtForumService
         String content = validateCommentContent(body);
         Long parentId = body.getParentId() == null ? null : body.getParentId();
         String replyToUserName = null;
+        Long replyToUserId = null;
         if (parentId != null)
         {
             QtForumComment parent = commentMapper.selectCommentById(parentId);
@@ -115,12 +136,14 @@ public class QtForumServiceImpl implements IQtForumService
                 throw new ServiceException("回复目标不存在", HttpStatus.BAD_REQUEST);
             }
             replyToUserName = parent.getAuthorName();
+            replyToUserId = parent.getAuthorId();
         }
         QtForumComment comment = new QtForumComment();
         comment.setPostId(postId);
         comment.setParentId(parentId);
         comment.setContent(content);
         comment.setAuthorId(SecurityUtils.getUserId());
+        comment.setReplyToUserId(replyToUserId);
         comment.setReplyToUserName(replyToUserName);
         commentMapper.insertComment(comment);
         postMapper.refreshCommentCount(postId);

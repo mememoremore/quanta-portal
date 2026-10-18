@@ -2,6 +2,7 @@ package com.ruoyi.qt.service.impl;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
@@ -19,6 +20,10 @@ public class QtMaterialServiceImpl implements IQtMaterialService
 {
     @Autowired
     private QtMaterialMapper qtMaterialMapper;
+
+    @Lazy
+    @Autowired
+    private com.ruoyi.qt.service.IQtMaterialFolderService qtMaterialFolderService;
 
     @Override
     public List<QtMaterial> selectMaterialList(QtMaterial query)
@@ -46,6 +51,11 @@ public class QtMaterialServiceImpl implements IQtMaterialService
     public int insertMaterial(QtMaterial material)
     {
         validateUploadPolicy(material);
+        if (material.getFolderId() == null)
+        {
+            material.setFolderId(0L);
+        }
+        qtMaterialFolderService.validateMaterialFolderTarget(material);
         return qtMaterialMapper.insertMaterial(material);
     }
 
@@ -101,6 +111,20 @@ public class QtMaterialServiceImpl implements IQtMaterialService
         if (StringUtils.isNotEmpty(material.getVisibility()))
         {
             QtDictUtils.requireValue(QtDictUtils.MATERIAL_VISIBILITY, material.getVisibility(), "visibility");
+        }
+        if (material.getFolderId() != null)
+        {
+            QtMaterial probe = new QtMaterial();
+            probe.setCategory(StringUtils.isNotEmpty(material.getCategory()) ? material.getCategory() : old.getCategory());
+            probe.setFolderId(material.getFolderId());
+            boolean unrestricted = QtAuthUtils.isCeo() || QtAuthUtils.hasPermi("*:*:*");
+            if (unrestricted && material.getFolderId() > 0)
+            {
+                probe.setCategory(qtMaterialFolderService.getFolderDetail(material.getFolderId()).getFolder().getCategory());
+                material.setCategory(probe.getCategory());
+            }
+            qtMaterialFolderService.validateMaterialFolderTarget(probe);
+            material.setFolderId(probe.getFolderId());
         }
         return qtMaterialMapper.updateMaterial(material);
     }

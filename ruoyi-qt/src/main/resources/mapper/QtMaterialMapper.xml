@@ -11,6 +11,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="filePath" column="file_path"/>
         <result property="fileSize" column="file_size"/>
         <result property="category" column="category"/>
+        <result property="folderId" column="folder_id"/>
         <result property="visibility" column="visibility"/>
         <result property="uploaderId" column="uploader_id"/>
         <result property="uploaderName" column="uploader_name"/>
@@ -24,7 +25,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <select id="selectMaterialById" resultMap="QtMaterialResult">
-        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.visibility,
+        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.folder_id, m.visibility,
                m.uploader_id, m.create_by, m.create_time, m.update_by, m.update_time, m.remark,
                u.nick_name as uploader_name, u.member_department as uploader_department
         from qt_material m
@@ -33,7 +34,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectMaterialList" parameterType="QtMaterial" resultMap="QtMaterialResult">
-        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.visibility,
+        select m.material_id, m.file_name, m.stored_name, m.file_path, m.file_size, m.category, m.folder_id, m.visibility,
                m.uploader_id, m.create_by, m.create_time, m.update_by, m.update_time, m.remark,
                u.nick_name as uploader_name, u.member_department as uploader_department
         from qt_material m
@@ -45,6 +46,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             </if>
             <if test="visibility != null and visibility != ''">and m.visibility = #{visibility}</if>
             <if test="fileName != null and fileName != ''">and m.file_name like concat('%', #{fileName}, '%')</if>
+            <if test="(fileName == null or fileName == '') and params.filterByFolder != null and params.filterByFolder == '1'">
+                and m.folder_id = #{folderId}
+            </if>
             <if test='params.admin == null or params.admin != "1"'>
                 and (
                     m.visibility = 'ALL'
@@ -59,9 +63,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="insertMaterial" parameterType="QtMaterial" useGeneratedKeys="true" keyProperty="materialId">
         insert into qt_material
-        (file_name, stored_name, file_path, file_size, category, visibility, uploader_id, create_by, create_time, remark)
+        (file_name, stored_name, file_path, file_size, category, folder_id, visibility, uploader_id, create_by, create_time, remark)
         values
-        (#{fileName}, #{storedName}, #{filePath}, #{fileSize}, #{category}, #{visibility}, #{uploaderId}, #{createBy}, now(), #{remark})
+        (#{fileName}, #{storedName}, #{filePath}, #{fileSize}, #{category}, #{folderId}, #{visibility}, #{uploaderId}, #{createBy}, now(), #{remark})
     </insert>
 
     <update id="updateMaterial" parameterType="QtMaterial">
@@ -69,6 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="SET" suffixOverrides=",">
             <if test="fileName != null and fileName != ''">file_name = #{fileName},</if>
             <if test="category != null">category = #{category},</if>
+            <if test="folderId != null">folder_id = #{folderId},</if>
             <if test="visibility != null and visibility != ''">visibility = #{visibility},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>

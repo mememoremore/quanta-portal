@@ -18,8 +18,16 @@ public class QtForumComment extends BaseEntity
     private String content;
     private Long authorId;
     private String authorName;
-    /** 被回复人姓名快照：父评论删除后回复仍能显示 */
+    /** 当前社区昵称，查询时关联档案，不落库 */
+    private String authorCommunityNickname;
+    /** 评论人当前头像，查询时关联 sys_user，不落库 */
+    private String authorAvatar;
+    /** 被回复用户。父评论删除后仍用来读取当前昵称 */
+    private Long replyToUserId;
+    /** 被回复人姓名快照：对方账号不存在时的回退 */
     private String replyToUserName;
+    /** 被回复人当前社区昵称，查询时关联档案，不落库 */
+    private String replyToCommunityNickname;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 
@@ -83,6 +91,36 @@ public class QtForumComment extends BaseEntity
         this.authorName = authorName;
     }
 
+    public String getAuthorCommunityNickname()
+    {
+        return authorCommunityNickname;
+    }
+
+    public void setAuthorCommunityNickname(String authorCommunityNickname)
+    {
+        this.authorCommunityNickname = authorCommunityNickname;
+    }
+
+    public String getAuthorAvatar()
+    {
+        return authorAvatar;
+    }
+
+    public void setAuthorAvatar(String authorAvatar)
+    {
+        this.authorAvatar = authorAvatar;
+    }
+
+    public Long getReplyToUserId()
+    {
+        return replyToUserId;
+    }
+
+    public void setReplyToUserId(Long replyToUserId)
+    {
+        this.replyToUserId = replyToUserId;
+    }
+
     public String getReplyToUserName()
     {
         return replyToUserName;
@@ -91,6 +129,16 @@ public class QtForumComment extends BaseEntity
     public void setReplyToUserName(String replyToUserName)
     {
         this.replyToUserName = replyToUserName;
+    }
+
+    public String getReplyToCommunityNickname()
+    {
+        return replyToCommunityNickname;
+    }
+
+    public void setReplyToCommunityNickname(String replyToCommunityNickname)
+    {
+        this.replyToCommunityNickname = replyToCommunityNickname;
     }
 
     public Date getCreatedAt()

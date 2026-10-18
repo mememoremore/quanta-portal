@@ -30,7 +30,9 @@ export function managedMemberPayload(form, options, mode) {
   if (!roleCategories.has(roleCategory) || !profile) throw new Error('请选择已有的成员角色')
   if (!options.departments.some(item => item.value === memberDepartment)) throw new Error('请选择有效的所属部门')
   if (!profile.titles.includes(memberTitle)) throw new Error('请选择与身份层级对应的职位')
-  if (!options.cohorts.some(item => String(item.value) === memberCohort)) throw new Error('请选择有效的届数')
+  // 分配权限不改届数，允许空；编辑资料必须指定一届，且必须是届次选项里的编号。
+  if (mode !== 'access' && !memberCohort) throw new Error('请选择届数')
+  if (memberCohort && !options.cohorts.some(item => String(item.value) === memberCohort)) throw new Error('请选择有效的届数')
   const payload = { mode, ...(mode !== 'create' ? { version: text(form.version) } : {}), memberDepartment, memberTitle, memberCohort, roleCategory }
   if (mode !== 'create' && !payload.version) throw new Error('缺少成员资料版本，请重新加载')
   if (mode !== 'access') {

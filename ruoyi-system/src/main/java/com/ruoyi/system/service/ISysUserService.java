@@ -170,6 +170,16 @@ public interface ISysUserService
     public int updateUserProfile(SysUser user);
 
     /**
+     * 只更新实名。
+     */
+    public int updateRealName(Long userId, String realName);
+
+    /**
+     * 只更新塔员部门、职位，不改昵称、真名和角色。
+     */
+    public int updateMemberPlacement(SysUser user);
+
+    /**
      * 修改用户头像
      * 
      * @param userId 用户ID

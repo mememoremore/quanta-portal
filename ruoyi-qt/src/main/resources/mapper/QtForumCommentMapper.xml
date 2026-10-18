@@ -11,15 +11,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="content" column="content"/>
         <result property="authorId" column="author_id"/>
         <result property="authorName" column="author_name"/>
+        <result property="authorCommunityNickname" column="author_community_nickname"/>
+        <result property="authorAvatar" column="author_avatar"/>
+        <result property="replyToUserId" column="reply_to_user_id"/>
         <result property="replyToUserName" column="reply_to_user_name"/>
+        <result property="replyToCommunityNickname" column="reply_to_community_nickname"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
     <sql id="selectCommentColumns">
-        select c.comment_id, c.post_id, c.parent_id, c.content, c.author_id, c.reply_to_user_name, c.create_time,
-               u.nick_name as author_name
+        select c.comment_id, c.post_id, c.parent_id, c.content, c.author_id, c.reply_to_user_id, c.create_time,
+               ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
+               nullif(trim(ap.community_nickname), '') as author_community_nickname,
+               u.avatar as author_avatar,
+               ifnull(nullif(trim(ru.real_name), ''), ifnull(ru.nick_name, c.reply_to_user_name)) as reply_to_user_name,
+               nullif(trim(rp.community_nickname), '') as reply_to_community_nickname
         from qt_forum_comment c
         left join sys_user u on c.author_id = u.user_id
+        left join qt_member_profile ap on ap.user_id = u.user_id
+        left join sys_user ru on ru.user_id = c.reply_to_user_id
+        left join qt_member_profile rp on rp.user_id = ru.user_id
     </sql>
 
     <select id="selectCommentList" parameterType="QtForumComment" resultMap="QtForumCommentResult">
@@ -37,9 +48,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <insert id="insertComment" parameterType="QtForumComment" useGeneratedKeys="true" keyProperty="commentId">
         insert into qt_forum_comment
-        (post_id, parent_id, content, author_id, reply_to_user_name, create_time)
+        (post_id, parent_id, content, author_id, reply_to_user_id, reply_to_user_name, create_time)
         values
-        (#{postId}, #{parentId}, #{content}, #{authorId}, #{replyToUserName}, now())
+        (#{postId}, #{parentId}, #{content}, #{authorId}, #{replyToUserId}, #{replyToUserName}, now())
     </insert>
 
     <update id="updateCommentContent" parameterType="QtForumComment">

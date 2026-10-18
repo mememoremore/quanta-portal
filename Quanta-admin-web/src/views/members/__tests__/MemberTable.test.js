@@ -10,7 +10,7 @@ const row = {
   name: '测试成员',
   department: '研发部',
   title: '经理',
-  cohort: '21',
+  cohort: '第21届',
   phoneMasked: '138****0000',
   joinedAt: '2024-09-01',
   status: 'active',
@@ -73,6 +73,35 @@ describe('MemberTable', () => {
     const wrapper = mountTable(['qt:member:list'])
     expect(wrapper.text()).not.toContain('删除')
     expect(wrapper.text()).not.toContain('重置密码')
+  })
+
+  it('labels members without a cohort as unassigned instead of 第届', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+    let wrapper
+    try {
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      useUserStore().permissions = ['qt:member:list']
+      wrapper = mount(MemberTable, {
+        props: { rows: [{ ...row, cohort: '' }], isCurrentCohort: false },
+        global: {
+          plugins: [pinia, ElementPlus],
+          stubs: {
+            ElTable: { template: '<div><slot /></div>' },
+            ElTableColumn: {
+              data: () => ({ testRow: { ...row, cohort: '' } }),
+              template: '<div><slot name="header" /><slot :row="testRow" /></div>',
+            },
+          },
+        },
+      })
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('.member-mobile__card').text()).toContain('未分届')
+      expect(wrapper.text()).not.toContain('第届')
+    } finally {
+      wrapper?.unmount()
+      vi.unstubAllGlobals()
+    }
   })
 
   it('renders retention as a compact filled action for historical cohorts', () => {

@@ -16,6 +16,7 @@ defineProps({
   roleCategory: { type: String, default: '' },
   pendingAction: { type: String, default: '' },
   canManageMembers: Boolean,
+  canMaintainMembers: Boolean,
 })
 
 const emit = defineEmits([
@@ -67,7 +68,7 @@ function statusOf(status) {
       <dl>
         <div><dt>部门</dt><dd>{{ row.department }}</dd></div>
         <div><dt>角色</dt><dd>{{ row.title }}</dd></div>
-        <div><dt>届数</dt><dd>第{{ row.cohort }}届</dd></div>
+        <div><dt>届数</dt><dd>{{ row.cohort || '未分届' }}</dd></div>
         <div><dt>联系电话</dt><dd>{{ row.phoneMasked }}</dd></div>
         <div class="member-mobile__joined"><dt>加入时间</dt><dd>{{ row.joinedAt }}</dd></div>
       </dl>
@@ -76,6 +77,7 @@ function statusOf(status) {
         :is-current-cohort="isCurrentCohort"
         :pending-action="pendingAction"
         :can-manage-members="canManageMembers"
+        :can-maintain-members="canMaintainMembers"
         @edit-member="emit('edit-member', $event)"
         @assign-role="emit('assign-role', $event)"
         @remove="emit('remove', $event)"
@@ -156,7 +158,7 @@ function statusOf(status) {
     </ElTableColumn>
 
     <ElTableColumn min-width="110" label="届数">
-      <template #default="{ row }">第{{ row.cohort }}届</template>
+      <template #default="{ row }">{{ row.cohort || '未分届' }}</template>
     </ElTableColumn>
     <ElTableColumn prop="phoneMasked" label="联系电话" min-width="160" />
     <ElTableColumn prop="joinedAt" label="加入时间" min-width="150" />
@@ -174,6 +176,7 @@ function statusOf(status) {
           :is-current-cohort="isCurrentCohort"
           :pending-action="pendingAction"
           :can-manage-members="canManageMembers"
+          :can-maintain-members="canMaintainMembers"
           @edit-member="emit('edit-member', $event)"
           @assign-role="emit('assign-role', $event)"
           @remove="emit('remove', $event)"

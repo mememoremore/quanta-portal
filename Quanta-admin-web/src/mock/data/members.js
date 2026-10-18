@@ -1,4 +1,9 @@
-export const mockDepartments = ['研发部', '产品部', '设计部']
+export const mockDepartments = [
+  { value: 'FRONTEND', label: '前端' },
+  { value: 'BACKEND', label: '后端' },
+  { value: 'PRODUCT', label: '产品' },
+  { value: 'DESIGN', label: '设计' },
+]
 
 export const mockCohorts = [
   { value: '21', label: '第21届', isCurrent: true },
@@ -11,7 +16,7 @@ const initialMembers = [
   {
     userId: 2101,
     nickName: '陈思远',
-    memberDepartment: '研发部',
+    memberDepartment: 'BACKEND',
     memberTitle: 'CTO',
     roleCategory: 'MGMT',
     memberCohort: '21',
@@ -23,7 +28,7 @@ const initialMembers = [
   {
     userId: 2102,
     nickName: '刘雨欣',
-    memberDepartment: '产品部',
+    memberDepartment: 'PRODUCT',
     memberTitle: '经理',
     roleCategory: 'MANAGER',
     memberCohort: '21',
@@ -35,7 +40,7 @@ const initialMembers = [
   {
     userId: 2103,
     nickName: '张伟',
-    memberDepartment: '设计部',
+    memberDepartment: 'DESIGN',
     memberTitle: '实习生',
     roleCategory: 'INTERN',
     memberCohort: '21',
@@ -47,7 +52,7 @@ const initialMembers = [
   {
     userId: 2104,
     nickName: '王芳',
-    memberDepartment: '产品部',
+    memberDepartment: 'PRODUCT',
     memberTitle: '实习生',
     roleCategory: 'INTERN',
     memberCohort: '21',
@@ -59,7 +64,7 @@ const initialMembers = [
   {
     userId: 2105,
     nickName: '赵明',
-    memberDepartment: '研发部',
+    memberDepartment: 'BACKEND',
     memberTitle: '经理',
     roleCategory: 'MANAGER',
     memberCohort: '21',
@@ -71,7 +76,7 @@ const initialMembers = [
   {
     userId: 2001,
     nickName: '孙丽',
-    memberDepartment: '设计部',
+    memberDepartment: 'DESIGN',
     memberTitle: 'CDO',
     roleCategory: 'MGMT',
     memberCohort: '20',
@@ -83,7 +88,7 @@ const initialMembers = [
   {
     userId: 2002,
     nickName: '周浩',
-    memberDepartment: '研发部',
+    memberDepartment: 'BACKEND',
     memberTitle: '经理',
     roleCategory: 'MANAGER',
     memberCohort: '20',
@@ -95,7 +100,7 @@ const initialMembers = [
   {
     userId: 2003,
     nickName: '吴倩',
-    memberDepartment: '产品部',
+    memberDepartment: 'PRODUCT',
     memberTitle: '实习生',
     roleCategory: 'INTERN',
     memberCohort: '20',
@@ -107,7 +112,7 @@ const initialMembers = [
   {
     userId: 1901,
     nickName: '郑凯',
-    memberDepartment: '研发部',
+    memberDepartment: 'BACKEND',
     memberTitle: '经理',
     roleCategory: 'MANAGER',
     memberCohort: '19',
@@ -119,13 +124,25 @@ const initialMembers = [
   {
     userId: 1801,
     nickName: '何静',
-    memberDepartment: '设计部',
+    memberDepartment: 'DESIGN',
     memberTitle: '实习生',
     roleCategory: 'INTERN',
     memberCohort: '18',
     phonenumber: '135****7788',
     joinTime: '2021-09-01',
     memberStatus: 'resigned',
+    canRetain: false,
+  },
+  {
+    userId: 2106,
+    nickName: '林一',
+    memberDepartment: 'BACKEND',
+    memberTitle: '实习生',
+    roleCategory: 'INTERN',
+    memberCohort: '',
+    phonenumber: '133****4455',
+    joinTime: '2024-09-01',
+    memberStatus: 'active',
     canRetain: false,
   },
 ]

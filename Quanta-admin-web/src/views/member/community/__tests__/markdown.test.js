@@ -38,6 +38,19 @@ describe('forum Markdown renderer', () => {
     expect(element.textContent).toContain('f->F.prototype')
   })
 
+  it('restores XSS-filtered blockquotes into blockquote markup', () => {
+    const html = markdownToHtml('&gt; **引用文字**')
+    expect(html).toContain('<blockquote>')
+    expect(html).toContain('<strong>引用文字</strong>')
+    expect(html).not.toContain('&gt;')
+  })
+
+  it('still escapes script tags after restoring stored HTML entities', () => {
+    const html = markdownToHtml('&lt;script&gt;alert(1)&lt;/script&gt;')
+    expect(html).toContain('&lt;script&gt;')
+    expect(html).not.toContain('<script>')
+  })
+
   it('escapes HTML and rejects unsafe image and link schemes', () => {
     const html = markdownToHtml('<script>alert(1)</script>\n\n![bad](javascript:alert(1))\n\n[x](javascript:alert(1))')
     expect(html).toContain('&lt;script&gt;')

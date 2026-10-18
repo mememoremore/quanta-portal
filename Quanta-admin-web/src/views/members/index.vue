@@ -25,7 +25,7 @@ const userStore = useUserStore()
 const canManageMembers = computed(() => userStore.roles.includes('ceo'))
 const editorVisible = ref(false), editorMode = ref('create'), editorMember = ref(null)
 function openEditor(mode, member = null) {
-  if (!canManageMembers.value || !isCurrentCohort.value) return
+  if (!canMaintainMembers.value) return
   editorMode.value = mode; editorMember.value = member; editorVisible.value = true
 }
 
@@ -64,12 +64,21 @@ const isCurrentCohort = computed(
   () => cohorts.value.find((item) => item.value === query.memberCohort)?.isCurrent === true,
 )
 
+const isUnassignedCohort = computed(() => query.memberCohort === 'unassigned')
+
+// 未分届塔员还没有届次档案，同样需要 CEO 维护；历史届保持只读。
+const canMaintainMembers = computed(
+  () => canManageMembers.value && (isCurrentCohort.value || isUnassignedCohort.value),
+)
+
 const hasFilters = computed(
   () => Boolean(query.nickName || query.memberDepartment || query.roleCategory),
 )
 
 async function loadCohorts() {
-  cohorts.value = await getMemberCohorts()
+  const list = await getMemberCohorts()
+  // 未分届不是届次编号，只作为名单页签使用。
+  cohorts.value = [...list, { value: 'unassigned', label: '未分届', isCurrent: false }]
   if (!query.memberCohort || !cohorts.value.some((item) => item.value === query.memberCohort)) {
     query.memberCohort =
       cohorts.value.find((item) => item.isCurrent)?.value || cohorts.value[0]?.value || ''
@@ -189,7 +198,7 @@ async function submitRetain() {
   if (!member) return
   pendingAction.value = `retain-${member.id}`
   try {
-    const response = await retainMember(member.id, { sourceCohortId: member.cohort })
+    const response = await retainMember(member.id, { sourceCohortId: member.cohortId })
     ElMessage.success(response.msg || '留任成功')
     await loadCohorts()
     await loadMembers()
@@ -248,6 +257,7 @@ onMounted(initialize)
         :role-category="query.roleCategory"
         :pending-action="pendingAction"
         :can-manage-members="canManageMembers"
+        :can-maintain-members="canMaintainMembers"
         @edit-member="openEditor('identity', $event)"
         @assign-role="openEditor('access', $event)"
         @department-change="updateQuery('memberDepartment', $event)"

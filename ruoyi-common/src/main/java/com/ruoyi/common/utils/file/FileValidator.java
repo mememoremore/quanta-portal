@@ -1,7 +1,10 @@
 package com.ruoyi.common.utils.file;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import javax.imageio.ImageIO;
 import java.util.Locale;
 import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.exception.ServiceException;
@@ -20,6 +23,9 @@ public class FileValidator
 {
     /** 图片类档位：证件照 / 头像 / 收款码 / 效果图 / 支付凭证 */
     public static final long SIZE_IMAGE = 5L * 1024 * 1024;
+
+    /** 头像解码后最大像素数（4000 万像素） */
+    public static final long MAX_AVATAR_PIXELS = 40_000_000L;
 
     /** 文档类档位：学习资料（pdf / word / excel / ppt / 压缩包） */
     public static final long SIZE_DOCUMENT = 20L * 1024 * 1024;
@@ -102,6 +108,34 @@ public class FileValidator
         if (file != null && file.getSize() > maxSize)
         {
             throw new ServiceException(StringUtils.format("文件大小超出限制，最大允许 {}MB", maxSize / 1024 / 1024));
+        }
+    }
+
+    /**
+     * 解码图片并校验像素上限（头像等场景在魔数校验之后调用）。
+     */
+    public static void validateDecodedImagePixels(MultipartFile file, long maxPixels)
+    {
+        if (file == null || file.isEmpty())
+        {
+            throw new ServiceException("上传内容为空");
+        }
+        try (InputStream in = file.getInputStream())
+        {
+            BufferedImage image = ImageIO.read(in);
+            if (image == null)
+            {
+                throw new ServiceException("图片无法解析，请更换图片");
+            }
+            long pixels = (long) image.getWidth() * (long) image.getHeight();
+            if (pixels <= 0 || pixels > maxPixels)
+            {
+                throw new ServiceException("图片尺寸过大或无效，请选择 4000 万像素以内的图片");
+            }
+        }
+        catch (IOException ex)
+        {
+            throw new ServiceException("图片读取失败，请重新选择");
         }
     }
 

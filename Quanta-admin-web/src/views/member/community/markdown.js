@@ -27,6 +27,15 @@ export function escapeHtml(value) {
   })[char])
 }
 
+/** 还原若依 XSS 过滤器写入库的正文实体，便于 Markdown 解析与编辑 */
+export function restoreForumMarkdown(source) {
+  return String(source ?? '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+}
+
 const markdown = new MarkdownIt({
   html: false,
   linkify: false,
@@ -68,7 +77,7 @@ markdown.renderer.rules.image = (tokens, index, options, env, renderer) => {
 }
 
 export function markdownToHtml(source) {
-  return markdown.render(String(source || ''))
+  return markdown.render(restoreForumMarkdown(source))
 }
 
 export function markdownToDocument(source, prefix = 'article') {

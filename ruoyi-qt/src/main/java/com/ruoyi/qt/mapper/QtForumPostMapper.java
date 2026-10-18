@@ -16,4 +16,6 @@ public interface QtForumPostMapper
     int deletePostById(Long postId);
 
     int refreshCommentCount(Long postId);
+
+    int incrementViewCount(Long postId);
 }

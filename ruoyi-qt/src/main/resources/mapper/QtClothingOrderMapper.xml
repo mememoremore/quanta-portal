@@ -30,6 +30,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="qrImagePath"    column="qr_image_path"    />
         <result property="userName"    column="user_name"    />
         <result property="nickName"    column="nick_name"    />
+        <result property="realName"    column="real_name"    />
         <result property="memberNo"    column="member_no"    />
         <result property="memberDepartment"    column="member_department"    />
         <result property="memberTitle"    column="member_title"    />
@@ -65,7 +66,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                o.create_by, o.create_time, o.update_by, o.update_time,
                i.item_name, i.effect_image_path,
                p.payment_name, p.qr_image_path,
-               u.user_name, u.nick_name, u.member_no, u.member_department, u.member_title, u.member_cohort
+               u.user_name, u.nick_name, u.real_name, u.member_no, u.member_department, u.member_title, u.member_cohort
         from qt_clothing_order o
         left join qt_clothing_item i on o.item_id = i.item_id
         left join qt_payment_config p on o.payment_config_id = p.config_id
@@ -86,7 +87,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="itemName != null and itemName != ''"> and i.item_name like concat('%', #{itemName}, '%')</if>
             <if test="paymentName != null and paymentName != ''"> and p.payment_name like concat('%', #{paymentName}, '%')</if>
             <if test="userName != null and userName != ''"> and u.user_name like concat('%', #{userName}, '%')</if>
-            <if test="nickName != null and nickName != ''"> and u.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="nickName != null and nickName != ''"> and (u.nick_name like concat('%', #{nickName}, '%') or u.real_name like concat('%', #{nickName}, '%') or u.user_name like concat('%', #{nickName}, '%'))</if>
             <if test="memberNo != null and memberNo != ''"> and u.member_no like concat('%', #{memberNo}, '%')</if>
             <if test="memberDepartment != null and memberDepartment != ''"> and u.member_department like concat('%', #{memberDepartment}, '%')</if>
             <if test="memberTitle != null and memberTitle != ''"> and u.member_title like concat('%', #{memberTitle}, '%')</if>

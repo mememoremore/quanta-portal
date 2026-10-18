@@ -7,8 +7,10 @@ public class QtLabMember
 {
     private Long userId;
     private String nickName;
+    private String realName;
     private String userName;
     private String avatar;
+    private String headline;
     private String phonenumber;
     private String sex;
     private String memberNo;
@@ -19,6 +21,8 @@ public class QtLabMember
     private String className;
     private String isQuantaMember;
     private Long cohortId;
+    private String cohortName;
+    private Boolean unassignedCohort;
     private String roleCategory;
     private String memberStatus;
     private java.util.Date joinTime;
@@ -46,6 +50,16 @@ public class QtLabMember
         this.nickName = nickName;
     }
 
+    public String getRealName()
+    {
+        return realName;
+    }
+
+    public void setRealName(String realName)
+    {
+        this.realName = realName;
+    }
+
     public String getUserName()
     {
         return userName;
@@ -64,6 +78,16 @@ public class QtLabMember
     public void setAvatar(String avatar)
     {
         this.avatar = avatar;
+    }
+
+    public String getHeadline()
+    {
+        return headline;
+    }
+
+    public void setHeadline(String headline)
+    {
+        this.headline = headline;
     }
 
     public String getPhonenumber()
@@ -164,6 +188,26 @@ public class QtLabMember
     public void setCohortId(Long cohortId)
     {
         this.cohortId = cohortId;
+    }
+
+    public String getCohortName()
+    {
+        return cohortName;
+    }
+
+    public void setCohortName(String cohortName)
+    {
+        this.cohortName = cohortName;
+    }
+
+    public Boolean getUnassignedCohort()
+    {
+        return unassignedCohort;
+    }
+
+    public void setUnassignedCohort(Boolean unassignedCohort)
+    {
+        this.unassignedCohort = unassignedCohort;
     }
 
     public String getRoleCategory()
