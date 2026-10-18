@@ -85,4 +85,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <delete id="deleteMaterialById" parameterType="Long">
         delete from qt_material where material_id = #{materialId}
     </delete>
+
+    <select id="selectMaterialsByIdsForUpdate" resultMap="QtMaterialResult">
+        select m.material_id, m.file_path
+        from qt_material m
+        where m.material_id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        for update
+    </select>
+
+    <delete id="deleteMaterialsByIds">
+        delete from qt_material
+        where material_id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
 </mapper>

@@ -16,6 +16,10 @@ public interface QtMaterialMapper
 
     int deleteMaterialById(Long materialId);
 
+    List<QtMaterial> selectMaterialsByIdsForUpdate(@Param("ids") List<Long> ids);
+
+    int deleteMaterialsByIds(@Param("ids") List<Long> ids);
+
     int countVisible(@Param("userId") Long userId, @Param("isMember") String isMember,
             @Param("dept") String dept, @Param("isAdmin") String isAdmin);
 }

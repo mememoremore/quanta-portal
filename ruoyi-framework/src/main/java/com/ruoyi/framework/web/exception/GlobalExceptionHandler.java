@@ -16,8 +16,10 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.exception.DemoModeException;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.ServletUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.html.EscapeUtil;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * 全局异常处理器
@@ -60,6 +62,14 @@ public class GlobalExceptionHandler
     {
         log.error(e.getMessage(), e);
         Integer code = e.getCode();
+        if (code != null && isMaterialBatchDelete(request))
+        {
+            HttpServletResponse response = ServletUtils.getResponse();
+            if (response != null && !response.isCommitted())
+            {
+                response.setStatus(code);
+            }
+        }
         return StringUtils.isNotNull(code) ? AjaxResult.error(code, e.getMessage()) : AjaxResult.error(e.getMessage());
     }
 
@@ -132,6 +142,12 @@ public class GlobalExceptionHandler
         log.error(e.getMessage(), e);
         String message = e.getBindingResult().getFieldError().getDefaultMessage();
         return AjaxResult.error(message);
+    }
+
+    private static boolean isMaterialBatchDelete(HttpServletRequest request)
+    {
+        String uri = request == null ? null : request.getRequestURI();
+        return uri != null && uri.endsWith("/qt/materials/batch-delete");
     }
 
     /**

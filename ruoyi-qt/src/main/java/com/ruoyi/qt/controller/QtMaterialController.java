@@ -26,7 +26,7 @@ import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.common.utils.file.FileValidator;
 import com.ruoyi.common.utils.file.MimeTypeUtils;
-import com.ruoyi.common.utils.StringUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ruoyi.qt.domain.QtMaterial;
 import com.ruoyi.qt.service.IQtMaterialFolderService;
 import com.ruoyi.qt.service.IQtMaterialService;
@@ -53,10 +53,7 @@ public class QtMaterialController extends BaseController
         qtMaterialFolderService.applyFolderFilter(query, folderId);
         startPage();
         List<QtMaterial> list = qtMaterialService.selectMaterialList(query);
-        if (StringUtils.isNotEmpty(query.getFileName()))
-        {
-            qtMaterialFolderService.enrichFolderPaths(list);
-        }
+        qtMaterialFolderService.enrichFolderPaths(list);
         fillDownloadUrl(list);
         return getDataTable(list);
     }
@@ -108,6 +105,14 @@ public class QtMaterialController extends BaseController
         material.setMaterialId(materialId);
         material.setUpdateBy(getUsername());
         return toAjax(qtMaterialService.updateMaterial(material));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Log(title = "学习资料批量删除", businessType = BusinessType.DELETE)
+    @PostMapping("/batch-delete")
+    public AjaxResult batchDelete(@RequestBody JsonNode body)
+    {
+        return AjaxResult.success("批量删除完成", qtMaterialService.batchDelete(body));
     }
 
     @PreAuthorize("@ss.hasPermi('qt:material:remove')")

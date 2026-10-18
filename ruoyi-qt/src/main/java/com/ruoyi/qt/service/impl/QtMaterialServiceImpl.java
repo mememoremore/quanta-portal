@@ -1,25 +1,44 @@
 package com.ruoyi.qt.service.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.nio.file.Path;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.qt.domain.QtMaterial;
+import com.ruoyi.qt.domain.QtMaterialFileCleanup;
+import com.ruoyi.qt.domain.vo.QtMaterialBatchDeleteResult;
+import com.ruoyi.qt.mapper.QtMaterialFileCleanupMapper;
 import com.ruoyi.qt.mapper.QtMaterialMapper;
 import com.ruoyi.qt.service.IQtMaterialService;
 import com.ruoyi.qt.util.QtAuthUtils;
 import com.ruoyi.qt.util.QtDictUtils;
 import com.ruoyi.qt.util.QtLabMemberImportParser;
+import com.ruoyi.qt.util.QtMaterialStoragePaths;
 
 @Service
 public class QtMaterialServiceImpl implements IQtMaterialService
 {
+    private static final long JS_MAX_SAFE_INTEGER = 9007199254740991L;
+
     @Autowired
     private QtMaterialMapper qtMaterialMapper;
+
+    @Autowired
+    private QtMaterialFileCleanupMapper qtMaterialFileCleanupMapper;
 
     @Lazy
     @Autowired
@@ -138,6 +157,178 @@ public class QtMaterialServiceImpl implements IQtMaterialService
             throw new ServiceException("无权删除该资料");
         }
         return qtMaterialMapper.deleteMaterialById(materialId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public QtMaterialBatchDeleteResult batchDelete(JsonNode body)
+    {
+        if (!QtAuthUtils.canBatchDeleteMaterials())
+        {
+            throw new ServiceException("仅 CEO 可执行批量删除", HttpStatus.FORBIDDEN);
+        }
+        List<Long> ids = parseBatchIds(body);
+        List<QtMaterial> locked = qtMaterialMapper.selectMaterialsByIdsForUpdate(ids);
+        Map<Long, QtMaterial> byId = new HashMap<>();
+        if (locked != null)
+        {
+            for (QtMaterial row : locked)
+            {
+                if (row != null && row.getMaterialId() != null)
+                {
+                    byId.put(row.getMaterialId(), row);
+                }
+            }
+        }
+        List<Long> alreadyDeletedIds = new ArrayList<>();
+        List<QtMaterial> found = new ArrayList<>();
+        for (Long id : ids)
+        {
+            QtMaterial row = byId.get(id);
+            if (row == null)
+            {
+                alreadyDeletedIds.add(id);
+            }
+            else
+            {
+                found.add(row);
+            }
+        }
+        for (QtMaterial row : found)
+        {
+            if (StringUtils.isNotEmpty(row.getFilePath()))
+            {
+                QtMaterialStoragePaths.resolveStoredFile(row.getFilePath());
+            }
+        }
+        List<Long> deletedIds = new ArrayList<>();
+        if (!found.isEmpty())
+        {
+            List<Long> foundIds = new ArrayList<>();
+            for (QtMaterial row : found)
+            {
+                foundIds.add(row.getMaterialId());
+            }
+            int affected = qtMaterialMapper.deleteMaterialsByIds(foundIds);
+            if (affected != foundIds.size())
+            {
+                throw new ServiceException("存在无法删除的资料，本次未删除任何资料", HttpStatus.CONFLICT);
+            }
+            deletedIds.addAll(foundIds);
+            String operator = SecurityUtils.getUsername();
+            for (QtMaterial row : found)
+            {
+                if (StringUtils.isEmpty(row.getFilePath()))
+                {
+                    continue;
+                }
+                QtMaterialFileCleanup cleanup = new QtMaterialFileCleanup();
+                cleanup.setMaterialId(row.getMaterialId());
+                cleanup.setFilePath(row.getFilePath());
+                cleanup.setCreateBy(operator == null ? "" : operator);
+                qtMaterialFileCleanupMapper.insertCleanup(cleanup);
+            }
+        }
+        scheduleFilePurge();
+        QtMaterialBatchDeleteResult result = new QtMaterialBatchDeleteResult();
+        result.setDeletedIds(deletedIds);
+        result.setAlreadyDeletedIds(alreadyDeletedIds);
+        return result;
+    }
+
+    @Override
+    public void purgePendingFileCleanups()
+    {
+        List<QtMaterialFileCleanup> pending = qtMaterialFileCleanupMapper.selectPending();
+        if (pending == null)
+        {
+            return;
+        }
+        for (QtMaterialFileCleanup task : pending)
+        {
+            try
+            {
+                Path path = QtMaterialStoragePaths.resolveStoredFile(task.getFilePath());
+                java.io.File file = path.toFile();
+                if (file.exists() && !file.isFile())
+                {
+                    throw new ServiceException("资料文件位置不受信任，未执行删除", HttpStatus.CONFLICT);
+                }
+                if (file.exists() && !file.delete())
+                {
+                    qtMaterialFileCleanupMapper.markResult(task.getCleanupId(), "FAILED", "文件删除失败");
+                    continue;
+                }
+                qtMaterialFileCleanupMapper.markResult(task.getCleanupId(), "DONE", null);
+            }
+            catch (RuntimeException ex)
+            {
+                qtMaterialFileCleanupMapper.markResult(task.getCleanupId(), "FAILED", "文件清理失败");
+            }
+        }
+    }
+
+    private void scheduleFilePurge()
+    {
+        if (TransactionSynchronizationManager.isSynchronizationActive())
+        {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()
+            {
+                @Override
+                public void afterCommit()
+                {
+                    purgePendingFileCleanups();
+                }
+            });
+            return;
+        }
+        purgePendingFileCleanups();
+    }
+
+    private static List<Long> parseBatchIds(JsonNode body)
+    {
+        if (body == null || !body.isObject() || body.size() != 1 || !body.has("materialIds") || body.get("materialIds") == null
+                || !body.get("materialIds").isArray())
+        {
+            throw invalidBatch();
+        }
+        JsonNode array = body.get("materialIds");
+        if (array.size() < 1 || array.size() > 20)
+        {
+            throw invalidBatch();
+        }
+        LinkedHashSet<Long> unique = new LinkedHashSet<>();
+        for (JsonNode node : array)
+        {
+            if (node == null || !node.isIntegralNumber() || node.isFloatingPointNumber())
+            {
+                throw invalidBatch();
+            }
+            String text = node.asText();
+            if (text == null || !text.matches("[1-9]\\d*"))
+            {
+                throw invalidBatch();
+            }
+            long value;
+            try
+            {
+                value = Long.parseLong(text);
+            }
+            catch (NumberFormatException ex)
+            {
+                throw invalidBatch();
+            }
+            if (value <= 0 || value > JS_MAX_SAFE_INTEGER || !unique.add(value))
+            {
+                throw invalidBatch();
+            }
+        }
+        return new ArrayList<>(unique);
+    }
+
+    private static ServiceException invalidBatch()
+    {
+        return new ServiceException("批量删除参数不合法", HttpStatus.BAD_REQUEST);
     }
 
     @Override

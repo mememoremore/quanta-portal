@@ -73,6 +73,21 @@ public class HttpStatus
     public static final int CONFLICT = 409;
 
     /**
+     * 资源已过期
+     */
+    public static final int GONE = 410;
+
+    /**
+     * 请求过于频繁
+     */
+    public static final int TOO_MANY_REQUESTS = 429;
+
+    /**
+     * 服务不可用
+     */
+    public static final int SERVICE_UNAVAILABLE = 503;
+
+    /**
      * 不支持的数据，媒体类型
      */
     public static final int UNSUPPORTED_TYPE = 415;

@@ -81,7 +81,8 @@ class QtMaterialFolderServiceRulesTest
         request.setCategory("FRONTEND");
         request.setParentId(0L);
         request.setFolderName("培训");
-        assertThrows(ServiceException.class, () -> service.createFolder(request));
+        ServiceException error = assertThrows(ServiceException.class, () -> service.createFolder(request));
+        assertEquals(HttpStatus.CONFLICT, error.getCode());
     }
 
     @Test

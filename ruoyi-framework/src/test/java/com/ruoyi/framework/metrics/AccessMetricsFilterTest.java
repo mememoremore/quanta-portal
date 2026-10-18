@@ -17,6 +17,8 @@ class AccessMetricsFilterTest
         assertTrue(AccessMetricsFilter.isExcludedPath("/druid/index.html"));
         assertTrue(AccessMetricsFilter.isExcludedPath("/qt/metrics/latest"));
         assertTrue(AccessMetricsFilter.isExcludedPath("/qt/metrics/list"));
+        assertTrue(AccessMetricsFilter.isExcludedPath("/oauth2/authorize"));
+        assertTrue(AccessMetricsFilter.isExcludedPath("/.well-known/openid-configuration"));
         assertTrue(AccessMetricsFilter.isExcludedPath("/favicon.ico"));
         assertTrue(AccessMetricsFilter.isExcludedPath("/error"));
         assertFalse(AccessMetricsFilter.isExcludedPath("/qt/book/list"));

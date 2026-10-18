@@ -251,6 +251,19 @@ public class TokenService
     }
 
     /**
+     * 读取当前 Refresh Cookie 对应的会话，不消费、不轮换。
+     */
+    public RefreshSession peekRefresh(HttpServletRequest request)
+    {
+        String raw = readRefreshCookie(request);
+        if (StringUtils.isEmpty(raw))
+        {
+            return null;
+        }
+        return redisCache.getCacheObject(refreshKey(sha256(raw)));
+    }
+
+    /**
      * 退出时只撤销这次出示的 Refresh，不影响同一用户的其他设备。
      */
     public void revokePresentedRefresh(HttpServletRequest request)

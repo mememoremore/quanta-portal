@@ -53,6 +53,12 @@
             <artifactId>oshi-core</artifactId>
         </dependency>
 
+        <!-- OIDC 授权服务：签名、客户端登记与 PKCE。交互发码由本站流程控制。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
+        </dependency>
+
         <!-- 系统模块-->
         <dependency>
             <groupId>com.ruoyi</groupId>

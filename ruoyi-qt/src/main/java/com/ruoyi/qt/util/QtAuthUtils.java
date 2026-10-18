@@ -81,6 +81,15 @@ public final class QtAuthUtils
     }
 
     /**
+     * 学习资料批量删除只认角色键 ceo，再要求删除权限。admin、超管权限和 isCeo() 都不能代替。
+     */
+    public static boolean canBatchDeleteMaterials()
+    {
+        return hasExactRole(ROLE_CEO)
+                && (hasPermi("qt:material:remove") || hasPermi(com.ruoyi.common.constant.Constants.ALL_PERMISSION));
+    }
+
+    /**
      * 成员维护只认角色键 ceo。若依管理员和 userId=1 不能代替 CEO。
      */
     public static void requireMemberCeo()

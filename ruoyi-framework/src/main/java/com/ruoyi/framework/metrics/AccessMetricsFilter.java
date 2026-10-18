@@ -62,6 +62,8 @@ public class AccessMetricsFilter extends OncePerRequestFilter
                 || uri.startsWith("/v3/api-docs")
                 || uri.startsWith("/druid/")
                 || uri.startsWith("/qt/metrics")
+                || uri.startsWith("/oauth2/")
+                || uri.startsWith("/.well-known/openid-configuration")
                 || uri.startsWith("/actuator")
                 || "/favicon.ico".equals(uri)
                 || "/error".equals(uri);

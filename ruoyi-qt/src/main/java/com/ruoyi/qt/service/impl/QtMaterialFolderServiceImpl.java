@@ -70,7 +70,7 @@ public class QtMaterialFolderServiceImpl implements IQtMaterialFolderService
         String folderName = normalizeFolderName(folder.getFolderName());
         long parentId = folder.getParentId() == null ? 0L : folder.getParentId();
         int depth = resolveChildDepth(parentId, category);
-        assertSiblingNameAvailable(parentId, category, folderName, null);
+        assertSiblingNameAvailable(parentId, category, folderName, null, HttpStatus.CONFLICT);
         QtMaterialFolder row = new QtMaterialFolder();
         row.setParentId(parentId);
         row.setCategory(category);
@@ -115,7 +115,7 @@ public class QtMaterialFolderServiceImpl implements IQtMaterialFolderService
         }
         if (rename || move)
         {
-            assertSiblingNameAvailable(targetParentId, existing.getCategory(), targetName, folderId);
+            assertSiblingNameAvailable(targetParentId, existing.getCategory(), targetName, folderId, HttpStatus.BAD_REQUEST);
             existing.setFolderName(targetName);
         }
         existing.setUpdateBy(patch.getUpdateBy());
@@ -336,12 +336,13 @@ public class QtMaterialFolderServiceImpl implements IQtMaterialFolderService
         return depth;
     }
 
-    private void assertSiblingNameAvailable(long parentId, String category, String folderName, Long excludeFolderId)
+    private void assertSiblingNameAvailable(long parentId, String category, String folderName, Long excludeFolderId,
+            int status)
     {
         QtMaterialFolder existing = qtMaterialFolderMapper.selectFolderByParentAndName(parentId, category, folderName);
         if (existing != null && (excludeFolderId == null || !existing.getFolderId().equals(excludeFolderId)))
         {
-            throw new ServiceException("同级目录下已存在同名文件夹", HttpStatus.BAD_REQUEST);
+            throw new ServiceException("同级目录下已存在同名文件夹", status);
         }
     }
 
