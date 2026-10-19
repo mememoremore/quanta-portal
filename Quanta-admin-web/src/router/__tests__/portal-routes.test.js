@@ -36,7 +36,7 @@ describe('portal route contract', () => {
 
     expect(freshman.children.map((child) => child.path)).toContain('security')
     expect(member.children.map((child) => child.path)).toEqual(
-      expect.arrayContaining(['materials', 'security']),
+      expect.arrayContaining(['materials', 'materials/:materialId/preview', 'security']),
     )
     expect(member.children.map((child) => child.path)).not.toContain('notifications')
   })

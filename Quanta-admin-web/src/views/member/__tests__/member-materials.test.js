@@ -48,6 +48,15 @@ describe('member learning materials', () => {
     expect(wrapper.find('.member-materials__search-state').exists()).toBe(false)
   })
 
+  it('opens a text-only preview link in a separate tab without an opener', async () => {
+    const wrapper = mount(MemberMaterials)
+    await flushPromises()
+    const link = wrapper.get('.member-materials__preview')
+    expect(link.text()).toBe('预览')
+    expect(link.attributes()).toMatchObject({ href: '/member/materials/1/preview', target: '_blank', rel: 'noopener noreferrer' })
+    expect(link.find('svg').exists()).toBe(false)
+  })
+
   it('exposes exactly three fixed types and no folder management actions', async () => {
     const wrapper = mount(MemberMaterials)
     await flushPromises()

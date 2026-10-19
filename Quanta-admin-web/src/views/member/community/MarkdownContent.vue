@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { markdownToDocument, markdownToHtml } from './markdown'
 
 const props = defineProps({ source: { type: String, default: '' }, outline: Boolean })
@@ -9,6 +9,25 @@ const rendered = computed(() => props.outline ? markdownToDocument(props.source,
 const html = computed(() => rendered.value.html)
 watch(() => rendered.value.headings, headings => emit('outline', headings), { immediate: true, flush: 'post' })
 const timers = new Set()
+const content = ref(null)
+let diagramCleanup, diagramVersion = 0
+
+async function attachDiagrams() {
+  const current = ++diagramVersion
+  diagramCleanup?.()
+  diagramCleanup = null
+  const root = content.value
+  if (!root?.querySelector('[data-mermaid-block]')) return
+  try {
+    const { mountMermaidDiagrams } = await import('./mermaid-diagrams')
+    if (current === diagramVersion) diagramCleanup = mountMermaidDiagrams(root, prefix)
+  } catch {
+    if (current !== diagramVersion) return
+    root.querySelectorAll('[data-mermaid-status]').forEach(element => { element.textContent = '图表阅读器加载失败，请刷新重试；下方保留了源码。' })
+    root.querySelectorAll('[data-mermaid-code]').forEach(element => { element.hidden = false })
+  }
+}
+watch([html, content], attachDiagrams, { flush: 'post' })
 
 async function copyCode(event) {
   const button = event.target.closest?.('button[data-copy-code]')
@@ -44,11 +63,15 @@ async function copyCode(event) {
   timers.add(timer)
 }
 
-onBeforeUnmount(() => timers.forEach(clearTimeout))
+onBeforeUnmount(() => {
+  diagramVersion += 1
+  diagramCleanup?.()
+  timers.forEach(clearTimeout)
+})
 </script>
 
 <template>
   <!-- The renderer escapes raw HTML and only accepts safe link/image schemes. -->
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div class="community-markdown" @click="copyCode" v-html="html"></div>
+  <div ref="content" class="community-markdown" @click="copyCode" v-html="html"></div>
 </template>

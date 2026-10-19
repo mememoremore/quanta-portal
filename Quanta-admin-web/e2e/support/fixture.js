@@ -166,6 +166,10 @@ function responseFor(request, state) {
     const page = Number(url.searchParams.get('pageNum') || 1), size = Number(url.searchParams.get('pageSize') || 20)
     return { code: 200, rows: rows.slice((page - 1) * size, page * size).map(row => ({ ...row, folderName: state.materialFolders.find(folder => folder.folderId === row.folderId)?.folderName || '' })), total: rows.length }
   }
+  if (method === 'GET' && /^\/qt\/materials\/\d+$/.test(path)) {
+    const material = state.materials.find(row => row.materialId === Number(path.split('/').pop()))
+    return material ? { code: 200, data: material } : { code: 404, msg: '资料不存在或已删除' }
+  }
   if (path === '/qt/materials' && method === 'POST') {
     const raw = request.postDataBuffer().toString('utf8')
     const field = name => raw.match(new RegExp('name="' + name + '"\\r\\n\\r\\n([^\\r\\n]*)'))?.[1]
@@ -240,7 +244,7 @@ function responseFor(request, state) {
 }
 
 export const test = base.extend({
-  api: async ({ page }, use) => {
+  api: async ({ context }, use) => {
     const materialFolders = ['FRONTEND', 'BACKEND', 'PRODUCT', 'DESIGN'].flatMap((category, i) => ['培训资料', '技术分享', '项目实践'].map((folderName, j) => ({ category, parentId: 0, depth: 1, folderId: i * 3 + j + 1, folderName })))
     const materials = [
       { materialId: 1, category: 'FRONTEND', folderId: 1, fileName: 'Vue 入门培训.pdf' },
@@ -250,7 +254,7 @@ export const test = base.extend({
       { materialId: 5, category: 'BACKEND', folderId: 4, fileName: 'Java 培训资料.pdf' },
     ].map(row => ({ ...row, fileSize: 1024, uploaderName: '测试上传者', uploadTime: '2026-10-17', visibility: 'MEMBER' }))
     const state = { materialFolders, materials, materialFailureName: '', materialFoldersUnavailable: false, recruitmentOpen: false, applyResult: 'success', candidateCount: 1, forumPost: { ...forumPost }, forumComments:[], forumPublishFailure: false, profiles:{}, avatars:{}, profileUnavailable:false, profileSaveFailure:false, avatarFailure:false, unexpected: [], requests: [] }
-    await page.route('**/*', async (route) => {
+    await context.route('**/*', async (route) => {
       const request = route.request()
       const url = new URL(request.url())
       if (url.origin === appOrigin) return route.continue()

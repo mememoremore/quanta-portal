@@ -62,7 +62,10 @@ onMounted(load)
       <article v-for="material in materials" :key="material.materialId">
         <div class="member-materials__icon">{{ fileType(material.fileName) }}</div>
         <div class="member-materials__details"><h2>{{ material.fileName }}</h2><p><span class="member-materials__category">{{ materialCategoryLabel(material.category) }}</span>{{ fileSize(material.fileSize) }} · {{ material.uploader }} · {{ material.uploadedAt || '时间待确认' }}</p></div>
-        <button class="member-secondary-button" type="button" :disabled="downloadingId === material.materialId" @click="download(material)">{{ downloadingId === material.materialId ? '下载中…' : '下载' }}</button>
+        <div class="member-materials__actions">
+          <a class="member-secondary-button member-materials__preview" :href="`/member/materials/${material.materialId}/preview`" target="_blank" rel="noopener noreferrer">预览</a>
+          <button class="member-secondary-button" type="button" :disabled="downloadingId === material.materialId" @click="download(material)">{{ downloadingId === material.materialId ? '下载中…' : '下载' }}</button>
+        </div>
       </article>
     </div>
     <div v-else-if="!errorMessage" class="member-empty portal-card">这个分类暂时没有可下载的学习资料</div>
@@ -95,6 +98,9 @@ onMounted(load)
 .member-materials__list article:last-child { border-bottom: 0; }
 .member-materials__icon { display: grid; width: 48px; height: 48px; border-radius: 14px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-size: 10px; font-weight: 900; place-items: center; }
 .member-materials__details { min-width: 0; }
+.member-materials__actions { display: flex; gap: 10px; }
+.member-materials__actions > * { display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+.member-materials__actions .member-materials__preview { color: var(--portal-orange-strong); }
 .member-materials__list h2, .member-materials__list p { margin: 0; }
 .member-materials__list h2 { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .member-materials__list p { margin-top: 5px; color: var(--portal-muted); font-size: 11px; }
@@ -108,5 +114,9 @@ onMounted(load)
   .member-materials__tabs button { min-width: 0; padding-inline: 4px; text-align: center; }
   .member-materials__types { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .member-materials__types button { min-width: 0; padding-inline: 4px; text-align: center; }
+}
+@media (max-width: 480px) {
+  .member-materials__actions { display: grid; width: 100%; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .member-materials__actions > * { width: 100%; min-width: 0; min-height: 46px; border-radius: 12px; }
 }
 </style>

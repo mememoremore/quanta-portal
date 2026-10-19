@@ -129,8 +129,8 @@ async function save() {
           <button type="button" title="加粗" @click="insertText('**', '**', '加粗文字')">加粗</button>
           <button type="button" data-tool="list" title="插入列表" @click="insertText('- ', '', '列表项')">列表</button>
           <button type="button" title="插入链接" @click="insertText('[', '](https://)', '链接文字')">链接</button>
-          <button type="button" class="is-accent" :disabled="uploading" title="插入图片" @click="fileInput?.click()">{{ uploading ? '上传中…' : '＋ 图片' }}</button>
-          <button type="button" class="is-accent" title="插入代码块" @click="insertText('\n```js\n', '\n```\n', '在这里写代码')">&lt;/&gt; 代码块</button>
+          <button type="button" class="is-accent" :disabled="uploading" title="插入图片" aria-label="插入图片" @click="fileInput?.click()"><span class="community-editor__desktop-tool">{{ uploading ? '上传中…' : '＋ 图片' }}</span><span class="community-editor__mobile-tool">{{ uploading ? '上传中…' : '图片' }}</span></button>
+          <button type="button" class="is-accent" title="插入代码块" aria-label="插入代码块" @click="insertText('\n```js\n', '\n```\n', '在这里写代码')"><span class="community-editor__desktop-tool">&lt;/&gt; 代码块</span><span class="community-editor__mobile-tool">代码</span></button>
           <input ref="fileInput" class="community-hidden-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" @change="onImageSelected" />
         </div>
         <div class="community-editor__mobile-tabs" role="tablist" aria-label="编辑模式"><button type="button" :class="{ 'is-active': activePane === 'edit' }" :aria-selected="activePane === 'edit'" role="tab" @click="activePane = 'edit'">编辑</button><button type="button" :class="{ 'is-active': activePane === 'preview' }" :aria-selected="activePane === 'preview'" role="tab" @click="activePane = 'preview'">预览</button></div>

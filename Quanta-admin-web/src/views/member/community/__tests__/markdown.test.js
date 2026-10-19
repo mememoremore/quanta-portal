@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { markdownImagePreviews, markdownToHtml } from '../markdown'
 
 describe('forum Markdown renderer', () => {
+  it('marks only Mermaid fences for diagrams and retains escaped copyable source', () => {
+    const source = 'flowchart LR\n A[<script>alert(1)</script>] --> B[完成]\n'
+    const html = markdownToHtml('```mermaid\n' + source + '```')
+    const element = document.createElement('div')
+    element.innerHTML = html
+    expect(element.querySelector('[data-mermaid-block]')).not.toBeNull()
+    expect(element.querySelector('pre code').textContent).toBe(source)
+    expect(element.querySelector('script')).toBeNull()
+    expect(element.querySelector('[data-copy-code]')).not.toBeNull()
+    expect(markdownToHtml('```js\nconst mermaid = 1\n```')).not.toContain('data-mermaid-block')
+  })
+
   it('highlights YAML and its yml alias and includes a safe copy-code control', () => {
     for (const language of ['yaml', 'yml']) {
       const html = markdownToHtml('```' + language + '\non:\n  push:\n    branches: [main]\n```')

@@ -112,6 +112,12 @@ export const portalRoutes = [
         meta: { title: '学习资料', portalAudience: 'member' },
       },
       {
+        path: 'materials/:materialId/preview',
+        name: 'MemberMaterialPreview',
+        component: () => import('@/views/member/materials/preview.vue'),
+        meta: { title: '资料预览', portalAudience: 'member' },
+      },
+      {
         path: 'recruitment',
         name: 'MemberRecruitment',
         component: () => import('@/views/member/recruitment/index.vue'),

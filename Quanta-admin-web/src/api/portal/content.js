@@ -52,9 +52,17 @@ export async function getPortalMaterials(params = {}) {
   }
 }
 
-export function downloadPortalMaterial(material) {
+export function downloadPortalMaterial(material, options = {}) {
   return requestBlob(
-    { url: material.downloadUrl || `/qt/materials/${material.materialId}/download`, method: 'get' },
+    { ...options, url: material.downloadUrl || `/qt/materials/${material.materialId}/download`, method: 'get' },
     material.fileName || '学习资料',
   )
+}
+
+export async function getPortalMaterial(materialId, options = {}) {
+  const id = Number(materialId)
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('资料编号无效')
+  const response = await request({ ...options, url: `/qt/materials/${id}`, method: 'get' })
+  if (!response.data || Number(response.data.materialId) !== id) throw new Error('资料不存在或已删除')
+  return mapMaterial(response.data)
 }

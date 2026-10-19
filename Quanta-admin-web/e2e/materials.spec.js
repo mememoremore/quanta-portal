@@ -118,7 +118,11 @@ for (const width of [320, 390, 430, 1440]) {
       expect(buttons.every(item => item.fits)).toBe(true)
       const download = page.locator('.member-materials__list article').first().getByRole('button', { name: '下载', exact: true })
       const item = page.locator('.member-materials__list article').first()
-      expect((await download.boundingBox()).width).toBeGreaterThanOrEqual((await item.boundingBox()).width - 4)
+      const preview = item.getByRole('link', { name: '预览', exact: true })
+      const left = await preview.boundingBox(), right = await download.boundingBox()
+      expect(Math.abs(left.width - right.width)).toBeLessThan(1)
+      expect(right.x - left.x - left.width).toBeCloseTo(10, 0)
+      expect(left.width + right.width + 10).toBeGreaterThanOrEqual((await item.boundingBox()).width - 4)
     }
     await page.screenshot({ path: testInfo.outputPath(`member-materials-${width}.png`) })
     expect(api.requests).toContain('GET /qt/materials')

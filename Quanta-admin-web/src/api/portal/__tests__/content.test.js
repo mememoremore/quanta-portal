@@ -3,6 +3,7 @@ import { request } from '@/utils/request'
 import { requestBlob } from '@/utils/download'
 import {
   downloadPortalMaterial,
+  getPortalMaterial,
   getPortalMaterials,
   getTopNotices,
   markNoticeRead,
@@ -15,6 +16,21 @@ describe('member portal content API', () => {
   beforeEach(() => {
     request.mockReset()
     requestBlob.mockReset()
+  })
+
+  it('forwards cancellation and timeout without replacing the download endpoint', async () => {
+    const signal = new AbortController().signal
+    await downloadPortalMaterial({ materialId: 5, fileName: '笔记.md' }, { signal, timeout: 120000, url: 'https://untrusted.invalid' })
+    expect(requestBlob).toHaveBeenCalledWith({ url: '/qt/materials/5/download', method: 'get', signal, timeout: 120000 }, '笔记.md')
+  })
+
+  it('loads existing material details for a refreshable preview URL', async () => {
+    request.mockResolvedValue({ data: { materialId: 5, fileName: '笔记.md', uploaderName: '塔员' } })
+    expect(await getPortalMaterial('5')).toMatchObject({ materialId: 5, fileName: '笔记.md', uploader: '塔员' })
+    expect(request).toHaveBeenLastCalledWith({ url: '/qt/materials/5', method: 'get' })
+    await expect(getPortalMaterial('invalid')).rejects.toThrow('资料编号无效')
+    request.mockResolvedValue({ data: null })
+    await expect(getPortalMaterial(5)).rejects.toThrow('资料不存在或已删除')
   })
 
   it('loads top notices and preserves the top-level unread count', async () => {

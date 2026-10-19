@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { markdownToDocument } from '../markdown'
 
 describe('article outline', () => {
+  it('restores backend-escaped Mermaid arrows without adding diagram text to TOC', () => {
+    const result = markdownToDocument('## 流程\n\n```mermaid\nflowchart LR\n A--&gt;B\n```', 'article')
+    const element = document.createElement('div')
+    element.innerHTML = result.html
+    expect(element.querySelector('pre code').textContent).toContain('A-->B')
+    expect(result.headings.map(heading => heading.text)).toEqual(['流程'])
+  })
+
   it('uses unique stable IDs, plain labels, supports repeated and nested headings', () => {
     const source = '## 重复 **标题**\n\n1. 内容\n\n   ### 嵌套 `code`\n\n## 重复 **标题**\n\n```md\n## 不是标题\n```'
     const result = markdownToDocument(source, 'article-one')

@@ -119,4 +119,13 @@ export const materialHandlers = [
       return { code: 200, data: { deletedIds, alreadyDeletedIds } }
     },
   },
+  {
+    method: 'get', match: path => /^\/qt\/materials\/\d+$/.test(path), handle(config) {
+      const current = account(config)
+      if (!current) return { code: 401, msg: '登录状态已失效' }
+      if (!has(current, 'qt:material:list') && !current.user?.isQuantaMember) return { code: 403, msg: '没有查看学习资料的权限' }
+      const material = mockMaterials.find(item => item.materialId === Number(config.path.split('/').pop()))
+      return material ? { code: 200, data: material } : { code: 404, msg: '学习资料不存在' }
+    },
+  },
 ]
