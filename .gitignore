@@ -1,6 +1,5 @@
-# Old project planning and backend-integration notes are not part of this frontend repository.
-/docs/
-/Quanta-admin-web/docs/
+# Keep local planning and backend-integration notes out of every repository docs directory.
+docs/
 /社区论坛PV与本轮前端修复对接说明.md
 /第一轮前端性能优化解析.md
 
