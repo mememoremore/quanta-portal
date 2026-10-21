@@ -42,4 +42,27 @@ describe('Markdown code copying', () => {
       expect(wrapper.get('[data-copy-code]').text()).toBe('已复制')
     } finally { wrapper.unmount(); vi.unstubAllGlobals() }
   })
+
+  it('keeps chart nodes and the same controller across ordinary Markdown input', async () => {
+    const cleanup = Object.assign(vi.fn(), { sync: vi.fn() })
+    mountMermaidDiagrams.mockReturnValue(cleanup)
+    const source = '```mermaid\nflowchart LR\n A-->B\n```\n\n'
+    const wrapper = mount(MarkdownContent, { props: { source: source + '原文' } })
+    try {
+      await flushPromises()
+      const chart = wrapper.get('[data-mermaid-block]').element
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      chart.querySelector('[data-mermaid-canvas]').append(svg)
+      for (const text of ['修改', '修改正文', '修改正文完成']) {
+        await wrapper.setProps({ source: source + text })
+        await flushPromises()
+        expect(wrapper.get('[data-mermaid-block]').element).toBe(chart)
+        expect(chart.querySelector('svg')).toBe(svg)
+      }
+      expect(mountMermaidDiagrams).toHaveBeenCalledOnce()
+      expect(cleanup).not.toHaveBeenCalled()
+      expect(cleanup.sync).toHaveBeenCalledTimes(3)
+    } finally { wrapper.unmount() }
+    expect(cleanup).toHaveBeenCalledOnce()
+  })
 })

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { markdownToDocument, markdownToHtml } from './markdown'
+import { reconcileMarkdown } from './markdown-dom'
 
 const props = defineProps({ source: { type: String, default: '' }, outline: Boolean })
 const emit = defineEmits(['outline'])
@@ -14,10 +15,15 @@ let diagramCleanup, diagramVersion = 0
 
 async function attachDiagrams() {
   const current = ++diagramVersion
-  diagramCleanup?.()
-  diagramCleanup = null
   const root = content.value
-  if (!root?.querySelector('[data-mermaid-block]')) return
+  if (!root) return
+  reconcileMarkdown(root, html.value)
+  if (!root.querySelector('[data-mermaid-block]')) {
+    diagramCleanup?.()
+    diagramCleanup = null
+    return
+  }
+  if (diagramCleanup) { diagramCleanup.sync(); return }
   try {
     const { mountMermaidDiagrams } = await import('./mermaid-diagrams')
     if (current === diagramVersion) diagramCleanup = mountMermaidDiagrams(root, prefix)
@@ -27,7 +33,7 @@ async function attachDiagrams() {
     root.querySelectorAll('[data-mermaid-code]').forEach(element => { element.hidden = false })
   }
 }
-watch([html, content], attachDiagrams, { flush: 'post' })
+watch([html, content], attachDiagrams, { flush: 'sync' })
 
 async function copyCode(event) {
   const button = event.target.closest?.('button[data-copy-code]')
@@ -71,7 +77,6 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- The renderer escapes raw HTML and only accepts safe link/image schemes. -->
-  <!-- eslint-disable-next-line vue/no-v-html -->
-  <div ref="content" class="community-markdown" @click="copyCode" v-html="html"></div>
+  <!-- Reconcile only safe renderer output; preserve live Mermaid islands. -->
+  <div ref="content" class="community-markdown" @click="copyCode"></div>
 </template>

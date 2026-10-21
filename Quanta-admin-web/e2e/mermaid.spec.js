@@ -6,6 +6,77 @@ const fence = source => '```mermaid\n' + source + '```\n'
 const body = '## 发布流程\n\n' + fence(flow) + '\n## 请求时序\n\n' + fence(sequence)
 
 for (const width of [390, 1440]) {
+  test(`Mermaid ${width}px 正文输入不重绘，修改单图防抖且保留旧图`, async ({ page, api }) => {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.addInitScript(() => {
+      window.diagramJobs = []
+      window.diagramWorkerCount = 0
+      const NativeWorker = window.Worker
+      window.Worker = class extends NativeWorker {
+        constructor(...args) {
+          super(...args)
+          window.diagramWorkerCount += 1
+          const send = this.postMessage.bind(this)
+          this.postMessage = (...messages) => {
+            if (typeof messages[0]?.source === 'string') window.diagramJobs.push(messages[0].source)
+            return send(...messages)
+          }
+        }
+      }
+    })
+    await loginAs(page, 'member')
+    await page.goto('/member/community/new')
+    const editor = page.getByRole('textbox', { name: '帖子正文' })
+    await editor.fill(body + '\n\n普通正文。')
+    if (width === 390) await page.getByRole('tab', { name: '预览', exact: true }).click()
+    await expect(page.locator('[data-mermaid-ready=true]')).toHaveCount(2, { timeout: 15000 })
+    await page.evaluate(() => {
+      window.originalCharts = [...document.querySelectorAll('[data-mermaid-block]')]
+      window.originalSVGs = window.originalCharts.map(chart => chart.querySelector('svg'))
+      window.initialJobs = window.diagramJobs.length
+      window.initialWorkers = window.diagramWorkerCount
+    })
+    if (width === 390) await page.getByRole('tab', { name: '编辑', exact: true }).click()
+    await editor.press('End')
+    await editor.pressSequentially('继续输入普通正文，不修改图表。', { delay: 40 })
+    await expect.poll(() => page.evaluate(() => document.querySelector('.community-markdown').textContent.includes('继续输入普通正文，不修改图表。'))).toBe(true)
+    // Wait beyond both debounce windows, without relying on a screenshot to
+    // infer whether the actual Worker received unnecessary redraw requests.
+    await expect.poll(async () => {
+      await new Promise(resolve => setTimeout(resolve, 400))
+      return page.evaluate(() => ({
+        sameNodes: window.originalCharts.every((chart, index) => chart.isConnected && chart.querySelector('svg') === window.originalSVGs[index]),
+        extraJobs: window.diagramJobs.length - window.initialJobs,
+        extraWorkers: window.diagramWorkerCount - window.initialWorkers,
+      }))
+    }).toEqual({ sameNodes: true, extraJobs: 0, extraWorkers: 0 })
+
+    const currentBody = await editor.inputValue()
+    await editor.fill(currentBody.replace('编写帖子', '编写新帖'))
+    await editor.fill(currentBody.replace('编写帖子', '编写新帖子'))
+    expect(await page.evaluate(() => window.originalCharts[0].querySelector('svg') === window.originalSVGs[0])).toBe(true)
+    await expect.poll(() => page.evaluate(() => window.diagramJobs.length - window.initialJobs)).toBe(1)
+    await expect(page.locator('[data-mermaid-ready=true]')).toHaveCount(2)
+    expect(await page.evaluate(() => window.originalCharts[0].querySelector('svg') !== window.originalSVGs[0] && window.originalCharts[1].querySelector('svg') === window.originalSVGs[1])).toBe(true)
+    if (width === 390) await page.getByRole('tab', { name: '预览', exact: true }).click()
+    const first = page.locator('[data-mermaid-block]').first()
+    await expect(first.locator('svg')).toContainText('编写新帖子')
+    if (width === 390) await page.getByRole('tab', { name: '编辑', exact: true }).click()
+    await page.evaluate(() => { window.lastGoodSVG = window.originalCharts[0].querySelector('svg') })
+    const editedBody = currentBody.replace('编写帖子', '编写新帖子')
+    await editor.fill(editedBody.replace(flow.replace('编写帖子', '编写新帖子'), 'not-a-diagram\n'))
+    await expect(first.locator('[data-mermaid-status]')).toContainText('上一次')
+    expect(await page.evaluate(() => window.originalCharts[0].querySelector('svg') === window.lastGoodSVG)).toBe(true)
+    await expect(first.locator('[data-mermaid-code]')).toContainText('not-a-diagram')
+    await editor.fill(editedBody)
+    await expect(page.locator('[data-mermaid-ready=true]')).toHaveCount(2)
+    await expect(first.locator('[data-mermaid-status]')).toBeHidden()
+    expect(await page.evaluate(() => window.originalCharts[1].querySelector('svg') === window.originalSVGs[1])).toBe(true)
+    expect(api.unexpected).toEqual([])
+  })
+}
+
+for (const width of [390, 1440]) {
   test(`Mermaid ${width}px 编辑预览、发布正文、源码复制和缩放`, async ({ page, api }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     await loginAs(page, 'member')
