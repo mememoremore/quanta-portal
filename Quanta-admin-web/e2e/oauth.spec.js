@@ -25,7 +25,7 @@ async function setup(page, { member = '1', expired = false, missing = false } = 
 }
 
 for (const width of [1440, 390]) {
-  test(`官网授权与完成页 ${width}px：留在主站，点击返回后才续接授权`, async ({ page }, info) => {
+  test(`官网授权与完成页 ${width}px：成功停留三秒后自动安全续接`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 940 })
     const calls = await setup(page)
     await page.goto(`/oauth/authorize?interaction=${id}`)
@@ -40,7 +40,7 @@ for (const width of [1440, 390]) {
     expect(calls.some(call => call.endsWith('/continue'))).toBe(false)
     await expect(page.locator('.oauth-page')).toHaveCSS('background-color', 'rgb(17, 17, 17)')
     await page.screenshot({ path: info.outputPath(`oauth-complete-${width}.png`) })
-    await page.getByTestId('oauth-return').click()
+    await expect(page.getByTestId('oauth-return')).toHaveCount(0)
     await expect(page).toHaveURL(`${apiOrigin}/oauth2/interaction/${id}/continue`)
     expect(calls.filter(call => call.endsWith('/continue'))).toHaveLength(1)
   })

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElOption, ElSelect } from 'element-plus'
 import 'element-plus/theme-chalk/base.css'
@@ -15,6 +15,7 @@ import MarkdownContent from './MarkdownContent.vue'
 import { useForumDraft } from './draft'
 import { restoreForumMarkdown } from './markdown'
 import { prepareForumImage } from './image-upload'
+import { createEditorInput } from './editor-input'
 import './community.css'
 
 const route = useRoute()
@@ -34,6 +35,17 @@ const fileInput = ref(null)
 const textArea = ref(null)
 const draft = useForumDraft({ userId: () => userStore.user?.userId, postId: () => route.params.postId, title, category, content })
 const draftStatus = draft.status
+const editorInput = createEditorInput({
+  content, textArea, activePane, uploading,
+  prepare: prepareForumImage,
+  upload: (file, signal) => uploadForumImage(file, { signal }),
+  saveDraft: draft.flush,
+  onError: message => ElMessage.error(message),
+  onSuccess: message => ElMessage.success(message),
+  canEdit: () => !loading.value && !saving.value && (!editing.value || editAuthorized.value),
+})
+const { insertText } = editorInput
+onBeforeUnmount(editorInput.destroy)
 
 onMounted(async () => {
   if (!editing.value) { draft.initialize(); return }
@@ -56,34 +68,11 @@ onMounted(async () => {
   }
 })
 
-async function insertText(before, after = '', placeholder = '') {
-  const textarea = textArea.value
-  const start = textarea?.selectionStart ?? content.value.length
-  const end = textarea?.selectionEnd ?? start
-  const selection = content.value.slice(start, end) || placeholder
-  content.value = `${content.value.slice(0, start)}${before}${selection}${after}${content.value.slice(end)}`
-  activePane.value = 'edit'
-  await nextTick()
-  textArea.value?.focus()
-  textArea.value?.setSelectionRange(start + before.length, start + before.length + selection.length)
-}
-
 async function onImageSelected(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
   if (!file) return
-  uploading.value = true
-  try {
-    const prepared = await prepareForumImage(file)
-    const url = await uploadForumImage(prepared)
-    const alt = file.name.replaceAll('[', '').replaceAll(']', '').replaceAll('(', '').replaceAll(')', '')
-    await insertText(`![${alt}](${url})`, '', '')
-    ElMessage.success('图片已插入正文')
-  } catch (error) {
-    ElMessage.error(error.message || '图片上传失败')
-  } finally {
-    uploading.value = false
-  }
+  await editorInput.uploadFiles([file])
 }
 
 async function save() {
@@ -135,7 +124,7 @@ async function save() {
         </div>
         <div class="community-editor__mobile-tabs" role="tablist" aria-label="编辑模式"><button type="button" :class="{ 'is-active': activePane === 'edit' }" :aria-selected="activePane === 'edit'" role="tab" @click="activePane = 'edit'">编辑</button><button type="button" :class="{ 'is-active': activePane === 'preview' }" :aria-selected="activePane === 'preview'" role="tab" @click="activePane = 'preview'">预览</button></div>
         <div class="community-editor__workspace">
-          <div class="community-editor__pane" :class="{ 'is-mobile-hidden': activePane !== 'edit' }"><div class="community-editor__pane-title"><strong>编辑</strong><span>Markdown</span></div><textarea ref="textArea" v-model="content" maxlength="20000" placeholder="写下你的想法。支持 Markdown、代码块和正文图片…" aria-label="帖子正文"></textarea></div>
+          <div class="community-editor__pane" :class="{ 'is-mobile-hidden': activePane !== 'edit' }"><div class="community-editor__pane-title"><strong>编辑</strong><span>Markdown</span></div><textarea ref="textArea" v-model="content" maxlength="20000" placeholder="写下你的想法。支持 Markdown、代码块和正文图片…" aria-label="帖子正文" title="支持粘贴图片；Ctrl/Cmd+B 加粗、I 斜体、K 链接、S 保存草稿，Tab 缩进" @beforeinput="editorInput.onBeforeInput" @input="editorInput.onInput" @keydown="editorInput.onKeydown" @paste="editorInput.onPaste"></textarea></div>
           <div class="community-editor__pane community-editor__preview" :class="{ 'is-mobile-hidden': activePane !== 'preview' }">
             <div class="community-editor__pane-title"><strong>预览</strong><span>发布后的效果</span></div>
             <MarkdownContent v-if="content.trim()" :source="content" /><div v-else class="community-editor__placeholder">写下正文后，这里会显示排版效果。</div>

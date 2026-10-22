@@ -84,10 +84,10 @@ export function deleteForumComment(commentId) {
   return request({ url: `/qt/forum/comments/${commentId}`, method: 'delete' })
 }
 
-export async function uploadForumImage(file) {
+export async function uploadForumImage(file, options = {}) {
   const data = new FormData()
   data.append('file', file)
-  const response = await request({ url: '/qt/forum/images', method: 'post', data })
+  const response = await request({ ...options, url: '/qt/forum/images', method: 'post', data })
   const url = response.data?.url || response.url
   if (!url) throw new Error('图片上传成功，但服务端未返回图片地址')
   return url

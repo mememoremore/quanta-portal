@@ -63,7 +63,6 @@ markdown.renderer.rules.fence = (tokens, index, options, env, renderer) => {
       <div class="community-mermaid__actions"><button type="button" data-mermaid-expand hidden>放大查看</button><details class="community-mermaid__menu"><summary aria-label="图表选项">⋯</summary><div><button type="button" data-mermaid-source aria-expanded="true">收起源码</button><button type="button" class="community-code-copy" data-copy-code aria-live="polite">复制代码</button></div></details></div>
       <p class="community-mermaid__status" data-mermaid-status role="status">正在准备图表…</p>
       <div class="community-mermaid__viewport" data-mermaid-viewport hidden><div class="community-mermaid__canvas" data-mermaid-canvas></div></div>
-      <dialog class="community-mermaid__dialog" data-mermaid-dialog aria-label="图表放大查看"><div class="community-mermaid__dialog-header"><span>图表</span><button type="button" data-mermaid-close autofocus>关闭</button></div><div class="community-mermaid__zoom" data-mermaid-zoom><button type="button" data-mermaid-scale="down" aria-label="缩小图表">−</button><span data-mermaid-percent>100%</span><button type="button" data-mermaid-scale="up" aria-label="放大图表">＋</button><button type="button" data-mermaid-scale="reset">适应宽度</button></div></dialog>
       <pre class="hljs" data-mermaid-code><code class="language-mermaid">${escapeHtml(token.content)}</code></pre>
     </div>\n`
   }

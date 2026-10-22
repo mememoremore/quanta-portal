@@ -48,3 +48,7 @@ export function continuationLocation(id) {
   const base = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
   return `${base}/oauth2/interaction/${interactionId(id)}/continue`
 }
+
+export function navigateOAuthContinuation(id) {
+  window.location.replace(continuationLocation(id))
+}

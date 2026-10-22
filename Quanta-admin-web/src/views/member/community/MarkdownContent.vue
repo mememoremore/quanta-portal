@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { markdownToDocument, markdownToHtml } from './markdown'
 import { reconcileMarkdown } from './markdown-dom'
 
-const props = defineProps({ source: { type: String, default: '' }, outline: Boolean })
+const props = defineProps({ source: { type: String, default: '' }, outline: Boolean, mediaPreview: Boolean })
 const emit = defineEmits(['outline'])
 const prefix = `quanta-article-${useId()}`
 const rendered = computed(() => props.outline ? markdownToDocument(props.source, prefix) : { html: markdownToHtml(props.source), headings: [] })
@@ -12,12 +12,30 @@ watch(() => rendered.value.headings, headings => emit('outline', headings), { im
 const timers = new Set()
 const content = ref(null)
 let diagramCleanup, diagramVersion = 0
+let viewer, alive = true
+
+async function previewMedia(event) {
+  if (!props.mediaPreview || (event.type === 'keydown' && !['Enter', ' '].includes(event.key))) return
+  const image = event.target.closest?.('img')
+  if (!image || !content.value?.contains(image)) return
+  event.preventDefault()
+  const { createMediaViewer } = await import('./media-viewer')
+  if (!alive || !content.value?.contains(image)) return
+  viewer ||= createMediaViewer()
+  viewer.open(image)
+}
 
 async function attachDiagrams() {
   const current = ++diagramVersion
   const root = content.value
   if (!root) return
   reconcileMarkdown(root, html.value)
+  if (props.mediaPreview) for (const image of root.querySelectorAll('img')) {
+    image.tabIndex = 0
+    image.setAttribute('role', 'button')
+    image.setAttribute('aria-label', `全屏查看${image.alt || '帖子图片'}`)
+    image.classList.add('community-media-thumbnail')
+  }
   if (!root.querySelector('[data-mermaid-block]')) {
     diagramCleanup?.()
     diagramCleanup = null
@@ -70,6 +88,8 @@ async function copyCode(event) {
 }
 
 onBeforeUnmount(() => {
+  alive = false
+  viewer?.destroy()
   diagramVersion += 1
   diagramCleanup?.()
   timers.forEach(clearTimeout)
@@ -78,5 +98,5 @@ onBeforeUnmount(() => {
 
 <template>
   <!-- Reconcile only safe renderer output; preserve live Mermaid islands. -->
-  <div ref="content" class="community-markdown" @click="copyCode"></div>
+  <div ref="content" class="community-markdown" @click="copyCode($event); previewMedia($event)" @keydown="previewMedia"></div>
 </template>

@@ -168,7 +168,7 @@ onBeforeUnmount(() => { postRequestId++; commentRequestId++ })
           <h1>{{ post.title }}</h1>
           <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
           <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
-          <MarkdownContent :source="post.content" outline @outline="headings = $event" />
+          <MarkdownContent :source="post.content" outline media-preview @outline="headings = $event" />
           <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
         </article>
         <ArticleToc :headings="headings" />
