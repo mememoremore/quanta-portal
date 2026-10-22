@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.annotation.Excel.ColumnType;
@@ -57,6 +58,9 @@ public class SysUser extends BaseEntity
 
     /** 用户头像 */
     private String avatar;
+
+    /** 当前邮箱是否有可信验证记录。不入库，仅 /getInfo 填充。 */
+    private Boolean emailVerified;
 
     /** 密码 */
     private String password;
@@ -243,6 +247,17 @@ public class SysUser extends BaseEntity
     public void setAvatar(String avatar)
     {
         this.avatar = avatar;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getEmailVerified()
+    {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified)
+    {
+        this.emailVerified = emailVerified;
     }
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

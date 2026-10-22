@@ -25,6 +25,8 @@ final class QuantaOAuthInteraction
 
     String subjectUserId;
 
+    String scopes;
+
     long expiresAt;
 
     boolean consumed;
@@ -42,6 +44,7 @@ final class QuantaOAuthInteraction
         copy.csrfToken = csrfToken;
         copy.status = status;
         copy.subjectUserId = subjectUserId;
+        copy.scopes = scopes;
         copy.expiresAt = expiresAt;
         copy.consumed = consumed;
         return copy;
@@ -59,6 +62,8 @@ final class QuantaOAuthCode
     String nonce;
 
     String codeChallenge;
+
+    String scopes;
 
     long expiresAt;
 }

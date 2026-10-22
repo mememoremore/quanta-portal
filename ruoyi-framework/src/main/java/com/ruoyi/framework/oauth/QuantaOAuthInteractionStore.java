@@ -168,6 +168,7 @@ class RedisQuantaOAuthInteractionStore implements QuantaOAuthInteractionStore
         fields.put("csrfToken", interaction.csrfToken);
         fields.put("status", interaction.status);
         fields.put("subjectUserId", interaction.subjectUserId == null ? "" : interaction.subjectUserId);
+        fields.put("scopes", interaction.scopes == null ? "" : interaction.scopes);
         fields.put("expiresAt", Long.toString(interaction.expiresAt));
         fields.put("consumed", "0");
         String key = key(interaction.id);
@@ -194,6 +195,7 @@ class RedisQuantaOAuthInteractionStore implements QuantaOAuthInteractionStore
         interaction.csrfToken = text(fields, "csrfToken");
         interaction.status = text(fields, "status");
         interaction.subjectUserId = text(fields, "subjectUserId");
+        interaction.scopes = QuantaOAuthScopes.granted(text(fields, "scopes"));
         interaction.expiresAt = Long.parseLong(text(fields, "expiresAt"));
         interaction.consumed = "1".equals(text(fields, "consumed"));
         return interaction;

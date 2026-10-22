@@ -36,6 +36,8 @@ class QuantaOAuthFlowTest
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private String lastTokenBody;
+
     private QuantaOAuthProperties properties;
 
     private QuantaOAuthTokenIssuer issuer;
@@ -182,6 +184,10 @@ class QuantaOAuthFlowTest
         assertEquals("nonce-value-1", idToken.getJWTClaimsSet().getStringClaim("nonce"));
         assertEquals("张三", idToken.getJWTClaimsSet().getStringClaim("name"));
         assertEquals(Boolean.TRUE, idToken.getJWTClaimsSet().getClaim("quanta_member"));
+        assertEquals("openid profile", body.get("scope").asText());
+        assertNull(idToken.getJWTClaimsSet().getClaim("email"));
+        assertNull(idToken.getJWTClaimsSet().getClaim("email_verified"));
+        assertNull(idToken.getJWTClaimsSet().getClaim("picture"));
         QuantaOAuthResponse replay = flow.token(tokenParams(goodCode, third.verifier), basic(), "127.0.0.1");
         assertEquals(400, replay.status);
 
@@ -201,6 +207,172 @@ class QuantaOAuthFlowTest
     }
 
     @Test
+    void profileRequestKeepsEmailPrivateAndPublishesAvatar() throws Exception
+    {
+        Started started = start("openid profile");
+        SysUser user = member(8L, "1", "0", "0", "张三", "zhang");
+        user.setEmail("member@example.test");
+        user.setAvatar("/profile/avatar/2026/10/22/example.png");
+        when(users.selectUserById(8L)).thenReturn(user);
+        JsonNode read = mapper.readTree(flow.read(started.id, started.browser, "127.0.0.1").body);
+        assertEquals(List.of("openid", "profile"), mapper.convertValue(read.get("data").get("scopes"), List.class));
+        assertFalse(read.get("data").has("email"));
+        assertFalse(read.get("data").toString().contains("member@example.test"));
+        SignedJWT idToken = approvedToken(started, user);
+        assertEquals("https://www.quantacenter.com/profile/avatar/2026/10/22/example.png",
+                idToken.getJWTClaimsSet().getStringClaim("picture"));
+        assertNull(idToken.getJWTClaimsSet().getClaim("email"));
+        assertNull(idToken.getJWTClaimsSet().getClaim("email_verified"));
+    }
+
+    @Test
+    void emailScopeReleasesBooleanVerifiedFalseAndOmitsEmptyOrUnsafeClaims() throws Exception
+    {
+        Started started = start("email openid profile");
+        SysUser user = member(8L, "1", "0", "0", "张三", "zhang");
+        user.setEmail("member@example.test");
+        user.setAvatar("https://www.quantacenter.com/profile/avatar/example.webp");
+        SignedJWT idToken = approvedToken(started, user);
+        assertEquals("openid profile email", mapper.readTree(lastTokenBody).get("scope").asText());
+        assertEquals("member@example.test", idToken.getJWTClaimsSet().getStringClaim("email"));
+        assertEquals(Boolean.FALSE, idToken.getJWTClaimsSet().getClaim("email_verified"));
+        assertEquals("https://www.quantacenter.com/profile/avatar/example.webp",
+                idToken.getJWTClaimsSet().getStringClaim("picture"));
+        SignedJWT access = SignedJWT.parse(mapper.readTree(lastTokenBody).get("access_token").asText());
+        assertNull(access.getJWTClaimsSet().getClaim("email"));
+        assertNull(access.getJWTClaimsSet().getClaim("picture"));
+
+        Started bare = start("openid profile email");
+        SysUser withoutEmail = member(8L, "1", "0", "0", "张三", "zhang");
+        withoutEmail.setAvatar("javascript:alert(1)");
+        SignedJWT omitted = approvedToken(bare, withoutEmail);
+        assertEquals("openid profile email", mapper.readTree(lastTokenBody).get("scope").asText());
+        assertNull(omitted.getJWTClaimsSet().getClaim("email"));
+        assertNull(omitted.getJWTClaimsSet().getClaim("email_verified"));
+        assertNull(omitted.getJWTClaimsSet().getClaim("picture"));
+    }
+
+    @Test
+    void invalidScopesAreRejectedWithoutDowngrade()
+    {
+        for (String scope : List.of("openid", "openid profile email email", "openid profile phone", "OpenID profile",
+                "openid profile email ", "openid  profile"))
+        {
+            Map<String, List<String>> params = authorizeParams(scope);
+            QuantaOAuthResponse response = flow.authorize(params, null, "127.0.0.1");
+            assertEquals(400, response.status, scope);
+            assertNull(response.redirect);
+        }
+    }
+
+    @Test
+    void decisionAndTokenCannotExpandScope() throws Exception
+    {
+        Started started = start("openid profile");
+        SysUser user = member(8L, "1", "0", "0", "张三", "zhang");
+        user.setEmail("member@example.test");
+        when(users.selectUserById(8L)).thenReturn(user);
+        QuantaOAuthResponse expanded = flow.decide(started.id, started.browser, started.csrf,
+                "https://www.quantacenter.com", login(8L), 8L,
+                mapper.readTree("{\"action\":\"approve\",\"scopes\":[\"email\"]}"), "127.0.0.1");
+        assertEquals(400, expanded.status);
+
+        flow.decide(started.id, started.browser, started.csrf, "https://www.quantacenter.com", login(8L), 8L,
+                mapper.readTree("{\"action\":\"approve\"}"), "127.0.0.1");
+        String code = query(URI.create(flow.continueLogin(started.id, started.browser, 8L, "127.0.0.1").redirect), "code");
+        Map<String, List<String>> widened = tokenParams(code, started.verifier);
+        widened.put("scope", List.of("openid profile email"));
+        QuantaOAuthResponse rejected = flow.token(widened, basic(), "127.0.0.1");
+        assertEquals(400, rejected.status);
+        assertTrue(rejected.body.contains("invalid_request"));
+        assertEquals(1, codes.size());
+        SignedJWT idToken = SignedJWT.parse(mapper.readTree(flow.token(tokenParams(code, started.verifier), basic(), "127.0.0.1").body)
+                .get("id_token").asText());
+        assertNull(idToken.getJWTClaimsSet().getClaim("email"));
+    }
+
+    @Test
+    void legacyPayloadsDoNotGrantEmail() throws Exception
+    {
+        long future = System.currentTimeMillis() + 60_000L;
+        String legacy = String.join("\n", "quanta-challenge", properties.getRedirectUri(), "8", "nonce-value-1",
+                "c".repeat(43), Long.toString(future));
+        assertEquals("openid profile", RedisQuantaOAuthCodeStore.decode(legacy, System.currentTimeMillis()).scopes);
+        assertEquals("openid profile email",
+                RedisQuantaOAuthCodeStore.decode(legacy + "\nopenid profile email", System.currentTimeMillis()).scopes);
+        assertEquals("openid profile",
+                RedisQuantaOAuthCodeStore.decode(legacy + "\nemail", System.currentTimeMillis()).scopes);
+
+        QuantaOAuthInteraction interaction = new QuantaOAuthInteraction();
+        interaction.id = "a".repeat(43);
+        interaction.browserId = "b".repeat(43);
+        interaction.csrfToken = "d".repeat(43);
+        interaction.status = "pending";
+        interaction.expiresAt = future;
+        interaction.scopes = null;
+        interactions.create(interaction);
+        JsonNode data = mapper.readTree(flow.read(interaction.id, interaction.browserId, "127.0.0.1").body).get("data");
+        assertEquals(List.of("openid", "profile"), mapper.convertValue(data.get("scopes"), List.class));
+        assertFalse(data.toString().contains("email"));
+
+        Started started = start();
+        QuantaOAuthCode stored = new QuantaOAuthCode();
+        stored.clientId = properties.getClientId();
+        stored.redirectUri = properties.getRedirectUri();
+        stored.userId = "8";
+        stored.nonce = "nonce-value-1";
+        stored.codeChallenge = started.challenge;
+        stored.expiresAt = future;
+        stored.scopes = null;
+        codes.save("legacy-code", stored);
+        SysUser user = member(8L, "1", "0", "0", "张三", "zhang");
+        user.setEmail("member@example.test");
+        when(users.selectUserById(8L)).thenReturn(user);
+        JsonNode body = mapper.readTree(flow.token(tokenParams("legacy-code", started.verifier), basic(), "127.0.0.1").body);
+        assertEquals("openid profile", body.get("scope").asText());
+        assertNull(SignedJWT.parse(body.get("id_token").asText()).getJWTClaimsSet().getClaim("email"));
+    }
+
+    @Test
+    void discoveryAdvertisesEmailClaimsWithoutUserInfo() throws Exception
+    {
+        JsonNode document = mapper.readTree(flow.discovery().body);
+        assertEquals(List.of("openid", "profile", "email"),
+                mapper.convertValue(document.get("scopes_supported"), List.class));
+        assertEquals(List.of("iss", "sub", "aud", "iat", "exp", "nonce", "name", "picture", "email", "email_verified",
+                "quanta_member"), mapper.convertValue(document.get("claims_supported"), List.class));
+        assertFalse(document.has("userinfo_endpoint"));
+        assertEquals("https://www.quantacenter.com/oauth2/token", document.get("token_endpoint").asText());
+        assertEquals("RS256", document.get("id_token_signing_alg_values_supported").get(0).asText());
+    }
+
+    @Test
+    void pictureUrlRejectsPrivateAndCredentialedAddresses()
+    {
+        String origin = "https://www.quantacenter.com";
+        assertEquals(origin + "/profile/avatar/a.jpg", QuantaOAuthFlow.pictureUrl("/profile/avatar/a.jpg", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("/profile/upload/qt/forum/a.png", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("https://evil.example/profile/avatar/a.png", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("https://user:pass@www.quantacenter.com/profile/avatar/a.png", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("http://www.quantacenter.com/profile/avatar/a.png", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("/profile/avatar/../secret.png", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("/profile/avatar/a.png?token=secret", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("data:image/png;base64,aaaa", origin));
+        assertNull(QuantaOAuthFlow.pictureUrl("", origin));
+    }
+
+    @Test
+    void emailVerifiedSerializesAsBooleanAndStaysUnsetUntilGetInfo() throws Exception
+    {
+        SysUser user = new SysUser();
+        user.setEmailVerified(Boolean.FALSE);
+        JsonNode node = mapper.readTree(mapper.writeValueAsString(user));
+        assertTrue(node.get("emailVerified").isBoolean());
+        assertFalse(node.get("emailVerified").booleanValue());
+        assertFalse(mapper.readTree(mapper.writeValueAsString(new SysUser())).has("emailVerified"));
+    }
+
+    @Test
     void displayNameUsesNickNameThenUserName()
     {
         SysUser named = member(3L, "1", "0", "0", "实名", "account");
@@ -214,8 +386,13 @@ class QuantaOAuthFlowTest
 
     private Started start() throws Exception
     {
-        QuantaOAuthResponse response = flow.authorize(authorizeParams(), null, "127.0.0.1");
-        assertEquals(302, response.status);
+        return start("openid profile");
+    }
+
+    private Started start(String scope) throws Exception
+    {
+        QuantaOAuthResponse response = flow.authorize(authorizeParams(scope), null, "127.0.0.1");
+        assertEquals(302, response.status, scope);
         assertTrue(response.redirect.startsWith("https://www.quantacenter.com/oauth/authorize?interaction="));
         Started started = new Started();
         started.id = URI.create(response.redirect).getQuery().substring("interaction=".length());
@@ -229,7 +406,25 @@ class QuantaOAuthFlowTest
         return started;
     }
 
+    private SignedJWT approvedToken(Started started, SysUser user) throws Exception
+    {
+        when(users.selectUserById(user.getUserId())).thenReturn(user);
+        flow.decide(started.id, started.browser, started.csrf, "https://www.quantacenter.com", login(user.getUserId()),
+                user.getUserId(), mapper.readTree("{\"action\":\"approve\"}"), "127.0.0.1");
+        String code = query(URI.create(flow.continueLogin(started.id, started.browser, user.getUserId(), "127.0.0.1").redirect),
+                "code");
+        QuantaOAuthResponse tokens = flow.token(tokenParams(code, started.verifier), basic(), "127.0.0.1");
+        assertEquals(200, tokens.status);
+        lastTokenBody = tokens.body;
+        return SignedJWT.parse(mapper.readTree(tokens.body).get("id_token").asText());
+    }
+
     private Map<String, List<String>> authorizeParams()
+    {
+        return authorizeParams("openid profile");
+    }
+
+    private Map<String, List<String>> authorizeParams(String scope)
     {
         String verifier = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         String challenge;
@@ -246,7 +441,7 @@ class QuantaOAuthFlowTest
         params.put("response_type", List.of("code"));
         params.put("client_id", List.of("quanta-challenge"));
         params.put("redirect_uri", List.of(properties.getRedirectUri()));
-        params.put("scope", List.of("openid profile"));
+        params.put("scope", List.of(scope));
         params.put("state", List.of("state-value-1"));
         params.put("nonce", List.of("nonce-value-1"));
         params.put("code_challenge", List.of(challenge));

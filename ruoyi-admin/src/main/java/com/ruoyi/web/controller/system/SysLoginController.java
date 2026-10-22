@@ -101,6 +101,10 @@ public class SysLoginController
         Set<String> roles = permissionService.getRolePermission(user);
         // 权限集合
         Set<String> permissions = permissionService.getMenuPermission(user);
+        if (user != null)
+        {
+            user.setEmailVerified(Boolean.FALSE);
+        }
         if (!loginUser.getPermissions().equals(permissions) || dbUser != null)
         {
             loginUser.setPermissions(permissions);

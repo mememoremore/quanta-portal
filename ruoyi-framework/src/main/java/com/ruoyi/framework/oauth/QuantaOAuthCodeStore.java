@@ -63,7 +63,8 @@ class RedisQuantaOAuthCodeStore implements QuantaOAuthCodeStore
     public void save(String code, QuantaOAuthCode value)
     {
         String payload = String.join("\n", value.clientId, value.redirectUri, value.userId, value.nonce,
-                value.codeChallenge, Long.toString(value.expiresAt));
+                value.codeChallenge, Long.toString(value.expiresAt),
+                value.scopes == null ? QuantaOAuthScopes.PROFILE : value.scopes);
         redis.opsForValue().set(key(code), payload, Duration.ofSeconds(60));
     }
 
@@ -74,12 +75,17 @@ class RedisQuantaOAuthCodeStore implements QuantaOAuthCodeStore
         script.setResultType(String.class);
         script.setScriptText(CONSUME);
         String payload = redis.execute(script, List.of(key(code)));
+        return decode(payload, System.currentTimeMillis());
+    }
+
+    static QuantaOAuthCode decode(String payload, long nowMillis)
+    {
         if (payload == null || payload.isBlank())
         {
             return null;
         }
-        String[] parts = payload.split("\n", 6);
-        if (parts.length != 6)
+        String[] parts = payload.split("\n", -1);
+        if (parts.length != 6 && parts.length != 7)
         {
             return null;
         }
@@ -89,8 +95,16 @@ class RedisQuantaOAuthCodeStore implements QuantaOAuthCodeStore
         value.userId = parts[2];
         value.nonce = parts[3];
         value.codeChallenge = parts[4];
-        value.expiresAt = Long.parseLong(parts[5]);
-        if (value.expiresAt <= System.currentTimeMillis())
+        try
+        {
+            value.expiresAt = Long.parseLong(parts[5]);
+        }
+        catch (NumberFormatException ex)
+        {
+            return null;
+        }
+        value.scopes = QuantaOAuthScopes.granted(parts.length == 7 ? parts[6] : null);
+        if (value.expiresAt <= nowMillis)
         {
             return null;
         }

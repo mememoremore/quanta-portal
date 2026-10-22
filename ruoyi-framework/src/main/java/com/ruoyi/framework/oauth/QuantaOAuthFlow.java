@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
@@ -113,6 +114,7 @@ public class QuantaOAuthFlow
         interaction.browserId = browser;
         interaction.csrfToken = randomId();
         interaction.status = "pending";
+        interaction.scopes = QuantaOAuthScopes.parseRequest(only(params, "scope"));
         interaction.expiresAt = System.currentTimeMillis() + 10 * 60 * 1000L;
         interactions.create(interaction);
         String location = properties.getPortalOrigin() + "/oauth/authorize?interaction=" + interaction.id;
@@ -141,7 +143,11 @@ public class QuantaOAuthFlow
         data.put("expiresAt", Instant.ofEpochMilli(interaction.expiresAt).toString());
         data.put("csrfToken", interaction.csrfToken);
         data.put("consentRequired", true);
-        data.putArray("scopes").add("openid").add("profile");
+        ArrayNode scopes = data.putArray("scopes");
+        for (String scope : QuantaOAuthScopes.asList(QuantaOAuthScopes.granted(interaction.scopes)))
+        {
+            scopes.add(scope);
+        }
         if ("approved".equals(interaction.status) && StringUtils.isNotEmpty(interaction.subjectUserId))
         {
             data.put("subjectUserId", interaction.subjectUserId);
@@ -259,6 +265,7 @@ public class QuantaOAuthFlow
         stored.userId = String.valueOf(user.getUserId());
         stored.nonce = interaction.nonce;
         stored.codeChallenge = interaction.codeChallenge;
+        stored.scopes = QuantaOAuthScopes.granted(interaction.scopes);
         stored.expiresAt = System.currentTimeMillis() + 60_000L;
         codes.save(code, stored);
         String location = interaction.redirectUri + "?code=" + URLEncoder.encode(code, StandardCharsets.UTF_8)
@@ -301,12 +308,15 @@ public class QuantaOAuthFlow
             return oauthError(400, "invalid_grant");
         }
         Instant now = Instant.now();
+        String scope = QuantaOAuthScopes.granted(code.scopes);
+        String email = QuantaOAuthScopes.includesEmail(scope) ? accountEmail(user) : null;
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("access_token", issuer.accessToken(String.valueOf(user.getUserId()), now));
         body.put("token_type", "Bearer");
         body.put("expires_in", QuantaOAuthTokenIssuer.ACCESS_TOKEN_TTL.toSeconds());
-        body.put("id_token", issuer.idToken(String.valueOf(user.getUserId()), displayName(user), code.nonce, now));
-        body.put("scope", "openid profile");
+        body.put("id_token", issuer.idToken(String.valueOf(user.getUserId()), displayName(user), code.nonce, now,
+                pictureUrl(user.getAvatar(), properties.getPortalOrigin()), email));
+        body.put("scope", scope);
         return QuantaOAuthResponse.json(200, write(body));
     }
 
@@ -330,6 +340,55 @@ public class QuantaOAuthFlow
     static String displayName(SysUser user)
     {
         return StringUtils.isNotEmpty(user.getNickName()) ? user.getNickName() : user.getUserName();
+    }
+
+    static String accountEmail(SysUser user)
+    {
+        if (user == null || user.getEmail() == null)
+        {
+            return null;
+        }
+        String email = user.getEmail().trim();
+        if (email.isEmpty() || email.length() > 50 || email.indexOf('\r') >= 0 || email.indexOf('\n') >= 0
+                || email.indexOf('\0') >= 0 || !email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+"))
+        {
+            return null;
+        }
+        return email;
+    }
+
+    static String pictureUrl(String avatar, String portalOrigin)
+    {
+        if (avatar == null || portalOrigin == null)
+        {
+            return null;
+        }
+        String value = avatar.trim();
+        if (value.isEmpty() || value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0 || value.indexOf('\0') >= 0)
+        {
+            return null;
+        }
+        String path = value;
+        if (value.regionMatches(true, 0, "https://", 0, "https://".length()))
+        {
+            String prefix = portalOrigin + "/";
+            if (!value.startsWith(prefix))
+            {
+                return null;
+            }
+            path = value.substring(portalOrigin.length());
+        }
+        else if (value.contains(":") || value.startsWith("//"))
+        {
+            return null;
+        }
+        if (path.indexOf('?') >= 0 || path.indexOf('#') >= 0 || path.indexOf('\\') >= 0 || path.indexOf('@') >= 0
+                || path.indexOf('%') >= 0 || path.contains("..") || path.contains("//")
+                || !path.matches("/profile/avatar/[A-Za-z0-9][A-Za-z0-9._/-]*\\.(?i)(jpg|jpeg|png|webp)"))
+        {
+            return null;
+        }
+        return portalOrigin + path;
     }
 
     static boolean pkce(String verifier, String challenge)
@@ -406,8 +465,9 @@ public class QuantaOAuthFlow
         {
             return false;
         }
-        String scope = only(params, "scope");
-        if (scope == null || !Set.of(scope.split(" ")).equals(Set.of("openid", "profile")) || scope.split(" ").length != 2)
+        String scope = QuantaOAuthScopes.parseRequest(only(params, "scope"));
+        RegisteredClient registered = clients.findByClientId(only(params, "client_id"));
+        if (scope == null || registered == null || !registered.getScopes().containsAll(QuantaOAuthScopes.names(scope)))
         {
             return false;
         }
@@ -528,6 +588,7 @@ class QuantaRegisteredClientRepository implements RegisteredClientRepository
                 .redirectUri(properties.getRedirectUri())
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
+                .scope(OidcScopes.EMAIL)
                 .clientSettings(ClientSettings.builder().requireProofKey(true).build())
                 .tokenSettings(TokenSettings.builder().idTokenSignatureAlgorithm(SignatureAlgorithm.RS256)
                         .authorizationCodeTimeToLive(java.time.Duration.ofSeconds(60))

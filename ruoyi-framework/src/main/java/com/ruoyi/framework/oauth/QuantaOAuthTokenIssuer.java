@@ -64,11 +64,20 @@ public class QuantaOAuthTokenIssuer
         return new JWKSet(rsaKey.toPublicJWK()).toJSONObject();
     }
 
-    public String idToken(String subject, String name, String nonce, Instant issuedAt)
+    public String idToken(String subject, String name, String nonce, Instant issuedAt, String picture, String email)
     {
-        return sign(claims(subject, name, nonce, issuedAt, ID_TOKEN_TTL)
-                .claim("quanta_member", Boolean.TRUE)
-                .build());
+        JWTClaimsSet.Builder builder = claims(subject, name, nonce, issuedAt, ID_TOKEN_TTL)
+                .claim("quanta_member", Boolean.TRUE);
+        if (picture != null)
+        {
+            builder.claim("picture", picture);
+        }
+        if (email != null)
+        {
+            builder.claim("email", email);
+            builder.claim("email_verified", Boolean.FALSE);
+        }
+        return sign(builder.build());
     }
 
     public String accessToken(String subject, Instant issuedAt)
@@ -144,7 +153,9 @@ public class QuantaOAuthTokenIssuer
         document.put("id_token_signing_alg_values_supported", java.util.List.of("RS256"));
         document.put("code_challenge_methods_supported", java.util.List.of("S256"));
         document.put("token_endpoint_auth_methods_supported", java.util.List.of("client_secret_basic"));
-        document.put("scopes_supported", java.util.List.of("openid", "profile"));
+        document.put("scopes_supported", java.util.List.of("openid", "profile", "email"));
+        document.put("claims_supported", java.util.List.of("iss", "sub", "aud", "iat", "exp", "nonce", "name", "picture",
+                "email", "email_verified", "quanta_member"));
         return document;
     }
 }
