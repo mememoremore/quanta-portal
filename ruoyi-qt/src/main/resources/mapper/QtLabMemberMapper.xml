@@ -82,8 +82,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             and r.record_id is null
             and not exists (
                 select 1 from qt_cohort c2
-                where cast(c2.cohort_id as char) = u.member_cohort
-                   or c2.cohort_name = u.member_cohort
+                where cast(c2.cohort_id as char) collate utf8mb4_general_ci
+                          = u.member_cohort collate utf8mb4_general_ci
+                   or c2.cohort_name collate utf8mb4_general_ci
+                          = u.member_cohort collate utf8mb4_general_ci
             )
         </if>
         <if test="memberStatus != null and memberStatus != ''">
