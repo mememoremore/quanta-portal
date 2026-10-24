@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtPageDeploymentMapper">
+
+    <resultMap type="QtPageDeployment" id="QtPageDeploymentResult">
+        <id property="deploymentId" column="deployment_id"/>
+        <result property="siteId" column="site_id"/>
+        <result property="requestVersion" column="request_version"/>
+        <result property="configVersion" column="config_version"/>
+        <result property="repoOwner" column="repo_owner"/>
+        <result property="repoName" column="repo_name"/>
+        <result property="branch" column="branch"/>
+        <result property="publishDir" column="publish_dir"/>
+        <result property="commitSha" column="commit_sha"/>
+        <result property="triggerType" column="trigger_type"/>
+        <result property="status" column="status"/>
+        <result property="releaseId" column="release_id"/>
+        <result property="previousReleaseId" column="previous_release_id"/>
+        <result property="attemptCount" column="attempt_count"/>
+        <result property="nextAttemptTime" column="next_attempt_time"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="logText" column="log_text"/>
+        <result property="fileCount" column="file_count"/>
+        <result property="totalBytes" column="total_bytes"/>
+        <result property="releaseAvailable" column="release_available"/>
+        <result property="finishedTime" column="finished_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectDeploymentColumns">
+        select deployment_id, site_id, request_version, config_version, repo_owner, repo_name,
+               branch, publish_dir, commit_sha, trigger_type, status, release_id, previous_release_id,
+               attempt_count, next_attempt_time, error_code, error_message, log_text, file_count,
+               total_bytes, release_available, finished_time, create_time, update_time
+        from qt_page_deployment
+    </sql>
+
+    <insert id="insertDeployment" parameterType="QtPageDeployment" useGeneratedKeys="true" keyProperty="deploymentId">
+        insert into qt_page_deployment (
+            site_id, request_version, config_version, repo_owner, repo_name, branch, publish_dir,
+            commit_sha, trigger_type, status, release_id, previous_release_id, attempt_count,
+            next_attempt_time, error_code, error_message, log_text, file_count, total_bytes,
+            release_available, finished_time, create_time, update_time
+        ) values (
+            #{siteId}, #{requestVersion}, #{configVersion}, #{repoOwner}, #{repoName}, #{branch}, #{publishDir},
+            #{commitSha}, #{triggerType}, #{status}, #{releaseId}, #{previousReleaseId}, #{attemptCount},
+            #{nextAttemptTime}, #{errorCode}, #{errorMessage}, #{logText}, #{fileCount}, #{totalBytes},
+            #{releaseAvailable}, #{finishedTime}, now(), now()
+        )
+    </insert>
+
+    <select id="selectById" parameterType="Long" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where deployment_id = #{deploymentId}
+    </select>
+
+    <select id="selectBySiteAndRequestVersion" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where site_id = #{siteId} and request_version = #{requestVersion}
+    </select>
+
+    <select id="selectForUpdate" parameterType="Long" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where deployment_id = #{deploymentId} for update
+    </select>
+
+    <select id="selectReusableManual" parameterType="Long" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where site_id = #{siteId}
+          and trigger_type = 'MANUAL'
+          and status = 'PENDING'
+          and repo_owner = (select repo_owner from qt_page_site where site_id = #{siteId})
+          and repo_name = (select repo_name from qt_page_site where site_id = #{siteId})
+          and branch = (select branch from qt_page_site where site_id = #{siteId})
+          and publish_dir = (select publish_dir from qt_page_site where site_id = #{siteId})
+        order by deployment_id desc
+        limit 1
+    </select>
+
+    <update id="updateDeployment" parameterType="QtPageDeployment">
+        update qt_page_deployment
+        <set>
+            <if test="commitSha != null">commit_sha = #{commitSha},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="releaseId != null">release_id = #{releaseId},</if>
+            <if test="previousReleaseId != null">previous_release_id = #{previousReleaseId},</if>
+            <if test="attemptCount != null">attempt_count = #{attemptCount},</if>
+            <if test="nextAttemptTime != null">next_attempt_time = #{nextAttemptTime},</if>
+            <if test="errorCode != null">error_code = #{errorCode},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="logText != null">log_text = #{logText},</if>
+            <if test="fileCount != null">file_count = #{fileCount},</if>
+            <if test="totalBytes != null">total_bytes = #{totalBytes},</if>
+            <if test="releaseAvailable != null">release_available = #{releaseAvailable},</if>
+            <if test="finishedTime != null">finished_time = #{finishedTime},</if>
+        </set>
+        where deployment_id = #{deploymentId}
+    </update>
+
+    <update id="markSupersededBefore">
+        update qt_page_deployment
+        set status = 'SUPERSEDED', finished_time = now()
+        where site_id = #{siteId}
+          and request_version &lt; #{requestVersion}
+          and status in ('PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING')
+    </update>
+
+    <select id="selectListBySite" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where site_id = #{siteId}
+        order by request_version desc, deployment_id desc
+    </select>
+
+</mapper>
