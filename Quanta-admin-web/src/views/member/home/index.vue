@@ -70,6 +70,7 @@ onMounted(load)
           <RouterLink to="/member/community">社区论坛 <span>→</span></RouterLink>
           <RouterLink to="/member/materials">学习资料 <span>→</span></RouterLink>
           <RouterLink to="/member/services">我的服务 <span>→</span></RouterLink>
+          <RouterLink to="/member/pages">个人网站 <span>→</span></RouterLink>
           <RouterLink to="/member/profile">个人中心 <span>→</span></RouterLink>
         </nav>
       </aside>
