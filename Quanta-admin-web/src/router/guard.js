@@ -107,11 +107,10 @@ export function setupRouterGuard(router) {
     try {
       if (!userStore.user) await userStore.fetchUserInfo()
 
-      if (targetAudience === 'freshman' && userStore.serverAudience !== 'freshman') {
-        return homePathFor(userStore.serverAudience || 'admin')
-      }
-      if (targetAudience === 'member' && userStore.serverAudience !== 'member') {
-        return homePathFor(userStore.serverAudience || 'admin')
+      if (['freshman', 'member'].includes(targetAudience) && userStore.serverAudience !== targetAudience) {
+        // Unknown identity is not an admin identity. The catch below preserves the requested portal.
+        if (!['freshman', 'member'].includes(userStore.serverAudience)) throw new Error('无法确认账号身份')
+        return homePathFor(userStore.serverAudience)
       }
       if (targetAudience === 'admin' && !userStore.canAccessAdmin) {
         await userStore.logout().catch(() => {})

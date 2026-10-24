@@ -3,6 +3,8 @@ import { mockForumPosts, mockForumComments, mockForumReactions } from '../data/f
 import { currentMockAvatar, currentMockCommunityNickname } from './member-profiles'
 
 const account = (config) => findAccountByToken(config.headers?.Authorization || '')
+const managerScope = current => current?.roles?.some(role => ['ceo', 'qt_mgmt', 'qt_manager'].includes(role)) || Number(current?.user.userId) === 1
+const canRead = (current, post) => post && (post.visibility !== 'MANAGERS' || managerScope(current))
 const unauthenticated = { code: 401, msg: '请先登录塔员账号' }
 const forbidden = { code: 403, msg: '只能操作自己发布的内容' }
 const canManage = (current, item) => Number(current.user.userId) === Number(item.authorId) || current.permissions.includes('qt:forum:moderate') || current.permissions.includes('*:*:*')
@@ -17,15 +19,20 @@ function reactionFor(post, current) {
 }
 
 function scopedRows(rows, params = {}, current) {
+  if (current) rows = rows.filter(post => canRead(current, post))
   const pageNum = Math.max(1, Number(params.pageNum) || 1)
   const pageSize = Math.max(1, Number(params.pageSize) || 10)
   return { code: 200, rows: rows.slice((pageNum - 1) * pageSize, pageNum * pageSize).map((row) => ({ ...row, ...(current ? reactionFor(row, current) : {}), authorAvatar:currentMockAvatar(row.authorId), authorCommunityNickname:currentMockCommunityNickname(row.authorId) })), total: rows.length }
 }
 
-function findPost(config) { return mockForumPosts.find((item) => item.postId === Number(config.path.match(/\/posts\/(\d+)/)?.[1])) }
-function findComment(config) { return mockForumComments.find((item) => item.commentId === Number(config.path.match(/\/comments\/(\d+)/)?.[1])) }
+function findPost(config) { return mockForumPosts.find((item) => item.postId === Number(config.path.match(/\/posts\/(\d+)/)?.[1]) && canRead(account(config), item)) }
+function findComment(config) { return mockForumComments.find((item) => item.commentId === Number(config.path.match(/\/comments\/(\d+)/)?.[1]) && canRead(account(config), mockForumPosts.find(post => post.postId === item.postId))) }
 
 export const forumHandlers = [
+  { method: 'get', path: '/qt/forum/options', handle(config) {
+    const current = account(config)
+    return current ? { code: 200, data: { allowedPostVisibilities: managerScope(current) ? ['MEMBERS', 'MANAGERS'] : ['MEMBERS'] } } : unauthenticated
+  } },
   ...['likes', 'favorites'].map(pathKind => ({ method: 'get', path: `/qt/forum/me/${pathKind}`, handle(config) {
     const current = account(config)
     if (!current) return unauthenticated
@@ -66,10 +73,12 @@ export const forumHandlers = [
   { method: 'post', path: '/qt/forum/posts', handle(config) {
     const current = account(config)
     if (!current) return unauthenticated
-    const { title, content, category } = config.data || {}
+    const { title, content, category, visibility = 'MEMBERS' } = config.data || {}
+    if (!['MEMBERS', 'MANAGERS'].includes(visibility)) return { code: 400, msg: '请选择有效的可见范围' }
+    if (visibility === 'MANAGERS' && !managerScope(current)) return { code: 403, msg: '仅经理及以上可设置该可见范围' }
     if (!String(title || '').trim() || !String(content || '').trim()) return { code: 400, msg: '标题和正文不能为空' }
     if (!['PROJECT', 'TECH', 'LIFE'].includes(category)) return { code: 400, msg: '请选择帖子分类' }
-    const post = { postId: nextId(), title: title.trim(), content: content.trim(), category,
+    const post = { postId: nextId(), title: title.trim(), content: content.trim(), category, visibility,
       authorId: current.user.userId, authorName: current.user.nickName,
       authorDepartment: current.user.memberDepartment, createdAt: now(), commentCount: 0 }
     mockForumPosts.unshift(post)
@@ -99,9 +108,11 @@ export const forumHandlers = [
     const post = findPost(config)
     if (!post) return { code: 404, msg: '帖子不存在或已删除' }
     if (Number(current.user.userId) !== Number(post.authorId)) return forbidden
-    const { title, content, category } = config.data || {}
+    const { title, content, category, visibility = post.visibility || 'MEMBERS' } = config.data || {}
+    if (!['MEMBERS', 'MANAGERS'].includes(visibility)) return { code: 400, msg: '请选择有效的可见范围' }
+    if (visibility === 'MANAGERS' && !managerScope(current)) return { code: 403, msg: '仅经理及以上可设置该可见范围' }
     if (!String(title || '').trim() || !String(content || '').trim()) return { code: 400, msg: '标题和正文不能为空' }
-    Object.assign(post, { title: title.trim(), content: content.trim(), category })
+    Object.assign(post, { title: title.trim(), content: content.trim(), category, visibility })
     return { code: 200, data: post }
   } },
   { method: 'delete', match: (path) => /^\/qt\/forum\/posts\/\d+$/.test(path), handle(config) {

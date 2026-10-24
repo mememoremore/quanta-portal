@@ -93,6 +93,14 @@ describe('user store', () => {
     expect(store.serverAudience).toBe('member')
   })
 
+  it.each([null, undefined, [], 'admin'])('rejects malformed getInfo user %j rather than treating it as a login', async user => {
+    const store = useUserStore()
+    authApi.getInfo.mockResolvedValueOnce({ code: 200, user, roles: ['admin'], permissions: ['*:*:*'] })
+    await expect(store.fetchUserInfo()).rejects.toThrow('确认账号身份')
+    expect(store.user).toBeNull()
+    expect(store.roles).toEqual([])
+  })
+
   it('does not treat an ordinary member permission as management access', () => {
     const store = useUserStore()
     store.user = { userName: 'member', isQuantaMember: '1' }

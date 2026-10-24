@@ -8,6 +8,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <id property="postId" column="post_id"/>
         <result property="title" column="title"/>
         <result property="category" column="category"/>
+        <result property="visibility" column="visibility"/>
         <result property="content" column="content"/>
         <result property="authorId" column="author_id"/>
         <result property="authorName" column="author_name"/>
@@ -20,8 +21,26 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="updateTime" column="update_time"/>
     </resultMap>
 
+    <!-- viewerId始终由服务端设置；与详情共用实时角色规则，先过滤后分页/计数。 -->
+    <sql id="ViewerIsManager">
+        exists (select 1 from sys_user viewer
+          where viewer.user_id = #{viewerId} and viewer.is_quanta_member = '1'
+            and viewer.status = '0' and viewer.del_flag = '0'
+            and (viewer.user_id = 1 or exists (
+              select 1 from sys_user_role ur inner join sys_role viewer_role on viewer_role.role_id = ur.role_id
+              where ur.user_id = viewer.user_id and viewer_role.status = '0' and viewer_role.del_flag = '0'
+                and viewer_role.role_key in ('ceo', 'qt_mgmt', 'qt_manager'))))
+    </sql>
+    <sql id="ReadableScope">
+        and (p.visibility = 'MEMBERS' or (p.visibility = 'MANAGERS' and <include refid="ViewerIsManager"/>))
+    </sql>
+    <select id="canManagePosts" resultType="boolean">
+        <bind name="viewerId" value="_parameter"/>
+        select <include refid="ViewerIsManager"/>
+    </select>
+
     <select id="selectPostList" parameterType="QtForumPost" resultMap="QtForumPostResult">
-        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
+        select p.post_id, p.title, p.category, p.visibility, p.content, p.author_id, p.comment_count, p.view_count,
                p.create_time, p.update_time,
                ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
                nullif(trim(mp.community_nickname), '') as author_community_nickname,
@@ -30,6 +49,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join sys_user u on p.author_id = u.user_id
         left join qt_member_profile mp on mp.user_id = u.user_id
         <where>
+            <include refid="ReadableScope"/>
             <if test="authorId != null">and p.author_id = #{authorId}</if>
             <if test="category != null and category != ''">and p.category = #{category}</if>
         </where>
@@ -37,7 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectPostById" parameterType="Long" resultMap="QtForumPostResult">
-        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
+        select p.post_id, p.title, p.category, p.visibility, p.content, p.author_id, p.comment_count, p.view_count,
                p.create_time, p.update_time,
                ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
                nullif(trim(mp.community_nickname), '') as author_community_nickname,
@@ -49,11 +69,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="lockPostById" resultMap="QtForumPostResult">
-        select post_id, author_id from qt_forum_post where post_id = #{postId} for update
+        select post_id, author_id, visibility from qt_forum_post where post_id = #{postId} for update
     </select>
 
     <select id="selectPersonalPostList" resultMap="QtForumPostResult">
-        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
+        <bind name="viewerId" value="userId"/>
+        select p.post_id, p.title, p.category, p.visibility, p.content, p.author_id, p.comment_count, p.view_count,
                p.create_time, p.update_time,
                ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
                nullif(trim(mp.community_nickname), '') as author_community_nickname,
@@ -66,20 +87,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         left join sys_user u on p.author_id = u.user_id
         left join qt_member_profile mp on mp.user_id = u.user_id
         where r.user_id = #{userId}
+        <include refid="ReadableScope"/>
         <if test="category != null and category != ''">and p.category = #{category}</if>
         order by r.create_time desc, r.id desc
     </select>
 
     <insert id="insertPost" parameterType="QtForumPost" useGeneratedKeys="true" keyProperty="postId">
         insert into qt_forum_post
-        (title, category, content, author_id, comment_count, create_time, update_time)
+        (title, category, visibility, content, author_id, comment_count, create_time, update_time)
         values
-        (#{title}, #{category}, #{content}, #{authorId}, 0, now(), now())
+        (#{title}, #{category}, #{visibility}, #{content}, #{authorId}, 0, now(), now())
     </insert>
 
     <update id="updatePost" parameterType="QtForumPost">
         update qt_forum_post
-        set title = #{title}, category = #{category}, content = #{content}, update_time = now()
+        set title = #{title}, category = #{category}, visibility = #{visibility}, content = #{content}, update_time = now()
         where post_id = #{postId}
     </update>
 

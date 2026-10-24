@@ -3,7 +3,7 @@ import { defineComponent } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import CommunityFeed from '../index.vue'
 import CommunityEditor from '../editor.vue'
-import { createForumPost, listForumPosts, listMyForumReactions, uploadForumImage } from '@/api/portal/forum'
+import { createForumPost, getForumOptions, listForumPosts, listMyForumReactions, uploadForumImage } from '@/api/portal/forum'
 
 vi.mock('@/api/portal/forum', async (importOriginal) => ({
   ...await importOriginal(),
@@ -11,6 +11,7 @@ vi.mock('@/api/portal/forum', async (importOriginal) => ({
   listMyForumReactions: vi.fn(),
   createForumPost: vi.fn(),
   uploadForumImage: vi.fn(),
+  getForumOptions: vi.fn(),
 }))
 vi.mock('@/stores/user', () => ({ useUserStore: () => ({ user: { userId: 2 }, permissions: [] }) }))
 vi.mock('vue-router', () => ({
@@ -36,6 +37,7 @@ describe('member community pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    getForumOptions.mockResolvedValue(['MEMBERS'])
     listForumPosts.mockResolvedValue({ rows: [{ postId: 7, title: '项目讨论', authorName: '小王', category: 'PROJECT', commentCount: 2 }], total: 1 })
     listMyForumReactions.mockResolvedValue({ rows: [], total: 0 })
   })
@@ -113,6 +115,7 @@ describe('member community pages', () => {
 
   it('validates the editor before publishing a post', async () => {
     const wrapper = mount(CommunityEditor, { global: { stubs } })
+    await flushPromises()
     const publish = wrapper.findAll('button').find((button) => button.text().includes('发布帖子'))
     await publish.trigger('click')
     expect(wrapper.get('[role="alert"]').text()).toContain('请填写标题和正文')
@@ -122,7 +125,7 @@ describe('member community pages', () => {
     createForumPost.mockResolvedValue({ postId: 8 })
     await publish.trigger('click')
     await flushPromises()
-    expect(createForumPost).toHaveBeenCalledWith({ title: '分享', category: 'PROJECT', content: '一些内容' })
+    expect(createForumPost).toHaveBeenCalledWith({ title: '分享', category: 'PROJECT', content: '一些内容', visibility: 'MEMBERS' })
   })
 
   it('switches edit and preview panes and does not insert a failed image', async () => {
@@ -149,6 +152,36 @@ describe('member community pages', () => {
     createForumPost.mockResolvedValue({ postId: 8 })
     await wrapper.findAll('button').find((button) => button.text().includes('发布帖子')).trigger('click')
     await flushPromises()
-    expect(createForumPost).toHaveBeenCalledWith({ title: '技术分享', category: 'TECH', content: '- 列表项' })
+    expect(createForumPost).toHaveBeenCalledWith({ title: '技术分享', category: 'TECH', content: '- 列表项', visibility: 'MEMBERS' })
+  })
+
+  it('uses server capabilities rather than frontend management flags for visibility', async () => {
+    const ordinary = mount(CommunityEditor, { global: { stubs } })
+    await flushPromises()
+    expect(ordinary.find('[aria-label="帖子可见范围"]').exists()).toBe(false)
+    expect(ordinary.get('.community-visibility-fixed').text()).toBe('全部塔员')
+    ordinary.unmount()
+    getForumOptions.mockResolvedValue(['MEMBERS', 'MANAGERS'])
+    const manager = mount(CommunityEditor, { global: { stubs } })
+    await flushPromises()
+    await manager.get('[aria-label="帖子可见范围"]').setValue('MANAGERS')
+    await manager.get('input[maxlength="80"]').setValue('经理分享')
+    await manager.get('textarea[aria-label="帖子正文"]').setValue('技术正文')
+    createForumPost.mockResolvedValue({ postId: 8 })
+    await manager.get('.member-primary-button').trigger('click')
+    await flushPromises()
+    expect(createForumPost).toHaveBeenLastCalledWith({ title: '经理分享', category: 'PROJECT', content: '技术正文', visibility: 'MANAGERS' })
+  })
+
+  it('preserves a restricted draft and refuses publication when its permission is missing', async () => {
+    localStorage.setItem('quanta:forum-draft:v1:2:new', JSON.stringify({ version: 1, title: '经理稿', category: 'TECH', content: '正文', visibility: 'MANAGERS' }))
+    getForumOptions.mockRejectedValue(new Error('权限暂不可用'))
+    const wrapper = mount(CommunityEditor, { global: { stubs } })
+    await flushPromises()
+    expect(wrapper.get('[aria-label="帖子可见范围"]').element.value).toBe('MANAGERS')
+    await wrapper.get('.member-primary-button').trigger('click')
+    await flushPromises()
+    expect(createForumPost).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toContain('不会自动改为公开')
   })
 })

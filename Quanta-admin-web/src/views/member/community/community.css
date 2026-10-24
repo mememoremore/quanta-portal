@@ -58,7 +58,14 @@
 .community-pagination > div { display: flex; gap: 8px; }
 .community-hidden-input { display: none; }
 .community-editor__card { display: grid; padding: 36px; border: 1px solid var(--portal-line); border-radius: 24px; box-shadow: none; gap: 28px; }
-.community-editor__fields { display: grid; grid-template-columns: minmax(0, 2.7fr) minmax(220px, 1fr); gap: 24px; }
+.community-editor__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.community-field--title { grid-column: 1 / -1; }
+.community-visibility-fixed { border: 1px solid var(--portal-border, #e6e9ee); border-radius: 12px; min-height: 46px; display: flex; align-items: center; padding: 12px 16px; color: #636f7d; font-size: 14px; }
+.community-visibility-hint { display: block; margin-top: 8px; font-size: 12px; line-height: 1.7; color: #8e99a8; font-weight: 400; }
+.community-detail__labels { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.community-detail__labels .community-visibility-badge { margin-left: 0; }
+.community-image { display: contents; }
+.community-image-unavailable { min-width: 100px; min-height: 40px; color: #929cab; }
 .community-field { display: grid; min-width: 0; align-content: start; gap: 12px; font-size: 15px; font-weight: 750; }
 .community-field small { margin-left: 8px; color: var(--portal-muted); font-size: 12px; font-weight: 400; }
 .community-field > input { box-sizing: border-box; width: 100%; min-height: 54px; padding: 12px 18px; border: 1px solid var(--portal-line); border-radius: 15px; background: #fff; color: var(--portal-ink); font: inherit; font-size: 16px; font-weight: 500; }
@@ -243,7 +250,8 @@
   .community-detail { gap: 20px; }
   .community-detail > .community-back { margin: 0; padding: 4px 0; font-size: 13px; }
   .community-detail__post.portal-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 12px; }
-  .community-detail__post > .community-tag { grid-column: 1; grid-row: 1; align-self: center; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+  .community-detail__post > .community-detail__labels { grid-column: 1; grid-row: 1; align-self: center; }
+  .community-detail__labels .community-tag { padding: 6px 10px; border-radius: 8px; font-size: 12px; }
   .community-detail__post > h1 { grid-column: 1 / -1; grid-row: 2; margin: 0; font-size: clamp(27px, 7vw, 32px); line-height: 1.4; letter-spacing: -.025em; }
   .community-detail__post > .community-detail__views { grid-column: 2; grid-row: 1; margin: 0; align-self: center; font-size: 12px; white-space: nowrap; }
   .community-detail__post > .community-detail__author { grid-column: 1 / -1; grid-row: 3; padding-bottom: 12px; border-bottom: 1px solid var(--portal-line); grid-template-columns: 40px minmax(0, 1fr); gap: 3px 11px; }

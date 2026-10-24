@@ -3,15 +3,16 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, ref } from 'vue'
 import { forumDraftKey, useForumDraft } from '../draft'
 
-function editor(userId = 2, postId = '') {
+function editor(userId = 2, postId = '', originalVisibility = 'MEMBERS') {
   return mount(defineComponent({
     setup() {
       const title = ref('')
       const category = ref('PROJECT')
       const content = ref('')
-      const draft = useForumDraft({ userId: () => userId, postId: () => postId, title, category, content })
+      const visibility = ref(originalVisibility)
+      const draft = useForumDraft({ userId: () => userId, postId: () => postId, title, category, content, visibility })
       draft.initialize()
-      return { title, category, content, ...draft }
+      return { title, category, content, visibility, ...draft }
     },
     template: '<div />',
   }))
@@ -20,6 +21,19 @@ function editor(userId = 2, postId = '') {
 afterEach(() => vi.restoreAllMocks())
 
 describe('forum local drafts', () => {
+  it('persists scope and does not downgrade an existing restricted post from a legacy draft', () => {
+    const wrapper = editor()
+    wrapper.vm.content = '正文'
+    wrapper.vm.visibility = 'MANAGERS'
+    wrapper.vm.flush(); wrapper.unmount()
+    const restored = editor()
+    expect(restored.vm.visibility).toBe('MANAGERS')
+    restored.unmount()
+    localStorage.setItem(forumDraftKey(2, '9'), JSON.stringify({ version: 1, title: '旧草稿', category: 'TECH', content: '正文' }))
+    const legacy = editor(2, '9', 'MANAGERS')
+    expect(legacy.vm.visibility).toBe('MANAGERS')
+    legacy.unmount()
+  })
   it('flushes pending changes on pagehide/unmount and restores only the matching account and post', () => {
     const wrapper = editor()
     wrapper.vm.title = '未完成的文章'

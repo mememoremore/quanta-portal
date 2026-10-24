@@ -11,6 +11,7 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
 import yaml from 'highlight.js/lib/languages/yaml'
 import { safeMarkdownUrl as safeUrl } from './image-previews'
+import { isProtectedForumImage } from './protected-images'
 
 export { markdownImagePreviews } from './image-previews'
 
@@ -83,6 +84,10 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
 markdown.renderer.rules.image = (tokens, index, options, env, renderer) => {
   const token = tokens[index]
   if (!safeUrl(token.attrGet('src'), true)) return escapeHtml(token.content)
+  if (isProtectedForumImage(token.attrGet('src'))) {
+    token.attrSet('data-forum-image', token.attrGet('src'))
+    token.attrs = token.attrs.filter(([name]) => name !== 'src')
+  }
   token.attrSet('loading', 'lazy')
   return renderImage(tokens, index, options, env, renderer)
 }

@@ -169,7 +169,7 @@ describe('portal login', () => {
   it('submits a password present only on the input element', async () => {
     const { wrapper, store } = await mountLogin('member')
     const login = vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
-    vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
+    vi.spyOn(store, 'fetchUserInfo').mockImplementation(async () => { store.user = { userId: 2, isQuantaMember: '1' } })
 
     wrapper.get('input[name="username"]').element.value = 'qt_ceo'
     wrapper.get('input[name="password"]').element.value = 'secret-from-dom'
@@ -185,7 +185,7 @@ describe('portal login', () => {
   it('submits the audience selected by the route', async () => {
     const { wrapper, store } = await mountLogin('freshman')
     const login = vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
-    vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
+    vi.spyOn(store, 'fetchUserInfo').mockImplementation(async () => { store.user = { userId: 2, isQuantaMember: '0' } })
 
     await wrapper.get('input[name="username"]').setValue('qt_fresh')
     await wrapper.get('input[name="password"]').setValue('admin123')
@@ -198,7 +198,7 @@ describe('portal login', () => {
   it('rejects an external redirect and enters the audience home', async () => {
     const { wrapper, router, store } = await mountLogin('member', '//evil.example')
     vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
-    vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
+    vi.spyOn(store, 'fetchUserInfo').mockImplementation(async () => { store.user = { userId: 2, isQuantaMember: '1' } })
 
     await wrapper.get('input[name="username"]').setValue('qt_member')
     await wrapper.get('input[name="password"]').setValue('admin123')
@@ -211,7 +211,7 @@ describe('portal login', () => {
   it('ignores a restored identity-page redirect on first member login', async () => {
     const { wrapper, router, store } = await mountLogin('member', '/')
     vi.spyOn(store, 'login').mockResolvedValue({ token: 'token' })
-    vi.spyOn(store, 'fetchUserInfo').mockResolvedValue({})
+    vi.spyOn(store, 'fetchUserInfo').mockImplementation(async () => { store.user = { userId: 2, isQuantaMember: '1' } })
 
     await wrapper.get('input[name="username"]').setValue('qt_member')
     await wrapper.get('input[name="password"]').setValue('admin123')
@@ -220,4 +220,25 @@ describe('portal login', () => {
 
     expect(router.currentRoute.value.path).toBe('/member/home')
   })
+
+  it.each([null, {}, { userId: 1, userName: 'admin', isQuantaMember: '0' }])(
+    'does not navigate or report success for an unconfirmed/mismatched identity %j',
+    async (identity) => {
+      const { wrapper, router, store } = await mountLogin('member')
+      authApi.login.mockResolvedValueOnce({ token: 'test-admin-token' })
+      authApi.getInfo.mockResolvedValueOnce({
+        user: identity, roles: ['admin'], permissions: ['*:*:*'],
+      })
+      await wrapper.get('input[name="username"]').setValue('admin')
+      await wrapper.get('input[name="password"]').setValue('demo-password')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/login/member')
+      expect(store.token).toBe('')
+      expect(store.user).toBeNull()
+      expect(store.canAccessAdmin).toBe(false)
+      wrapper.unmount()
+    },
+  )
 })

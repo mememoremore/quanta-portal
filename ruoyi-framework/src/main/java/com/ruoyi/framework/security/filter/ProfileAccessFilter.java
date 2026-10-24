@@ -26,15 +26,21 @@ public class ProfileAccessFilter extends OncePerRequestFilter
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request)
     {
-        String path = request.getRequestURI();
-        return path == null || !path.startsWith("/profile/");
+        String path = resourcePath(request);
+        return path == null || (!path.startsWith("/profile/") && !profileAccessSigner.isPrivateForumResource(path));
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException
     {
-        String path = request.getRequestURI();
+        String path = resourcePath(request);
+        if (profileAccessSigner.isPrivateForumResource(path))
+        {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.setHeader("Cache-Control", "no-store");
+            return;
+        }
         if (profileAccessSigner.isPublicResource(path) || !profileAccessSigner.isSensitiveResource(path))
         {
             filterChain.doFilter(request, response);
@@ -49,5 +55,13 @@ public class ProfileAccessFilter extends OncePerRequestFilter
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"code\":403,\"msg\":\"file access denied\"}");
+    }
+
+    private String resourcePath(HttpServletRequest request)
+    {
+        String uri = request.getRequestURI();
+        String context = request.getContextPath();
+        return uri != null && context != null && !context.isEmpty() && uri.startsWith(context)
+                ? uri.substring(context.length()) : uri;
     }
 }

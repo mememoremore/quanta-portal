@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElOption, ElSelect } from 'element-plus'
+import { ElMessage, ElMessageBox, ElOption, ElSelect } from 'element-plus'
 import 'element-plus/theme-chalk/base.css'
 import 'element-plus/theme-chalk/el-select.css'
 import 'element-plus/theme-chalk/el-option.css'
@@ -10,7 +10,7 @@ import 'element-plus/theme-chalk/el-popper.css'
 import 'element-plus/theme-chalk/el-scrollbar.css'
 import 'element-plus/theme-chalk/el-tag.css'
 import { useUserStore } from '@/stores/user'
-import { createForumPost, FORUM_CATEGORIES, getForumPost, updateForumPost, uploadForumImage } from '@/api/portal/forum'
+import { createForumPost, FORUM_CATEGORIES, FORUM_VISIBILITIES, getForumOptions, getForumPost, updateForumPost, uploadForumImage } from '@/api/portal/forum'
 import MarkdownContent from './MarkdownContent.vue'
 import { useForumDraft } from './draft'
 import { restoreForumMarkdown } from './markdown'
@@ -24,6 +24,12 @@ const userStore = useUserStore()
 const editing = computed(() => Boolean(route.params.postId))
 const title = ref('')
 const category = ref('PROJECT')
+const visibility = ref('MEMBERS')
+const originalVisibility = ref('MEMBERS')
+const allowedVisibilities = ref(['MEMBERS'])
+const optionsLoading = ref(true)
+const optionsError = ref('')
+const canChooseVisibility = computed(() => allowedVisibilities.value.includes('MANAGERS'))
 const content = ref('')
 const activePane = ref('edit')
 const loading = ref(false)
@@ -33,7 +39,7 @@ const errorMessage = ref('')
 const editAuthorized = ref(false)
 const fileInput = ref(null)
 const textArea = ref(null)
-const draft = useForumDraft({ userId: () => userStore.user?.userId, postId: () => route.params.postId, title, category, content })
+const draft = useForumDraft({ userId: () => userStore.user?.userId, postId: () => route.params.postId, title, category, content, visibility })
 const draftStatus = draft.status
 const editorInput = createEditorInput({
   content, textArea, activePane, uploading,
@@ -48,6 +54,9 @@ const { insertText } = editorInput
 onBeforeUnmount(editorInput.destroy)
 
 onMounted(async () => {
+  try { allowedVisibilities.value = await getForumOptions() }
+  catch (error) { optionsError.value = error.message || '可见范围权限暂时不可用' }
+  finally { optionsLoading.value = false }
   if (!editing.value) { draft.initialize(); return }
   loading.value = true
   try {
@@ -58,6 +67,8 @@ onMounted(async () => {
     }
     title.value = post.title
     category.value = post.category
+    visibility.value = post.visibility ?? 'MEMBERS'
+    originalVisibility.value = visibility.value
     content.value = restoreForumMarkdown(post.content)
     editAuthorized.value = true
     draft.initialize()
@@ -76,12 +87,22 @@ async function onImageSelected(event) {
 }
 
 async function save() {
+  if (saving.value) return
   if (editing.value && !editAuthorized.value) return
   errorMessage.value = ''
-  const payload = { title: title.value.trim(), category: category.value, content: content.value.trim() }
+  const payload = { title: title.value.trim(), category: category.value, content: content.value.trim(), visibility: visibility.value }
   if (!payload.title || !payload.content) { errorMessage.value = '请填写标题和正文'; return }
   if (payload.title.length > 80 || payload.content.length > 20000) { errorMessage.value = '标题最多 80 字，正文最多 20000 字'; return }
+  if (optionsLoading.value || !allowedVisibilities.value.includes(payload.visibility)) {
+    errorMessage.value = '无法确认此可见范围权限，请刷新核对；草稿不会自动改为公开。'
+    return
+  }
   saving.value = true
+  if (originalVisibility.value === 'MANAGERS' && payload.visibility === 'MEMBERS') {
+    try {
+      await ElMessageBox.confirm('改为全部塔员后，普通塔员也能看到正文和图片。已被查看、保存或转发的内容无法收回。', '确认扩大可见范围', { confirmButtonText: '改为全部塔员', cancelButtonText: '保留原范围', type: 'warning' })
+    } catch { saving.value = false; return }
+  }
   try {
     const post = editing.value
       ? await updateForumPost(route.params.postId, payload)
@@ -108,8 +129,9 @@ async function save() {
     <div v-else class="community-editor__card portal-card">
       <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }}</p>
       <div class="community-editor__fields">
-        <label class="community-field"><span>标题 <small>最多 80 字</small></span><input v-model="title" maxlength="80" placeholder="给讨论起个清晰的标题" /></label>
+        <label class="community-field community-field--title"><span>标题 <small>最多 80 字</small></span><input v-model="title" maxlength="80" placeholder="给讨论起个清晰的标题" /></label>
         <div class="community-field"><span>话题</span><ElSelect v-model="category" class="community-category-select" popper-class="community-category-popper" aria-label="帖子分类"><ElOption v-for="item in FORUM_CATEGORIES" :key="item.value" :label="item.label" :value="item.value" /></ElSelect></div>
+        <div class="community-field"><span>谁可以看</span><ElSelect v-if="canChooseVisibility || visibility !== 'MEMBERS'" v-model="visibility" class="community-category-select" popper-class="community-category-popper" aria-label="帖子可见范围" :disabled="optionsLoading"><ElOption v-for="item in FORUM_VISIBILITIES" :key="item.value" :value="item.value" :label="item.label" :disabled="!allowedVisibilities.includes(item.value)" /></ElSelect><div v-else class="community-visibility-fixed">全部塔员</div><small class="community-visibility-hint">{{ visibility === 'MANAGERS' ? '仅经理、负责人/VP、CEO 可查看；图片需通过站内上传。' : '所有塔员均可查看' }}</small><small v-if="optionsError" class="community-visibility-hint">{{ optionsError }}</small></div>
       </div>
       <div class="community-editor__body-label"><strong>正文</strong><span class="community-editor__desktop-hint">Markdown 编辑 · 右侧同步预览</span><span class="community-editor__mobile-hint">Markdown 编辑 · 切换查看预览</span></div>
       <div class="community-editor__composer">
@@ -132,7 +154,7 @@ async function save() {
         </div>
       </div>
       <p v-if="draftStatus" class="community-draft-status" role="status">{{ draftStatus }}</p>
-      <div class="community-editor__footer"><span>{{ content.length }} / 20000 字 · 原图 20 MB 内，上传图 5 MB 内</span><div><RouterLink class="member-secondary-button" to="/member/community">取消</RouterLink><button class="member-primary-button" type="button" :disabled="saving || loading || uploading || (editing && !editAuthorized)" @click="save">{{ saving ? '保存中…' : editing ? '保存修改' : '发布帖子' }}</button></div></div>
+      <div class="community-editor__footer"><span>{{ content.length }} / 20000 字 · 原图 20 MB 内，上传图 5 MB 内</span><div><RouterLink class="member-secondary-button" to="/member/community">取消</RouterLink><button class="member-secondary-button" type="button" @click="draft.flush">保存草稿</button><button class="member-primary-button" type="button" :disabled="saving || loading || uploading || optionsLoading || (editing && !editAuthorized)" @click="save">{{ saving ? '保存中…' : editing ? '保存修改' : '发布帖子' }}</button></div></div>
     </div>
   </section>
 </template>

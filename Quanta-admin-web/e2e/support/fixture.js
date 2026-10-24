@@ -78,6 +78,19 @@ function responseFor(request, state) {
   const path = url.pathname
   const method = request.method()
   const account = accountFromRequest(request)
+  const manager = !state.forumManagerDenied && account?.roles.some(role => ['ceo', 'qt_mgmt', 'qt_manager'].includes(role))
+  const mayReadPost = state.forumPost.visibility !== 'MANAGERS' || manager
+  if (path === '/qt/forum/options' && method === 'GET') return { code: 200, data: { allowedPostVisibilities: manager ? ['MEMBERS', 'MANAGERS'] : ['MEMBERS'] } }
+  if (/^\/qt\/forum\/posts\/\d+(?:\/.*)?$/.test(path) && !mayReadPost) return { code: 404, msg: '帖子不存在或已删除' }
+  if (method === 'POST' && path === '/qt/forum/images') {
+    state.forumImageOwner = account?.user.userId
+    return { code: 200, data: { url: '/qt/forum/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' } }
+  }
+  if (method === 'GET' && /^\/qt\/forum\/images\/[a-f0-9]{32}$/.test(path)) {
+    const published = state.forumPost.content?.includes(path)
+    return (published ? mayReadPost : account?.user.userId === state.forumImageOwner)
+      ? { __image: true } : { code: 404, msg: '图片不存在或不可访问' }
+  }
   const forumSnapshot = post => {
     const entries = (state.forumReactions || []).filter(item => item.postId === post.postId)
     return { ...post, likeCount: entries.filter(item => item.kind === 'liked').length,
@@ -87,6 +100,7 @@ function responseFor(request, state) {
 
   if (method === 'GET' && path === '/captchaImage') return { code: 200, captchaEnabled: false }
   if (method === 'POST' && path === '/auth/refresh') {
+    if (accounts[state.refreshAccount]) return { code: 200, token: `e2e-token-${state.refreshAccount}` }
     return { code: 401, msg: '登录状态已过期，请重新登录' }
   }
   if (method === 'POST' && path === '/login') {
@@ -99,6 +113,8 @@ function responseFor(request, state) {
   if (method === 'POST' && path === '/register/emailCode') return { code: 200, msg: '验证码已发送' }
   if (method === 'POST' && path === '/register') return { code: 200, msg: '注册成功' }
   if (method === 'GET' && path === '/getInfo') {
+    if (state.userInfoFailure) return { code: state.userInfoFailure, msg: '模拟账号信息读取失败' }
+    if (state.userInfoMissing) return { code: 200, user: null, roles: account?.roles || [], permissions: account?.permissions || [] }
     return account
       ? { code: 200, user: {...account.user,avatar:state.avatars[account.user.userId] || '', ...state.userInfoOverrides}, roles: account.roles, permissions: account.permissions }
       : { code: 401, msg: '登录状态已失效' }
@@ -144,7 +160,7 @@ function responseFor(request, state) {
     const kind = path.endsWith('/likes') ? 'liked' : 'favorites'
     const post = state.forumPost
     const rows = (state.forumReactions || []).some(item => item.postId === post.postId && item.userId === account.user.userId && item.kind === kind)
-      && (!url.searchParams.get('category') || url.searchParams.get('category') === post.category) ? [forumSnapshot(post)] : []
+      && mayReadPost && (!url.searchParams.get('category') || url.searchParams.get('category') === post.category) ? [forumSnapshot(post)] : []
     const page = Number(url.searchParams.get('pageNum') || 1), size = Number(url.searchParams.get('pageSize') || 10)
     return { code: 200, rows: rows.slice((page - 1) * size, page * size), total: rows.length }
   }
@@ -167,14 +183,15 @@ function responseFor(request, state) {
       ? []
       : url.searchParams.get('scope') === 'mine' && account?.user.userId !== post.authorId
         ? []
-        : [post]
+        : mayReadPost ? [post] : []
     return { code: 200, rows:rows.map(p=>({...forumSnapshot(p),authorAvatar:state.avatars[p.authorId] || '',authorCommunityNickname:state.profiles[p.authorId]?.communityNickname || ''})), total: rows.length }
   }
   if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...forumSnapshot(state.forumPost),authorAvatar:state.avatars[state.forumPost.authorId] || '',authorCommunityNickname:state.profiles[state.forumPost.authorId]?.communityNickname || ''} }
   if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows:state.forumComments, total:state.forumComments.length }
   if ((method === 'POST' && path === '/qt/forum/posts') || (method === 'PUT' && /^\/qt\/forum\/posts\/\d+$/.test(path))) {
     if (state.forumPublishFailure) return { code: 500, msg: '模拟发布失败' }
-    state.forumPost = { ...state.forumPost, ...request.postDataJSON(), postId: method === 'POST' ? 2 : state.forumPost.postId }
+    if (request.postDataJSON().visibility === 'MANAGERS' && !manager) return { code: 403, msg: '仅经理及以上可设置该可见范围' }
+    state.forumPost = { ...state.forumPost, ...request.postDataJSON(), ...(method === 'POST' ? { authorId: account.user.userId, authorName: account.user.nickName } : {}), postId: method === 'POST' ? 2 : state.forumPost.postId }
     return { code: 200, data: state.forumPost }
   }
   if (path === '/qt/materials/folders' && method === 'GET') {
@@ -299,6 +316,7 @@ export const test = base.extend({
       if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
       state.requests.push(`${request.method()} ${url.pathname}`)
       const payload = responseFor(request, state)
+      if (payload?.__image) return route.fulfill({ status: 200, headers, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCxsAAAAASUVORK5CYII=', 'base64') })
       if (!payload) {
         state.unexpected.push(`${request.method()} ${url.pathname}${url.search}`)
         return route.fulfill({ status: 599, headers })

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtForumImageMapper">
+    <resultMap id="Image" type="com.ruoyi.qt.domain.QtForumImage">
+        <id property="imageId" column="image_id"/>
+        <result property="ownerId" column="owner_id"/>
+        <result property="postId" column="post_id"/>
+        <result property="storagePath" column="storage_path"/>
+        <result property="mediaType" column="media_type"/>
+    </resultMap>
+    <select id="selectImage" resultMap="Image">select * from qt_forum_image where image_id = #{imageId}</select>
+    <select id="lockImage" resultMap="Image">select * from qt_forum_image where image_id = #{imageId} for update</select>
+    <insert id="insertImage">
+        insert into qt_forum_image(image_id, owner_id, storage_path, media_type)
+        values(#{imageId}, #{ownerId}, #{storagePath}, #{mediaType})
+    </insert>
+    <update id="bindImage">update qt_forum_image set post_id = #{postId} where image_id = #{imageId}</update>
+</mapper>

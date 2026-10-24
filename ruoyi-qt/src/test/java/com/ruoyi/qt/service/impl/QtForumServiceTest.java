@@ -26,6 +26,7 @@ import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
 import com.ruoyi.qt.mapper.QtForumReactionMapper;
 import com.ruoyi.qt.domain.QtForumReaction;
+import com.ruoyi.qt.service.QtForumImageService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,6 +52,8 @@ class QtForumServiceTest
 
     @Mock
     private QtForumReactionMapper reactionMapper;
+    @Mock
+    private QtForumImageService imageService;
 
     @BeforeEach
     void defaultLock()
@@ -194,6 +197,8 @@ class QtForumServiceTest
         QtForumComment comment = comment("原内容", null);
         comment.setCommentId(3L);
         comment.setAuthorId(8L);
+        comment.setPostId(5L);
+        when(postMapper.selectPostById(5L)).thenReturn(postWithAuthor(5L, 8L));
         when(commentMapper.selectCommentById(3L)).thenReturn(comment);
 
         login(9L, Set.of());
@@ -212,6 +217,7 @@ class QtForumServiceTest
         comment.setCommentId(3L);
         comment.setPostId(5L);
         comment.setAuthorId(8L);
+        when(postMapper.selectPostById(5L)).thenReturn(postWithAuthor(5L, 8L));
         when(commentMapper.selectCommentById(3L)).thenReturn(comment);
 
         login(8L, Set.of());
@@ -262,6 +268,7 @@ class QtForumServiceTest
     {
         login(8L, Set.of());
         org.mockito.Mockito.doReturn(postWithAuthor(5L, 8L)).when(postMapper).lockPostById(5L);
+        when(postMapper.selectPostById(5L)).thenReturn(postWithAuthor(5L, 8L));
         QtForumReaction state = new QtForumReaction();
         state.setPostId(5L);
         state.setLikeCount(1);
@@ -329,6 +336,62 @@ class QtForumServiceTest
         verify(reactionMapper, never()).selectStates(any(), any());
         assertEquals(503, assertThrows(ServiceException.class,
                 () -> service.selectPersonalPostList(new QtForumPost(), "liked")).getCode());
+    }
+
+    @Test
+    void privatePostCannotBeReadEvenByItsDemotedAuthor()
+    {
+        login(8L, Set.of("*:*:*"));
+        QtForumPost restricted = postWithAuthor(5L, 8L);
+        restricted.setVisibility("MANAGERS");
+        when(postMapper.selectPostById(5L)).thenReturn(restricted);
+        assertEquals(404, assertThrows(ServiceException.class, () -> service.selectPostById(5L)).getCode());
+        assertThrows(ServiceException.class, () -> service.viewPost(5L));
+        assertThrows(ServiceException.class, () -> service.selectCommentList(5L));
+        assertThrows(ServiceException.class, () -> service.setReaction(5L, "liked", true));
+        verify(reactionMapper, never()).insertLike(any(), any());
+        verify(postMapper, never()).incrementViewCount(any());
+    }
+
+    @Test
+    void clientCannotChoosePrivateScopeWithoutCurrentManagerRole()
+    {
+        login(8L, Set.of());
+        QtForumPost body = post("标题", "TECH", "内容");
+        body.setVisibility("MANAGERS");
+        assertEquals(403, assertThrows(ServiceException.class, () -> service.insertPost(body)).getCode());
+        body.setVisibility("ARBITRARY");
+        assertEquals(400, assertThrows(ServiceException.class, () -> service.insertPost(body)).getCode());
+        verify(postMapper, never()).insertPost(any());
+    }
+
+    @Test
+    void forgedViewerIdIsOverwrittenBeforeQuery()
+    {
+        login(8L, Set.of());
+        QtForumPost query = new QtForumPost();
+        query.setViewerId(1L);
+        service.selectPostList(query, false);
+        assertEquals(8L, query.getViewerId());
+    }
+
+    @Test
+    void managerScopeIsRecheckedAndOldUpdateCannotAccidentallyPublishIt()
+    {
+        login(8L, Set.of());
+        QtForumPost existing = postWithAuthor(5L, 8L);
+        existing.setVisibility("MANAGERS");
+        when(postMapper.selectPostById(5L)).thenReturn(existing);
+        when(postMapper.canManagePosts(8L)).thenReturn(true);
+        service.updatePost(5L, post("新标题", "TECH", "内容"));
+        assertEquals("MANAGERS", existing.getVisibility());
+        when(postMapper.canManagePosts(8L)).thenReturn(false);
+        assertThrows(ServiceException.class, () -> service.getReactions(5L));
+        QtForumComment comment = comment("不可更新", null);
+        comment.setPostId(5L); comment.setAuthorId(8L);
+        when(commentMapper.selectCommentById(3L)).thenReturn(comment);
+        assertThrows(ServiceException.class, () -> service.updateComment(3L, comment));
+        assertThrows(ServiceException.class, () -> service.deleteCommentById(3L));
     }
 
     private QtForumPost post(String title, String category, String content)

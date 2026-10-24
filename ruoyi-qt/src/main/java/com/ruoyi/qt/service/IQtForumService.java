@@ -7,6 +7,7 @@ import com.ruoyi.qt.domain.QtForumReaction;
 
 public interface IQtForumService
 {
+    List<String> allowedPostVisibilities();
     List<QtForumPost> selectPostList(QtForumPost query, boolean mine);
 
     List<QtForumPost> selectPostListByAuthor(Long authorId);

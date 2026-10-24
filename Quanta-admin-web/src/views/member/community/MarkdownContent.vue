@@ -2,6 +2,8 @@
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { markdownToDocument, markdownToHtml } from './markdown'
 import { reconcileMarkdown } from './markdown-dom'
+import { createProtectedImages } from './protected-images'
+import { sessionMemberId } from '@/utils/member-avatars'
 
 const props = defineProps({ source: { type: String, default: '' }, outline: Boolean, mediaPreview: Boolean })
 const emit = defineEmits(['outline'])
@@ -13,11 +15,14 @@ const timers = new Set()
 const content = ref(null)
 let diagramCleanup, diagramVersion = 0
 let viewer, alive = true
+let images = createProtectedImages()
+watch(sessionMemberId, () => { images.destroy(); images = createProtectedImages(); viewer?.destroy(); viewer = null })
 
 async function previewMedia(event) {
   if (!props.mediaPreview || (event.type === 'keydown' && !['Enter', ' '].includes(event.key))) return
   const image = event.target.closest?.('img')
   if (!image || !content.value?.contains(image)) return
+  if (image.dataset.forumImage && !image.getAttribute('src')?.startsWith('blob:')) return
   event.preventDefault()
   const { createMediaViewer } = await import('./media-viewer')
   if (!alive || !content.value?.contains(image)) return
@@ -30,6 +35,7 @@ async function attachDiagrams() {
   const root = content.value
   if (!root) return
   reconcileMarkdown(root, html.value)
+  images.sync(root)
   if (props.mediaPreview) for (const image of root.querySelectorAll('img')) {
     image.tabIndex = 0
     image.setAttribute('role', 'button')
@@ -90,6 +96,7 @@ async function copyCode(event) {
 onBeforeUnmount(() => {
   alive = false
   viewer?.destroy()
+  images.destroy()
   diagramVersion += 1
   diagramCleanup?.()
   timers.forEach(clearTimeout)

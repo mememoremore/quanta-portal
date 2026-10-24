@@ -8,6 +8,7 @@ import { useUserStore } from '@/stores/user'
 import { createForumComment, deleteForumComment, deleteForumPost, forumCategoryLabel, getForumPost, listForumComments, updateForumComment } from '@/api/portal/forum'
 import { groupForumComments, canManageForumContent } from './comment-tree'
 import MarkdownContent from './MarkdownContent.vue'
+import ForumVisibility from './ForumVisibility.vue'
 import ArticleToc from './ArticleToc.vue'
 import ForumReactions from './ForumReactions.vue'
 import { useForumReactions } from './reactions'
@@ -181,7 +182,7 @@ onBeforeUnmount(() => { postRequestId++; commentRequestId++; document.removeEven
     <template v-else-if="post">
       <div class="community-detail__reading" :class="{ 'has-outline': headings.length > 1 }">
         <article class="community-detail__post portal-card">
-          <span class="community-tag">{{ forumCategoryLabel(post.category) }}</span>
+          <div class="community-detail__labels"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><ForumVisibility :visibility="post.visibility" /></div>
           <h1>{{ post.title }}</h1>
           <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
           <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>

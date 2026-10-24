@@ -6,6 +6,8 @@ import { FORUM_CATEGORIES, listForumPosts, listMyForumReactions, forumCategoryLa
 import { useUserStore } from '@/stores/user'
 import { useForumReactions } from './reactions'
 import ForumReactions from './ForumReactions.vue'
+import ForumVisibility from './ForumVisibility.vue'
+import ForumImage from './ForumImage.vue'
 import { markdownImagePreviews } from './image-previews'
 import './community.css'
 
@@ -137,8 +139,8 @@ onBeforeUnmount(() => { generation++; document.removeEventListener('visibilitych
             <div class="community-post-card__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><div class="community-post-card__time"><time :datetime="post.createdAt" :title="post.createdAt">{{ displayTime(post.createdAt) }}</time><span v-if="post.viewCount != null"> · {{ post.viewCount }} 次浏览</span></div></div>
             <RouterLink class="community-post-card__title" :to="{path:`/member/community/${post.postId}`, state:{postReturn:route.fullPath}}">{{ post.title }}</RouterLink>
             <p>{{ post.summary || '打开帖子查看完整内容与讨论。' }}</p>
-            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="{path:`/member/community/${post.postId}`, state:{postReturn:route.fullPath}}" :aria-label="`查看 ${post.title} 的图片与正文`"><img :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" loading="lazy" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
-            <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><ForumReactions :post="post" @changed="changed" @comments="openComments(post)" /></div>
+            <RouterLink v-if="post.previewImages.length" class="community-post-card__media" :to="{path:`/member/community/${post.postId}`, state:{postReturn:route.fullPath}}" :aria-label="`查看 ${post.title} 的图片与正文`"><ForumImage :src="post.previewImages[0].src" :alt="post.previewImages[0].alt" /><span v-if="post.previewImages.length > 1" class="community-post-card__image-count">{{ post.previewImages.length }} 张</span></RouterLink>
+            <div class="community-post-card__meta"><span class="community-tag">{{ forumCategoryLabel(post.category) }}</span><ForumVisibility :visibility="post.visibility" /><ForumReactions :post="post" @changed="changed" @comments="openComments(post)" /></div>
           </article>
         </div>
         <div v-else-if="!errorMessage" class="member-empty portal-card"><template v-if="personal"><p>{{ category ? `当前分类没有${privateLabel}的帖子` : `还没有${privateLabel}的帖子` }}</p><button v-if="category" type="button" class="member-secondary-button" @click="resetFilter">{{ scope === 'liked' ? '查看全部赞过的帖子' : '查看全部收藏' }}</button><button v-else type="button" class="member-secondary-button" @click="chooseScope('latest')">去看看最新讨论</button></template><template v-else>{{ scope === 'mine' ? '你还没有发布帖子' : '还没有讨论，来发布第一篇帖子吧' }}</template></div>

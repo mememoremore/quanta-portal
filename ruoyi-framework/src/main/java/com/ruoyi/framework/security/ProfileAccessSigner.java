@@ -60,6 +60,7 @@ public class ProfileAccessSigner
             return false;
         }
         String path = extractPath(resource.replace("\\", "/"));
+        if (isPrivateForumResource(path)) return true;
         if (isSensitiveResource(path))
         {
             return true;
@@ -69,6 +70,27 @@ public class ProfileAccessSigner
             return isSensitiveResource("/profile" + (path.startsWith("/") ? path : "/" + path));
         }
         return false;
+    }
+
+    /** 私有论坛目录不支持HMAC直链，只能经帖子鉴权API读取。也拦截规范化/编码后的路径。 */
+    public boolean isPrivateForumResource(String resource)
+    {
+        if (resource == null) return false;
+        String path = extractPath(resource);
+        try { path = java.net.URLDecoder.decode(path, StandardCharsets.UTF_8); }
+        catch (IllegalArgumentException ignored) { return true; }
+        java.util.Deque<String> segments = new java.util.ArrayDeque<>();
+        for (String segment : path.replace('\\', '/').split("/"))
+        {
+            if (segment.isEmpty() || ".".equals(segment)) continue;
+            if ("..".equals(segment)) { if (!segments.isEmpty()) segments.removeLast(); }
+            else segments.addLast(segment);
+        }
+        // Windows文件系统不区分大小写；不能只拦截小写URL而放过同一目录的大写别名。
+        path = ("/" + String.join("/", segments)).toLowerCase(java.util.Locale.ROOT);
+        return path.equals("/profile/upload/qt/forum-private")
+                || path.startsWith("/profile/upload/qt/forum-private/")
+                || path.equals("/upload/qt/forum-private") || path.startsWith("/upload/qt/forum-private/");
     }
 
     public String signUrl(String url)

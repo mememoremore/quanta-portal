@@ -103,7 +103,16 @@ export const useUserStore = defineStore('user', () => {
 
   async function fetchUserInfo() {
     const response = await authApi.getInfo()
-    user.value = response.user || null
+    const identity = response?.user
+    const validId = identity
+      && ['string', 'number'].includes(typeof identity.userId)
+      && Number.isSafeInteger(Number(identity.userId))
+      && Number(identity.userId) > 0
+    const validName = typeof identity?.userName === 'string' && identity.userName.trim().length > 0
+    if (!identity || typeof identity !== 'object' || Array.isArray(identity) || (!validId && !validName)) {
+      throw new Error('无法确认账号身份，请重新登录')
+    }
+    user.value = identity
     sessionMemberId.value = user.value?.userId || null
     if (user.value) setMemberAvatar(user.value.userId, user.value.avatar || '')
     roles.value = response.roles || []

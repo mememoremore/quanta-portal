@@ -5,7 +5,7 @@ export function forumDraftKey(userId, postId = '') {
   return userId ? `quanta:forum-draft:v1:${userId}:${postId || 'new'}` : ''
 }
 
-export function useForumDraft({ userId, postId, title, category, content }) {
+export function useForumDraft({ userId, postId, title, category, content, visibility }) {
   const status = ref('')
   let key = ''
   let ready = false
@@ -21,7 +21,7 @@ export function useForumDraft({ userId, postId, title, category, content }) {
         return
       }
       const savedAt = new Date().toISOString()
-      localStorage.setItem(key, JSON.stringify({ version: 1, title: title.value, category: category.value, content: content.value, savedAt }))
+      localStorage.setItem(key, JSON.stringify({ version: 1, title: title.value, category: category.value, content: content.value, visibility: visibility?.value ?? 'MEMBERS', savedAt }))
       status.value = `草稿已保存到此设备 · ${new Date(savedAt).toLocaleTimeString('zh-CN', { hour12: false })}`
     } catch {
       status.value = '本地保存失败，请先复制正文备份'
@@ -39,6 +39,8 @@ export function useForumDraft({ userId, postId, title, category, content }) {
         title.value = draft.title
         category.value = draft.category
         content.value = draft.content
+        // Older drafts never had visibility. Editing a restricted post must not silently declassify it.
+        if (visibility && draft.visibility !== undefined) visibility.value = draft.visibility
         status.value = '已恢复此账号在本设备保存的草稿'
       }
     } catch {
@@ -54,7 +56,7 @@ export function useForumDraft({ userId, postId, title, category, content }) {
     status.value = ''
   }
 
-  watch([title, category, content], () => {
+  watch([title, category, content, ...(visibility ? [visibility] : [])], () => {
     if (!ready) return
     status.value = '正在保存本地草稿…'
     clearTimeout(timer)

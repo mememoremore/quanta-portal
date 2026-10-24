@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
@@ -22,6 +23,15 @@ public class QtForumPost extends BaseEntity
     private Long postId;
     private String title;
     private String category;
+    /** MEMBERS: 全部塔员；MANAGERS: 经理及以上。空值只用于兼容旧编辑请求。 */
+    private String visibility;
+    @JsonIgnore
+    private Long viewerId;
+
+    public String getVisibility() { return visibility; }
+    public void setVisibility(String visibility) { this.visibility = visibility; }
+    public Long getViewerId() { return viewerId; }
+    public void setViewerId(Long viewerId) { this.viewerId = viewerId; }
     /** Markdown 原文 */
     private String content;
     private Long authorId;

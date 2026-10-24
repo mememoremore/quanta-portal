@@ -11,11 +11,26 @@ export function forumCategoryLabel(value) {
   return FORUM_CATEGORIES.find((item) => item.value === value)?.label || '交流讨论'
 }
 
+export const FORUM_VISIBILITIES = Object.freeze([
+  { value: 'MEMBERS', label: '全部塔员' },
+  { value: 'MANAGERS', label: '经理及以上' },
+])
+
+export async function getForumOptions() {
+  const response = await request({ url: '/qt/forum/options', method: 'get' })
+  const allowed = response.data?.allowedPostVisibilities
+  if (!Array.isArray(allowed) || !allowed.includes('MEMBERS') || allowed.some(value => !FORUM_VISIBILITIES.some(item => item.value === value))) {
+    throw new Error('无法确认帖子可见范围权限，请稍后重试')
+  }
+  return allowed
+}
+
 export function mapForumPost(row = {}) {
   return {
     ...row,
     postId: Number(row.postId || row.id),
     title: row.title || '',
+    visibility: row.visibility ?? 'MEMBERS',
     content: row.content || '',
     summary: row.summary || row.content?.replace(/```[\s\S]*?```/g, ' ').replace(/!\[[^\]]*\]\([^)]+\)/g, ' ').replace(/[#*`![\]()]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140) || '',
     authorId: Number(row.authorId || row.userId),

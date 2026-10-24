@@ -92,6 +92,39 @@ class ProfileAccessFilterTest
         verify(chain).doFilter(any(), any());
     }
 
+    @Test
+    void privateForumFilesNeverAllowStaticOrSignedAccess() throws Exception
+    {
+        ProfileAccessFilter filter = new ProfileAccessFilter(signer);
+        for (String path : java.util.List.of("/profile/upload/qt/forum-private/a.png",
+                "/profile/upload/qt/forum/../forum-private/a.png",
+                "/profile/upload/qt/%66orum-private/a.png", "/%70rofile/upload/qt/forum-private/a.png",
+                "/PROFILE/UPLOAD/QT/FORUM-PRIVATE/a.png"))
+        {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+            request.setRequestURI(path);
+            request.setParameter("sig", "arbitrary-signature");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            FilterChain chain = mock(FilterChain.class);
+            filter.doFilter(request, response, chain);
+            assertEquals(404, response.getStatus());
+            verify(chain, never()).doFilter(any(), any());
+            org.junit.jupiter.api.Assertions.assertTrue(signer.isSensitiveDownloadResource(path));
+        }
+    }
+
+    @Test
+    void contextPathCannotBypassPrivateDirectory() throws Exception
+    {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/gateway/profile/upload/qt/forum-private/a.png");
+        request.setContextPath("/gateway");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+        new ProfileAccessFilter(signer).doFilter(request, response, chain);
+        assertEquals(404, response.getStatus());
+        verify(chain, never()).doFilter(any(), any());
+    }
+
     private void loginMember()
     {
         SysUser user = new SysUser();

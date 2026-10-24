@@ -156,6 +156,8 @@ function rejectedByServer(error) {
 
 async function submit() {
   if (loading.value) return
+  const requestedAudience = audience.value
+  const intended = safeAudienceRedirect(route.query.redirect, requestedAudience)
   loading.value = true
   try {
     form.username = syncFieldFromDom('username', form.username, { trim: true })
@@ -168,9 +170,11 @@ async function submit() {
     const valid = await formRef.value?.validate().catch(() => false)
     if (valid !== true) return
 
-    await userStore.login({ ...form }, audience.value)
+    await userStore.login({ ...form }, requestedAudience)
     await userStore.fetchUserInfo()
-    const intended = safeAudienceRedirect(route.query.redirect, audience.value)
+    if (userStore.serverAudience !== requestedAudience) {
+      throw new Error(requestedAudience === 'member' ? '该账号不是塔员，请使用新生入口登录' : '该账号已是塔员，请使用塔员入口登录')
+    }
     await router.replace(intended)
     ElMessage.success('登录成功')
   } catch (error) {

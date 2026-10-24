@@ -20,6 +20,8 @@ import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
 import com.ruoyi.qt.service.IQtForumService;
 import com.ruoyi.qt.util.QtAuthUtils;
+import com.ruoyi.qt.util.QtForumVisibility;
+import com.ruoyi.qt.service.QtForumImageService;
 
 /**
  * 社区论坛：所有身份字段（作者 ID/姓名/部门）均由服务端确定，不信任客户端传参。
@@ -39,7 +41,18 @@ public class QtForumServiceImpl implements IQtForumService
 
     @Autowired
     private QtForumReactionMapper reactionMapper;
+    @Autowired
+    private QtForumImageService imageService;
     private volatile boolean reactionsSchemaReady;
+
+    @Override
+    public List<String> allowedPostVisibilities()
+    {
+        QtAuthUtils.requireQuantaMember();
+        return postMapper.canManagePosts(SecurityUtils.getUserId())
+                ? List.of(QtForumVisibility.MEMBERS, QtForumVisibility.MANAGERS)
+                : List.of(QtForumVisibility.MEMBERS);
+    }
 
     private boolean reactionsAvailable()
     {
@@ -64,6 +77,7 @@ public class QtForumServiceImpl implements IQtForumService
     {
         // 作者过滤只认服务端登录身份，忽略客户端传入的 authorId
         query.setAuthorId(mine ? SecurityUtils.getUserId() : null);
+        query.setViewerId(SecurityUtils.getUserId());
         return withReactions(postMapper.selectPostList(query));
     }
 
@@ -72,6 +86,7 @@ public class QtForumServiceImpl implements IQtForumService
     {
         QtForumPost query = new QtForumPost();
         query.setAuthorId(authorId);
+        query.setViewerId(SecurityUtils.getUserId());
         return withReactions(postMapper.selectPostList(query));
     }
 
@@ -111,6 +126,7 @@ public class QtForumServiceImpl implements IQtForumService
     {
         QtAuthUtils.requireQuantaMember();
         requirePostId(postId);
+        requireReadablePost(postId);
         requireReactionsAvailable();
         List<QtForumReaction> states = reactionMapper.selectStates(List.of(postId), SecurityUtils.getUserId());
         if (states.isEmpty()) throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
@@ -154,19 +170,23 @@ public class QtForumServiceImpl implements IQtForumService
     {
         requirePostId(postId);
         QtForumPost post = postMapper.lockPostById(postId);
-        if (post == null) throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
+        QtForumVisibility.requireReadable(post, () -> postMapper.canManagePosts(SecurityUtils.getUserId()));
         return post;
     }
 
     @Override
     public QtForumPost selectPostById(Long postId)
     {
-        QtForumPost post = postMapper.selectPostById(postId);
-        if (post == null)
-        {
-            throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
-        }
+        QtForumPost post = requireReadablePost(postId);
         withReactions(List.of(post));
+        return post;
+    }
+
+    private QtForumPost requireReadablePost(Long postId)
+    {
+        requirePostId(postId);
+        QtForumPost post = postMapper.selectPostById(postId);
+        QtForumVisibility.requireReadable(post, () -> postMapper.canManagePosts(SecurityUtils.getUserId()));
         return post;
     }
 
@@ -174,7 +194,7 @@ public class QtForumServiceImpl implements IQtForumService
     @Transactional
     public QtForumPost viewPost(Long postId)
     {
-        selectPostById(postId);
+        lockPost(postId);
         if (postMapper.incrementViewCount(postId) == 0)
         {
             throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
@@ -183,27 +203,37 @@ public class QtForumServiceImpl implements IQtForumService
     }
 
     @Override
+    @Transactional
     public QtForumPost insertPost(QtForumPost post)
     {
         validatePost(post);
+        validateVisibility(post, QtForumVisibility.MEMBERS);
+        imageService.validateContent(post.getContent(), post.getVisibility());
         post.setPostId(null);
         post.setAuthorId(SecurityUtils.getUserId());
         postMapper.insertPost(post);
+        imageService.bindImages(post.getContent(), post.getPostId());
         return selectPostById(post.getPostId());
     }
 
     @Override
+    @Transactional
     public QtForumPost updatePost(Long postId, QtForumPost body)
     {
+        lockPost(postId);
         QtForumPost post = selectPostById(postId);
         if (!SecurityUtils.getUserId().equals(post.getAuthorId()))
         {
             throw new ServiceException("只能编辑自己发布的帖子", HttpStatus.FORBIDDEN);
         }
         validatePost(body);
+        validateVisibility(body, post.getVisibility() == null ? QtForumVisibility.MEMBERS : post.getVisibility());
+        imageService.validateContent(body.getContent(), body.getVisibility());
+        imageService.bindImages(body.getContent(), postId);
         post.setTitle(body.getTitle());
         post.setCategory(body.getCategory());
         post.setContent(body.getContent());
+        post.setVisibility(body.getVisibility());
         postMapper.updatePost(post);
         return selectPostById(postId);
     }
@@ -230,7 +260,10 @@ public class QtForumServiceImpl implements IQtForumService
     @Override
     public List<QtForumComment> selectCommentList(Long postId)
     {
-        selectPostById(postId);
+        requireReadablePost(postId);
+        // 身份检查先于分页；否则前面的帖子/角色查询会误消耗PageHelper上下文。
+        if (com.ruoyi.common.utils.ServletUtils.getRequest() != null)
+            com.ruoyi.common.utils.PageUtils.startPage();
         QtForumComment query = new QtForumComment();
         query.setPostId(postId);
         return commentMapper.selectCommentList(query);
@@ -240,6 +273,7 @@ public class QtForumServiceImpl implements IQtForumService
     @Transactional
     public QtForumComment insertComment(Long postId, QtForumComment body)
     {
+        lockPost(postId);
         selectPostById(postId);
         String content = validateCommentContent(body);
         Long parentId = body.getParentId() == null ? null : body.getParentId();
@@ -315,7 +349,18 @@ public class QtForumServiceImpl implements IQtForumService
         {
             throw new ServiceException("评论不存在或已删除", HttpStatus.NOT_FOUND);
         }
+        lockPost(comment.getPostId());
         return comment;
+    }
+
+    private void validateVisibility(QtForumPost post, String fallback)
+    {
+        String visibility = post.getVisibility() == null ? fallback : post.getVisibility();
+        if (!QtForumVisibility.MEMBERS.equals(visibility) && !QtForumVisibility.MANAGERS.equals(visibility))
+            throw new ServiceException("请选择有效的可见范围", HttpStatus.BAD_REQUEST);
+        if (QtForumVisibility.MANAGERS.equals(visibility) && !postMapper.canManagePosts(SecurityUtils.getUserId()))
+            throw new ServiceException("仅经理及以上可设置该可见范围", HttpStatus.FORBIDDEN);
+        post.setVisibility(visibility);
     }
 
     private void validatePost(QtForumPost post)

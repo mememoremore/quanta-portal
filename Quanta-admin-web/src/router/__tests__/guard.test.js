@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { pinia } from '@/stores'
 import { usePermissionStore } from '@/stores/permission'
@@ -109,6 +109,18 @@ describe('global route guard', () => {
     expect(router.currentRoute.value.path).toBe('/login/freshman')
     expect(userStore.token).toBe('')
     expect(userStore.user).toBeNull()
+  })
+
+  it('keeps an unconfirmed admin identity at member login instead of falling back to admin', async () => {
+    const router = createTestRouter()
+    userStore.token = 'unconfirmed-token'
+    userStore.roles = ['admin']
+    userStore.permissions = ['*:*:*']
+    vi.spyOn(userStore, 'fetchUserInfo').mockResolvedValue({ user: null })
+    await router.push('/member/home')
+    expect(router.currentRoute.value.path).toBe('/login/member')
+    expect(router.currentRoute.value.query.redirect).toBe('/member/home')
+    expect(userStore.token).toBe('')
   })
 
   it('allows a member with management permissions into admin routes', async () => {

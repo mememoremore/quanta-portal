@@ -61,7 +61,11 @@ export function reconcileMarkdown(root, html) {
         const code = node.querySelector('[data-mermaid-code] code'), source = sourceOf(next)
         if (code.textContent !== source) code.textContent = source
       } else if (node.nodeType === 1) {
-        for (const attr of [...node.attributes]) if (!next.hasAttribute(attr.name)) node.removeAttribute(attr.name)
+        for (const attr of [...node.attributes]) {
+          const keepProtectedImage = node.nodeName === 'IMG' && attr.name === 'src'
+            && next.hasAttribute('data-forum-image') && node.getAttribute('data-forum-image') === next.getAttribute('data-forum-image')
+          if (!next.hasAttribute(attr.name) && !keepProtectedImage) node.removeAttribute(attr.name)
+        }
         for (const attr of [...next.attributes]) if (node.getAttribute(attr.name) !== attr.value) node.setAttribute(attr.name, attr.value)
         patchChildren(node, next)
       } else if (node.nodeValue !== next.nodeValue) node.nodeValue = next.nodeValue
