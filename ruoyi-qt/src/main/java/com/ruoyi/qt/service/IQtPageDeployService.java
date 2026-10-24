@@ -35,4 +35,13 @@ public interface IQtPageDeployService
 
     /** 启动恢复：对账 PUBLISHING 中断任务与磁盘真实 current，不伪报成功、不倒退新目标 */
     void reconcilePublishing();
+
+    /** 历史列表（本人站点）；分页在服务端钳制，默认 20、最大 100 */
+    java.util.List<QtPageDeployment> listOwnedDeployments(Long siteId, Integer pageNum, Integer pageSize);
+
+    /** 历史详情（本人站点），含最多 32KiB 阶段日志 */
+    QtPageDeployment getOwnedDeployment(Long siteId, Long deploymentId);
+
+    /** 手动回滚：只引用本站成功且实体仍存在的版本，创建独立 ROLLBACK 意图并入队 */
+    QtPageDeployment requestRollback(Long siteId, Long deploymentId);
 }

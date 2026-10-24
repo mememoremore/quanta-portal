@@ -148,4 +148,37 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 1
     </select>
 
+    <select id="selectReusableRollback" parameterType="Long" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where site_id = #{siteId}
+          and trigger_type = 'ROLLBACK'
+          and status in ('PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING', 'PUBLISHING')
+        order by deployment_id desc
+        limit 1
+    </select>
+
+    <select id="selectProtectedReleaseIds" parameterType="Long" resultType="java.lang.Long">
+        select distinct release_id from (
+            select release_id from qt_page_deployment
+            where site_id = #{siteId}
+              and release_id is not null
+              and status in ('PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING', 'PUBLISHING')
+            union all
+            select release_id from (
+                select release_id from qt_page_deployment
+                where site_id = #{siteId}
+                  and release_id is not null
+                  and status = 'SUCCESS'
+                  and release_available = 1
+                order by request_version desc, deployment_id desc
+                limit 5
+            ) recent_success
+        ) protected_ids
+    </select>
+
+    <update id="markReleaseUnavailable">
+        update qt_page_deployment set release_available = 0
+        where site_id = #{siteId} and release_id = #{releaseId}
+    </update>
+
 </mapper>

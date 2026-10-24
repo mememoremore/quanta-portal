@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import com.ruoyi.common.constant.HttpStatus;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.qt.config.QtPagesProperties;
 import com.ruoyi.qt.domain.QtPageDeployment;
 import com.ruoyi.qt.domain.QtPageSite;
@@ -94,6 +96,98 @@ public class QtPageDeployTransactions
         site.setLastCheckError(truncate((errorCode == null ? "ERROR" : errorCode) + ": " + message, 1000));
         site.setNextPollTime(nextPoll);
         siteMapper.updateSite(site);
+    }
+
+    // ---------- 回滚 ----------
+
+    /**
+     * 回滚入队：行锁下校验来源记录（本站、成功、实体仍在），创建独立的 ROLLBACK 意图。
+     * 不重新下载、不改写历史记录、last_observed_sha 不变。
+     * 调用方先完成本人站点校验；站点行锁保证与版本回收串行化。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public QtPageDeployment enqueueRollback(Long siteId, Long sourceDeploymentId, Date now)
+    {
+        QtPageSite site = siteMapper.selectForUpdate(siteId);
+        if (site == null)
+        {
+            throw new ServiceException("站点不存在", HttpStatus.NOT_FOUND);
+        }
+        QtPageDeployment source = sourceDeploymentId == null ? null : deploymentMapper.selectById(sourceDeploymentId);
+        if (source == null || !siteId.equals(source.getSiteId()))
+        {
+            throw new ServiceException("部署记录不存在", HttpStatus.NOT_FOUND);
+        }
+        if (!QtPageDeployment.STATUS_SUCCESS.equals(source.getStatus()))
+        {
+            throw new ServiceException("只能回滚成功的部署版本", HttpStatus.CONFLICT);
+        }
+        if (source.getReleaseId() == null || !Boolean.TRUE.equals(source.getReleaseAvailable()))
+        {
+            throw new ServiceException("该版本的发布文件已被清理，无法回滚", HttpStatus.CONFLICT);
+        }
+        if (source.getReleaseId().equals(site.getCurrentReleaseId()))
+        {
+            throw new ServiceException("该版本已是当前在线版本", HttpStatus.CONFLICT);
+        }
+        QtPageDeployment queued = deploymentMapper.selectReusableRollback(siteId);
+        if (queued != null && queued.getReleaseId().equals(source.getReleaseId()))
+        {
+            return queued;
+        }
+        long requestVersion = site.getRequestVersion() + 1;
+        site.setRequestVersion(requestVersion);
+        siteMapper.updateSite(site);
+        deploymentMapper.markSupersededBefore(siteId, requestVersion);
+
+        QtPageDeployment rollback = newDeployment(site, QtPageDeployment.TRIGGER_ROLLBACK, requestVersion);
+        rollback.setReleaseId(source.getReleaseId());
+        rollback.setCommitSha(source.getCommitSha());
+        rollback.setFileCount(source.getFileCount());
+        rollback.setTotalBytes(source.getTotalBytes());
+        deploymentMapper.insertDeployment(rollback);
+        return rollback;
+    }
+
+    // ---------- 版本回收 ----------
+
+    public record PrunePlan(java.util.List<Long> deletableReleaseIds)
+    {
+    }
+
+    /**
+     * 行锁下计算保护集合（非终态意图 + 最近 5 个可用成功实体 + 当前在线版本），
+     * 把本轮回收候选标记为 release_available=0 后交由调用方删除文件。
+     * 与回滚入队通过站点行锁串行化：这里标记之后，回滚不再引用被回收实体。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public PrunePlan planPrune(long siteId)
+    {
+        QtPageSite site = siteMapper.selectForUpdate(siteId);
+        if (site == null)
+        {
+            return new PrunePlan(java.util.List.of());
+        }
+        java.util.Set<Long> protectedIds = new java.util.HashSet<>(deploymentMapper.selectProtectedReleaseIds(siteId));
+        if (site.getCurrentReleaseId() != null)
+        {
+            protectedIds.add(site.getCurrentReleaseId());
+        }
+        QtPageReleaseStore store = runtime.store();
+        java.util.List<Long> deletable;
+        try
+        {
+            deletable = store.listDeletableReleases(site, protectedIds);
+        }
+        catch (Exception e)
+        {
+            return new PrunePlan(java.util.List.of());
+        }
+        for (Long releaseId : deletable)
+        {
+            deploymentMapper.markReleaseUnavailable(siteId, releaseId);
+        }
+        return new PrunePlan(deletable);
     }
 
     // ---------- 领取与回退 ----------

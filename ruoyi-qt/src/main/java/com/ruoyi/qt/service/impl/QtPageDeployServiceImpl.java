@@ -263,6 +263,14 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
         {
             recordFailure(deployment, site, e.getErrorCode(), false, null, e.getMessage(), logText, properties);
         }
+        catch (QtPageReleaseStore.ReleaseMissingException e)
+        {
+            recordFailure(deployment, site, "RELEASE_MISSING", false, null, e.getMessage(), logText, properties);
+        }
+        catch (QtPageReleaseStore.QuotaExceededException e)
+        {
+            recordFailure(deployment, site, "DISK_QUOTA_EXCEEDED", false, null, e.getMessage(), logText, properties);
+        }
         catch (IOException e)
         {
             recordFailure(deployment, site, QtGitHubClient.ERROR_NETWORK, true, null, e.getMessage(),
@@ -292,11 +300,20 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
             cleanupStaging(store, site, deployment.getDeploymentId());
             return;
         }
+        // 回滚不下载：直接引用来源实体目录，走同一套两阶段发布与恢复协议
+        if (QtPageDeployment.TRIGGER_ROLLBACK.equals(deployment.getTriggerType()))
+        {
+            runRollbackPipeline(deployment, site, store, logText);
+            return;
+        }
         QtGitHubClient client = runtime.gitHubClient();
         QtGitHubClient.Source source = new QtGitHubClient.Source(deployment.getRepoOwner(),
                 deployment.getRepoName(), deployment.getBranch());
 
-        // 2. RESOLVING：确认公开仓库并固定 SHA
+        // 2. 磁盘预算：先回收不受保护的过期版本，配额仍不足则拒绝新部署（不动在线版本）
+        enforceDiskBudget(store, site, properties, logText);
+
+        // 3. RESOLVING：确认公开仓库并固定 SHA
         client.requirePublicRepository(source);
         String sha = deployment.getCommitSha();
         if (sha == null)
@@ -352,9 +369,78 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
         }
         store.switchCurrent(site, releaseId);
 
-        // 8. PUBLISHING 阶段二：提交在线状态
+        // 8. PUBLISHING 阶段二：提交在线状态，随后回收过期版本
         transactions.finalizeSuccess(deployment.getDeploymentId(), site.getSiteId(), sha, releaseId,
                 logText.append("published").toString(), Date.from(clock.instant()));
+        pruneExpiredReleases(store, site);
+    }
+
+    private void runRollbackPipeline(QtPageDeployment deployment, QtPageSite site, QtPageReleaseStore store,
+            LogBuilder logText) throws IOException
+    {
+        long releaseId = deployment.getReleaseId() != null ? deployment.getReleaseId() : deployment.getDeploymentId();
+        if (!Files.isDirectory(store.releaseDirectory(site, releaseId)))
+        {
+            throw new QtPageReleaseStore.ReleaseMissingException("rollback target release missing: " + releaseId);
+        }
+        logText.append("rollback to release " + releaseId);
+        QtPageDeployTransactions.PublishingBoundary boundary = transactions.persistPublishingBoundary(
+                deployment.getDeploymentId(), site.getSiteId(), releaseId,
+                deployment.getFileCount() == null ? 0 : deployment.getFileCount(),
+                deployment.getTotalBytes() == null ? 0L : deployment.getTotalBytes(),
+                logText.toString(), Date.from(clock.instant()));
+        if (boundary.superseded())
+        {
+            logText.append("superseded before publish");
+            return;
+        }
+        store.switchCurrent(site, releaseId);
+        transactions.finalizeSuccess(deployment.getDeploymentId(), site.getSiteId(), deployment.getCommitSha(),
+                releaseId, logText.append("published").toString(), Date.from(clock.instant()));
+        pruneExpiredReleases(store, site);
+    }
+
+    private void enforceDiskBudget(QtPageReleaseStore store, QtPageSite site, QtPagesProperties properties,
+            LogBuilder logText)
+    {
+        pruneExpiredReleases(store, site);
+        long usage;
+        try
+        {
+            usage = store.siteUsageBytes(site);
+        }
+        catch (IOException e)
+        {
+            usage = 0L;
+        }
+        if (usage + properties.getDownloadLimitBytes() > properties.getDiskQuotaBytes())
+        {
+            throw new QtPageReleaseStore.QuotaExceededException(
+                    "站点磁盘占用已达上限，请清理不再需要的版本后重试");
+        }
+        logText.append("disk usage " + usage + " bytes");
+    }
+
+    private void pruneExpiredReleases(QtPageReleaseStore store, QtPageSite site)
+    {
+        try
+        {
+            for (Long releaseId : transactions.planPrune(site.getSiteId()).deletableReleaseIds())
+            {
+                try
+                {
+                    QtStaticArchiveValidator.deleteRecursively(store.releaseDirectory(site, releaseId));
+                }
+                catch (IOException e)
+                {
+                    log.warn("Pages release {} 删除失败", releaseId, e);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            log.warn("Pages 版本回收跳过 site={}", site.getSiteId(), e);
+        }
     }
 
     private void recordFailure(QtPageDeployment deployment, QtPageSite site, String errorCode, boolean retryable,
@@ -439,6 +525,45 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
                 locked.ifPresent(QtPageReleaseStore.SiteLock::close);
             }
         }
+    }
+
+    @Override
+    public java.util.List<QtPageDeployment> listOwnedDeployments(Long siteId, Integer pageNum, Integer pageSize)
+    {
+        access.requireOwnedSite(siteId);
+        int number = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        com.github.pagehelper.PageHelper.startPage(number, normalizePageSize(pageSize));
+        return deploymentMapper.selectListBySite(siteId);
+    }
+
+    @Override
+    public QtPageDeployment getOwnedDeployment(Long siteId, Long deploymentId)
+    {
+        access.requireOwnedSite(siteId);
+        QtPageDeployment deployment = deploymentId == null ? null : deploymentMapper.selectById(deploymentId);
+        if (deployment == null || !siteId.equals(deployment.getSiteId()))
+        {
+            throw new ServiceException("部署记录不存在", HttpStatus.NOT_FOUND);
+        }
+        return deployment;
+    }
+
+    @Override
+    public QtPageDeployment requestRollback(Long siteId, Long deploymentId)
+    {
+        runtime.requireReady();
+        access.requireOwnedSite(siteId);
+        return transactions.enqueueRollback(siteId, deploymentId, Date.from(clock.instant()));
+    }
+
+    /** 历史分页：默认 20，最大 100。 */
+    static int normalizePageSize(Integer pageSize)
+    {
+        if (pageSize == null || pageSize < 1)
+        {
+            return 20;
+        }
+        return Math.min(pageSize, 100);
     }
 
     private void cleanupStaging(QtPageReleaseStore store, QtPageSite site, long deploymentId)

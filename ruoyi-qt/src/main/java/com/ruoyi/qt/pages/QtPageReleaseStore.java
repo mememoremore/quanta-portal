@@ -25,6 +25,28 @@ import com.ruoyi.qt.domain.QtPageSite;
  */
 public class QtPageReleaseStore
 {
+    /** 每站磁盘配额超限：保护引用无法回收时拒绝新部署，绝不删除正在使用的目录 */
+    public static class QuotaExceededException extends RuntimeException
+    {
+        private static final long serialVersionUID = 1L;
+
+        public QuotaExceededException(String message)
+        {
+            super(message);
+        }
+    }
+
+    /** 回滚目标实体目录已不存在 */
+    public static class ReleaseMissingException extends RuntimeException
+    {
+        private static final long serialVersionUID = 1L;
+
+        public ReleaseMissingException(String message)
+        {
+            super(message);
+        }
+    }
+
     private static final String LOCK_FILE = ".deploy.lock";
 
     private static final String STAGING_DIR = ".staging";
@@ -235,6 +257,45 @@ public class QtPageReleaseStore
                 }
             }).sum();
         }
+    }
+
+    /** 站点目录总占用（含 .staging 临时文件与全部 release）。 */
+    public long siteUsageBytes(QtPageSite site) throws IOException
+    {
+        return directorySize(siteDirectory(site));
+    }
+
+    /**
+     * 列出不受保护的实体版本目录（调用方持有站点文件锁与行锁）。
+     * 只认数字命名目录；不在保护集合内的即为回收候选。
+     */
+    public java.util.List<Long> listDeletableReleases(QtPageSite site, Set<Long> protectedReleaseIds)
+    throws IOException
+    {
+        java.util.List<Long> deletable = new java.util.ArrayList<>();
+        Path releases = siteDirectory(site).resolve(RELEASES_DIR);
+        if (!Files.isDirectory(releases))
+        {
+            return deletable;
+        }
+        try (var stream = Files.list(releases))
+        {
+            for (Path child : stream.toList())
+            {
+                Matcher matcher = RELEASE_ID_PATTERN.matcher(child.getFileName().toString());
+                if (!matcher.matches())
+                {
+                    continue;
+                }
+                long releaseId = Long.parseLong(matcher.group(1));
+                if (!protectedReleaseIds.contains(releaseId))
+                {
+                    deletable.add(releaseId);
+                }
+            }
+        }
+        deletable.sort(java.util.Comparator.naturalOrder());
+        return deletable;
     }
 
     private static void deleteQuietly(Path path)
