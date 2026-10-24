@@ -12,7 +12,9 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.enums.UserStatus;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.framework.security.TrustedPortalOriginPolicy;
 import com.ruoyi.framework.web.service.RefreshSession;
 import com.ruoyi.framework.web.service.SysPermissionService;
 import com.ruoyi.framework.web.service.TokenService;
@@ -33,10 +35,23 @@ public class AuthRefreshController
     @Autowired
     private SysPermissionService permissionService;
 
+    @Autowired
+    private TrustedPortalOriginPolicy trustedPortalOriginPolicy;
+
     @Anonymous
     @PostMapping("/auth/refresh")
     public AjaxResult refresh(HttpServletRequest request, HttpServletResponse response)
     {
+        // Pages 子域与门户同主域会自动带上 Refresh Cookie，必须在消费 Cookie 前校验来源
+        try
+        {
+            trustedPortalOriginPolicy.assertRefreshAllowed(request);
+        }
+        catch (ServiceException ex)
+        {
+            response.setStatus(ex.getCode());
+            return AjaxResult.error(ex.getCode(), ex.getMessage());
+        }
         RefreshSession session = tokenService.consumeRefresh(request, response);
         if (session == null || session.getUserId() == null || StringUtils.isEmpty(session.getUsername()))
         {
