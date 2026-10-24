@@ -42,6 +42,7 @@ VITE_APP_TITLE=Quanta 统一门户
 - 新生：`/qt/interview/*`、`/qt/activity/list`、`/qt/signup/*`。
 - 塔员内容：`/qt/member/list`、`/system/notice/*`、`/qt/materials/*`。
 - 塔员服务：`/qt/book/*`、`/qt/borrow/*`、`/qt/workstation/*`、`/qt/reservation/*`、`/qt/item/*`、`/qt/order/*`。
+- 个人网站（Pages）：`/qt/pages/sites`（创建/本人站点/更新/部署/历史/详情/回滚），页面在 `/member/pages`；站点静态内容由服务器 Nginx 提供，不经前端请求。
 - 管理端：`/dashboard/*`、`/qt/*`、`/system/*` 及文件上传下载接口。
 
 塔服缺少可信价格时只保存 `DRAFT`。头像复用 `POST /system/user/profile/avatar`（`avatarfile`）；云端档案使用 `GET/PUT /qt/member/profile`，成员主页使用 `GET /qt/member/{userId}/profile` 与 `/qt/member/{userId}/posts`。后面三个新增契约需要后端实现；真实接口未接通时明确显示错误，不伪装本地保存成功。
@@ -77,11 +78,11 @@ npm run test:e2e
 
 ```text
 src/
-  api/portal/       新生与塔员真实接口适配
+  api/portal/       新生与塔员真实接口适配（含 pages.js 个人网站接口）
   layout/           管理布局和门户布局
   router/           三身份路由与管理动态路由
   views/freshman/   新生 Web 页面
-  views/member/     塔员 Web 页面
+  views/member/     塔员 Web 页面（含 pages/ 个人网站控制台）
   views/login/      管理端登录
   views/portal-login/
   views/portal-security/
