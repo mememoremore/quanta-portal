@@ -3,11 +3,12 @@ import { defineComponent } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import CommunityFeed from '../index.vue'
 import CommunityEditor from '../editor.vue'
-import { createForumPost, listForumPosts, uploadForumImage } from '@/api/portal/forum'
+import { createForumPost, listForumPosts, listMyForumReactions, uploadForumImage } from '@/api/portal/forum'
 
 vi.mock('@/api/portal/forum', async (importOriginal) => ({
   ...await importOriginal(),
   listForumPosts: vi.fn(),
+  listMyForumReactions: vi.fn(),
   createForumPost: vi.fn(),
   uploadForumImage: vi.fn(),
 }))
@@ -36,6 +37,7 @@ describe('member community pages', () => {
     vi.clearAllMocks()
     localStorage.clear()
     listForumPosts.mockResolvedValue({ rows: [{ postId: 7, title: '项目讨论', authorName: '小王', category: 'PROJECT', commentCount: 2 }], total: 1 })
+    listMyForumReactions.mockResolvedValue({ rows: [], total: 0 })
   })
 
   it('shows the feed and queries my posts when the tab changes', async () => {
@@ -59,6 +61,34 @@ describe('member community pages', () => {
     await wrapper.findAll('[role="tab"]')[1].trigger('click')
     await flushPromises()
     expect(listForumPosts).toHaveBeenLastCalledWith({ pageNum: 1, pageSize: 10, scope: 'mine', category: 'TECH' })
+  })
+
+  it('uses private history APIs and distinguishes empty lists from failed requests', async () => {
+    const wrapper = mount(CommunityFeed, { global: { stubs } })
+    await flushPromises()
+    await wrapper.findAll('[role="tab"]')[2].trigger('click')
+    await flushPromises()
+    expect(listMyForumReactions).toHaveBeenLastCalledWith('liked', { pageNum: 1, pageSize: 10 })
+    expect(wrapper.text()).toContain('还没有赞过的帖子')
+    expect(wrapper.text()).toContain('仅你可见')
+    listMyForumReactions.mockRejectedValueOnce(new Error('互动尚未开放'))
+    await wrapper.findAll('[role="tab"]')[3].trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').text()).toContain('互动尚未开放')
+    expect(wrapper.text()).not.toContain('还没有收藏的帖子')
+    expect(listForumPosts).toHaveBeenCalledTimes(1)
+  })
+
+  it('discards a late previous scope response', async () => {
+    let finish
+    listForumPosts.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+    const wrapper = mount(CommunityFeed, { global: { stubs } })
+    await wrapper.findAll('[role="tab"]')[3].trigger('click')
+    await flushPromises()
+    finish({ rows: [{ postId: 7, title: '过期结果', content: '' }], total: 1 })
+    await flushPromises()
+    expect(wrapper.text()).toContain('还没有收藏的帖子')
+    expect(wrapper.text()).not.toContain('过期结果')
   })
 
   it('shows a safe uploaded image preview when a post contains Markdown images', async () => {

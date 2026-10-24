@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +24,8 @@ import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
+import com.ruoyi.qt.mapper.QtForumReactionMapper;
+import com.ruoyi.qt.domain.QtForumReaction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,6 +48,16 @@ class QtForumServiceTest
 
     @Mock
     private QtForumCommentMapper commentMapper;
+
+    @Mock
+    private QtForumReactionMapper reactionMapper;
+
+    @BeforeEach
+    void defaultLock()
+    {
+        when(postMapper.lockPostById(any())).thenAnswer(inv -> postMapper.selectPostById(inv.getArgument(0)));
+        when(reactionMapper.isSchemaReady()).thenReturn(true);
+    }
 
     @InjectMocks
     private QtForumServiceImpl service;
@@ -110,6 +123,8 @@ class QtForumServiceTest
         login(8L, Set.of());
         service.deletePostById(5L);
         verify(commentMapper).deleteByPostId(5L);
+        verify(reactionMapper).deleteLikesByPostId(5L);
+        verify(reactionMapper).deleteFavoritesByPostId(5L);
         verify(postMapper).deletePostById(5L);
     }
 
@@ -240,6 +255,80 @@ class QtForumServiceTest
         assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ServiceException.class,
                 () -> service.insertComment(5L, comment("C".repeat(1001), null))).getCode());
         verify(commentMapper, never()).insertComment(any(QtForumComment.class));
+    }
+
+    @Test
+    void reactionsLockPostAndAlwaysUseTheSessionUser()
+    {
+        login(8L, Set.of());
+        org.mockito.Mockito.doReturn(postWithAuthor(5L, 8L)).when(postMapper).lockPostById(5L);
+        QtForumReaction state = new QtForumReaction();
+        state.setPostId(5L);
+        state.setLikeCount(1);
+        state.setLiked(true);
+        when(reactionMapper.selectStates(List.of(5L), 8L)).thenReturn(List.of(state));
+        assertEquals(1, service.setReaction(5L, "liked", true).getLikeCount());
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(postMapper, reactionMapper);
+        order.verify(postMapper).lockPostById(5L);
+        order.verify(reactionMapper).insertLike(5L, 8L);
+        order.verify(reactionMapper).selectStates(List.of(5L), 8L);
+        service.setReaction(5L, "liked", false);
+        verify(reactionMapper).deleteLike(5L, 8L);
+        service.setReaction(5L, "favorites", true);
+        service.setReaction(5L, "favorites", false);
+        verify(reactionMapper).insertFavorite(5L, 8L);
+        verify(reactionMapper).deleteFavorite(5L, 8L);
+        verify(postMapper, never()).incrementViewCount(any());
+    }
+
+    @Test
+    void reactionValidationRejectsNonMemberInvalidOrDeletedPost()
+    {
+        login(8L, Set.of());
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ServiceException.class,
+                () -> service.setReaction(0L, "liked", true)).getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ServiceException.class,
+                () -> service.setReaction(1L, "arbitrary", true)).getCode());
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ServiceException.class,
+                () -> service.setReaction(99L, "liked", true)).getCode());
+        verify(reactionMapper, never()).insertLike(any(), any());
+        setNonMember();
+        assertThrows(ServiceException.class, () -> service.setReaction(5L, "liked", true));
+    }
+
+    private void setNonMember()
+    {
+        LoginUser current = (LoginUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        current.getUser().setIsQuantaMember("0");
+        current.getUser().setRoles(List.of());
+    }
+
+    @Test
+    void privateHistoryIgnoresClientAuthorAndBatchEnrichesThePage()
+    {
+        login(8L, Set.of());
+        QtForumPost query = new QtForumPost();
+        query.setAuthorId(999L);
+        query.setCategory("TECH");
+        when(postMapper.selectPersonalPostList("TECH", 8L, "liked"))
+                .thenReturn(List.of(postWithAuthor(5L, 9L), postWithAuthor(6L, 10L)));
+        assertEquals(2, service.selectPersonalPostList(query, "liked").size());
+        verify(reactionMapper).selectStates(List.of(5L, 6L), 8L);
+        verify(postMapper).selectPersonalPostList("TECH", 8L, "liked");
+    }
+
+    @Test
+    void missingMigrationDoesNotBreakReadingOrDeletingExistingPosts()
+    {
+        login(8L, Set.of());
+        when(reactionMapper.isSchemaReady()).thenReturn(false);
+        when(postMapper.selectPostById(5L)).thenReturn(postWithAuthor(5L, 8L));
+        assertEquals(false, service.selectPostById(5L).isReactionsReady());
+        service.deletePostById(5L);
+        verify(reactionMapper, never()).deleteLikesByPostId(any());
+        verify(reactionMapper, never()).selectStates(any(), any());
+        assertEquals(503, assertThrows(ServiceException.class,
+                () -> service.selectPersonalPostList(new QtForumPost(), "liked")).getCode());
     }
 
     private QtForumPost post(String title, String category, String content)

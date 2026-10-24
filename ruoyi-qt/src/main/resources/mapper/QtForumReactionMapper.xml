@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtForumReactionMapper">
+    <!-- 只读发布兼容探测，不在应用启动时执行DDL。 -->
+    <select id="isSchemaReady" resultType="boolean">
+        select count(*) = 2 from information_schema.tables
+        where table_schema = database() and table_name in ('qt_forum_post_like', 'qt_forum_post_favorite')
+    </select>
+    <resultMap id="Reaction" type="com.ruoyi.qt.domain.QtForumReaction">
+        <id property="postId" column="post_id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="liked" column="liked"/>
+        <result property="favorited" column="favorited"/>
+    </resultMap>
+    <select id="selectStates" resultMap="Reaction">
+        select p.post_id, ifnull(t.likes, 0) as like_count,
+               (own_like.id is not null) as liked, (own_favorite.id is not null) as favorited
+        from qt_forum_post p
+        left join (
+            select post_id, count(*) as likes from qt_forum_post_like
+            where post_id in <foreach collection="postIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            group by post_id
+        ) t on t.post_id = p.post_id
+        left join qt_forum_post_like own_like on own_like.post_id = p.post_id and own_like.user_id = #{userId}
+        left join qt_forum_post_favorite own_favorite on own_favorite.post_id = p.post_id and own_favorite.user_id = #{userId}
+        where p.post_id in <foreach collection="postIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <!-- 重复PUT不更新时间；每个帖子先持行锁，因此同帖写入及删除串行。 -->
+    <insert id="insertLike">
+        insert into qt_forum_post_like (post_id, user_id) values (#{postId}, #{userId})
+        on duplicate key update id = id
+    </insert>
+    <delete id="deleteLike">delete from qt_forum_post_like where post_id = #{postId} and user_id = #{userId}</delete>
+    <insert id="insertFavorite">
+        insert into qt_forum_post_favorite (post_id, user_id) values (#{postId}, #{userId})
+        on duplicate key update id = id
+    </insert>
+    <delete id="deleteFavorite">delete from qt_forum_post_favorite where post_id = #{postId} and user_id = #{userId}</delete>
+    <delete id="deleteLikesByPostId">delete from qt_forum_post_like where post_id = #{postId}</delete>
+    <delete id="deleteFavoritesByPostId">delete from qt_forum_post_favorite where post_id = #{postId}</delete>
+</mapper>

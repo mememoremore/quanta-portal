@@ -1,5 +1,5 @@
 import { findAccountByToken } from '../data/accounts'
-import { mockForumPosts, mockForumComments } from '../data/forum'
+import { mockForumPosts, mockForumComments, mockForumReactions } from '../data/forum'
 import { currentMockAvatar, currentMockCommunityNickname } from './member-profiles'
 
 const account = (config) => findAccountByToken(config.headers?.Authorization || '')
@@ -9,16 +9,49 @@ const canManage = (current, item) => Number(current.user.userId) === Number(item
 const nextId = () => Date.now() + Math.floor(Math.random() * 1000)
 const now = () => new Date().toLocaleString('zh-CN', { hour12: false }).replaceAll('/', '-')
 
-function scopedRows(rows, params = {}) {
+function reactionFor(post, current) {
+  const matches = mockForumReactions.filter(item => item.postId === post.postId)
+  return { postId: post.postId, likeCount: matches.filter(item => item.kind === 'liked').length,
+    liked: matches.some(item => item.kind === 'liked' && item.userId === current.user.userId),
+    favorited: matches.some(item => item.kind === 'favorites' && item.userId === current.user.userId) }
+}
+
+function scopedRows(rows, params = {}, current) {
   const pageNum = Math.max(1, Number(params.pageNum) || 1)
   const pageSize = Math.max(1, Number(params.pageSize) || 10)
-  return { code: 200, rows: rows.slice((pageNum - 1) * pageSize, pageNum * pageSize).map((row) => ({ ...row, authorAvatar:currentMockAvatar(row.authorId), authorCommunityNickname:currentMockCommunityNickname(row.authorId) })), total: rows.length }
+  return { code: 200, rows: rows.slice((pageNum - 1) * pageSize, pageNum * pageSize).map((row) => ({ ...row, ...(current ? reactionFor(row, current) : {}), authorAvatar:currentMockAvatar(row.authorId), authorCommunityNickname:currentMockCommunityNickname(row.authorId) })), total: rows.length }
 }
 
 function findPost(config) { return mockForumPosts.find((item) => item.postId === Number(config.path.match(/\/posts\/(\d+)/)?.[1])) }
 function findComment(config) { return mockForumComments.find((item) => item.commentId === Number(config.path.match(/\/comments\/(\d+)/)?.[1])) }
 
 export const forumHandlers = [
+  ...['likes', 'favorites'].map(pathKind => ({ method: 'get', path: `/qt/forum/me/${pathKind}`, handle(config) {
+    const current = account(config)
+    if (!current) return unauthenticated
+    const kind = pathKind === 'likes' ? 'liked' : 'favorites'
+    const rows = mockForumReactions.filter(item => item.kind === kind && item.userId === current.user.userId)
+      .map(item => mockForumPosts.find(post => post.postId === item.postId)).filter(Boolean)
+      .filter(post => !config.params?.category || post.category === config.params.category)
+    return scopedRows(rows, config.params, current)
+  } })),
+  ...['put', 'delete'].map(method => ({ method, match: path => /^\/qt\/forum\/posts\/\d+\/(like|favorite)$/.test(path), handle(config) {
+    const current = account(config)
+    if (!current) return unauthenticated
+    const post = findPost(config)
+    if (!post) return { code: 404, msg: '帖子不存在或已删除' }
+    const kind = config.path.endsWith('/like') ? 'liked' : 'favorites'
+    const index = mockForumReactions.findIndex(item => item.postId === post.postId && item.userId === current.user.userId && item.kind === kind)
+    if (method === 'put' && index === -1) mockForumReactions.unshift({ postId: post.postId, userId: current.user.userId, kind })
+    if (method === 'delete' && index !== -1) mockForumReactions.splice(index, 1)
+    return { code: 200, data: reactionFor(post, current) }
+  } })),
+  { method: 'get', match: path => /^\/qt\/forum\/posts\/\d+\/reactions$/.test(path), handle(config) {
+    const current = account(config)
+    if (!current) return unauthenticated
+    const post = findPost(config)
+    return post ? { code: 200, data: reactionFor(post, current) } : { code: 404, msg: '帖子不存在或已删除' }
+  } },
   { method: 'get', path: '/qt/forum/posts', handle(config) {
     const current = account(config)
     if (!current) return unauthenticated
@@ -28,7 +61,7 @@ export const forumHandlers = [
     const rows = config.params?.category
       ? scoped.filter((item) => item.category === config.params.category)
       : scoped
-    return scopedRows(rows, config.params)
+    return scopedRows(rows, config.params, current)
   } },
   { method: 'post', path: '/qt/forum/posts', handle(config) {
     const current = account(config)
@@ -55,9 +88,10 @@ export const forumHandlers = [
     return { code: 200, data: { url: dataUrl } }
   } },
   { method: 'get', match: (path) => /^\/qt\/forum\/posts\/\d+$/.test(path), handle(config) {
-    if (!account(config)) return unauthenticated
+    const current = account(config)
+    if (!current) return unauthenticated
     const post = findPost(config)
-    return post ? { code: 200, data: { ...post, authorAvatar:currentMockAvatar(post.authorId), authorCommunityNickname:currentMockCommunityNickname(post.authorId) } } : { code: 404, msg: '帖子不存在或已删除' }
+    return post ? { code: 200, data: { ...post, ...reactionFor(post, current), authorAvatar:currentMockAvatar(post.authorId), authorCommunityNickname:currentMockCommunityNickname(post.authorId) } } : { code: 404, msg: '帖子不存在或已删除' }
   } },
   { method: 'put', match: (path) => /^\/qt\/forum\/posts\/\d+$/.test(path), handle(config) {
     const current = account(config)
@@ -77,6 +111,9 @@ export const forumHandlers = [
     if (!post) return { code: 404, msg: '帖子不存在或已删除' }
     if (!canManage(current, post)) return forbidden
     mockForumPosts.splice(mockForumPosts.indexOf(post), 1)
+    for (let index = mockForumReactions.length - 1; index >= 0; index--) {
+      if (mockForumReactions[index].postId === post.postId) mockForumReactions.splice(index, 1)
+    }
     for (let index = mockForumComments.length - 1; index >= 0; index -= 1) {
       if (mockForumComments[index].postId === post.postId) mockForumComments.splice(index, 1)
     }

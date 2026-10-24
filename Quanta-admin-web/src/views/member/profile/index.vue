@@ -2,7 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Camera } from '@element-plus/icons-vue'
+import { Camera, ArrowRight, Star } from '@element-plus/icons-vue'
+import ThumbIcon from '../community/ThumbIcon.vue'
 import { getCurrentProfile, getOwnMemberProfile, saveMemberProfile, uploadMemberAvatar } from '@/api/portal/members'
 import { useUserStore } from '@/stores/user'
 import { setMemberAvatar } from '@/utils/member-avatars'
@@ -82,6 +83,13 @@ onBeforeUnmount(() => { active = false; generation++ })
     <div v-if="loading" class="member-loading portal-card">正在加载个人资料…</div>
     <template v-else-if="profile">
       <article class="member-profile-identity portal-card"><button type="button" class="member-profile-avatar-action" aria-label="更换头像" @click="avatarError = ''; avatarOpen = true"><MemberAvatar :member-id="profile.id" :src="profile.avatar" :name="profile.name" :size="76" eager /><span aria-hidden="true"><Camera /></span></button><div class="member-profile-identity__text"><h2>{{ profile.name }}</h2><div class="member-profile-meta"><span>{{ profile.department }}</span><span>{{ profile.title }} · {{ profile.cohort }}</span></div><small>成员编号 {{ profile.memberNo || '暂无' }} · 身份信息由社团维护</small></div><button type="button" class="member-secondary-button" @click="avatarError = ''; avatarOpen = true">更换头像</button></article>
+      <section class="member-community-shortcuts portal-card" aria-label="我的社区">
+        <header><h2>我的社区</h2><small>仅自己可见</small></header>
+        <div>
+          <RouterLink :to="{ path:'/member/community', query:{ scope:'favorites' } }"><Star aria-hidden="true" /><span><strong>我的收藏</strong><small>保存值得回看的内容</small></span><ArrowRight aria-hidden="true" /></RouterLink>
+          <RouterLink :to="{ path:'/member/community', query:{ scope:'liked' } }"><ThumbIcon /><span><strong>我赞过的</strong><small>回看你认可的讨论</small></span><ArrowRight aria-hidden="true" /></RouterLink>
+        </div>
+      </section>
       <p v-if="cloudError" class="member-feedback is-error" role="alert">{{ cloudError }} <button type="button" @click="load">重新加载</button></p>
       <div class="member-profile-columns"><article class="member-profile-editor portal-card"><header><h2>个人档案</h2><span>{{ cloudReady ? '云端同步' : '尚未连接' }}</span></header><MemberProfileEditor v-model="draft" :disabled="!cloudReady" :saving="saving" :dirty="dirty" @save="save" @cancel="resetDraft" /></article><aside class="member-profile-aside"><div class="member-profile-preview-heading"><strong>塔员名片</strong><span>预览</span></div><ProfilePreviewCard :profile="preview" /><RouterLink class="member-secondary-button" :to="{ path:'/member/people/' + profile.id, state:{ memberReturn:'/member/profile' } }">预览已保存的成员主页</RouterLink><p class="member-profile-note"><strong>同一份档案，同一个你</strong>头像用于顶部菜单、首页、通讯录、帖子和评论。成员主页仅向已登录塔员开放。</p><p class="member-profile-note portal-card"><strong>身份资料保持真实</strong>姓名、部门、角色和届数由社团维护，不能通过名片编辑改变。手机号与登录邮箱不会展示。</p></aside></div>
     </template>

@@ -48,6 +48,28 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where p.post_id = #{postId}
     </select>
 
+    <select id="lockPostById" resultMap="QtForumPostResult">
+        select post_id, author_id from qt_forum_post where post_id = #{postId} for update
+    </select>
+
+    <select id="selectPersonalPostList" resultMap="QtForumPostResult">
+        select p.post_id, p.title, p.category, p.content, p.author_id, p.comment_count, p.view_count,
+               p.create_time, p.update_time,
+               ifnull(nullif(trim(u.real_name), ''), u.nick_name) as author_name,
+               nullif(trim(mp.community_nickname), '') as author_community_nickname,
+               u.member_department as author_department, u.avatar as author_avatar
+        from qt_forum_post p
+        <choose>
+            <when test="kind == 'liked'">inner join qt_forum_post_like r on r.post_id = p.post_id</when>
+            <otherwise>inner join qt_forum_post_favorite r on r.post_id = p.post_id</otherwise>
+        </choose>
+        left join sys_user u on p.author_id = u.user_id
+        left join qt_member_profile mp on mp.user_id = u.user_id
+        where r.user_id = #{userId}
+        <if test="category != null and category != ''">and p.category = #{category}</if>
+        order by r.create_time desc, r.id desc
+    </select>
+
     <insert id="insertPost" parameterType="QtForumPost" useGeneratedKeys="true" keyProperty="postId">
         insert into qt_forum_post
         (title, category, content, author_id, comment_count, create_time, update_time)

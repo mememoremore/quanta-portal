@@ -3,12 +3,21 @@ package com.ruoyi.qt.service;
 import java.util.List;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
+import com.ruoyi.qt.domain.QtForumReaction;
 
 public interface IQtForumService
 {
     List<QtForumPost> selectPostList(QtForumPost query, boolean mine);
 
     List<QtForumPost> selectPostListByAuthor(Long authorId);
+
+    List<QtForumPost> selectPersonalPostList(QtForumPost query, String kind);
+
+    void checkReactionsAvailable();
+
+    QtForumReaction getReactions(Long postId);
+
+    QtForumReaction setReaction(Long postId, String kind, boolean active);
 
     QtForumPost selectPostById(Long postId);
 

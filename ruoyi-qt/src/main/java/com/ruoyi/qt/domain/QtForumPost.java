@@ -34,6 +34,23 @@ public class QtForumPost extends BaseEntity
     private Long commentCount;
     @JsonProperty(access = Access.READ_ONLY)
     private Long viewCount;
+    @JsonProperty(access = Access.READ_ONLY)
+    private long likeCount;
+    @JsonProperty(access = Access.READ_ONLY)
+    private boolean liked;
+    @JsonProperty(access = Access.READ_ONLY)
+    private boolean favorited;
+    @JsonProperty(access = Access.READ_ONLY)
+    private boolean reactionsReady;
+
+    public long getLikeCount() { return likeCount; }
+    public void setLikeCount(long likeCount) { this.likeCount = likeCount; }
+    public boolean isLiked() { return liked; }
+    public void setLiked(boolean liked) { this.liked = liked; }
+    public boolean isFavorited() { return favorited; }
+    public void setFavorited(boolean favorited) { this.favorited = favorited; }
+    public boolean isReactionsReady() { return reactionsReady; }
+    public void setReactionsReady(boolean reactionsReady) { this.reactionsReady = reactionsReady; }
 
     public Long getPostId()
     {

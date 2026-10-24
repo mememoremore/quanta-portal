@@ -1,10 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { request } from '@/utils/request'
-import { createForumComment, createForumPost, getForumPost, listForumComments, listForumPosts, mapForumPost, uploadForumImage } from '../forum'
+import { createForumComment, createForumPost, getForumPost, listForumComments, listForumPosts, mapForumPost, uploadForumImage, listMyForumReactions, setForumReaction, getForumReactions } from '../forum'
 
 vi.mock('@/utils/request', () => ({ request: vi.fn() }))
 
 describe('member forum API contract', () => {
+  it('uses dedicated private history endpoints rather than an unsupported scope', async () => {
+    request.mockResolvedValue({ rows: [], total: 0 })
+    await listMyForumReactions('liked', { category: 'TECH', pageNum: 2 })
+    expect(request).toHaveBeenLastCalledWith({ url: '/qt/forum/me/likes', method: 'get', params: { pageNum: 2, pageSize: 10, category: 'TECH' } })
+    await listMyForumReactions('favorites')
+    expect(request.mock.lastCall[0].url).toBe('/qt/forum/me/favorites')
+  })
+
+  it('sets idempotent target states and rejects unconfirmed or mismatched results', async () => {
+    const state = { postId: 8, likeCount: 1, liked: true, favorited: false }
+    request.mockResolvedValue({ data: state })
+    await expect(setForumReaction(8, 'liked', true)).resolves.toEqual(state)
+    expect(request).toHaveBeenLastCalledWith({ url: '/qt/forum/posts/8/like', method: 'put' })
+    await setForumReaction(8, 'favorites', false)
+    expect(request.mock.lastCall[0].method).toBe('delete')
+    await getForumReactions(8)
+    expect(request.mock.lastCall[0].url).toBe('/qt/forum/posts/8/reactions')
+    request.mockResolvedValue({ data: { ...state, postId: 9 } })
+    await expect(setForumReaction(8, 'liked', true)).rejects.toThrow('未确认')
+    expect(mapForumPost({}).reactionsReady).toBe(false)
+    expect(mapForumPost(state).reactionsReady).toBe(true)
+    expect(mapForumPost({ ...state, reactionsReady: false }).reactionsReady).toBe(false)
+  })
   it('uses the server viewCount and does not invent a count for old responses', () => {
     expect(mapForumPost({ viewCount: '23' }).viewCount).toBe(23)
     expect(mapForumPost({ viewCount: 0 }).viewCount).toBe(0)

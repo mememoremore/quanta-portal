@@ -10,6 +10,21 @@ function call(method, path, token, data, params) {
 describe('forum mock business rules', () => {
   beforeEach(resetMockForum)
 
+  it('keeps reactions idempotent and private to the current member', () => {
+    const path = '/qt/forum/posts/101/like'
+    expect(call('put', path, 'mock-token-viewer').data.likeCount).toBe(1)
+    expect(call('put', path, 'mock-token-viewer').data.likeCount).toBe(1)
+    expect(call('get', '/qt/forum/me/likes', 'mock-token-ceo', undefined, { userId: 13 }).total).toBe(0)
+    expect(call('get', '/qt/forum/me/likes', 'mock-token-viewer').total).toBe(1)
+    call('put', '/qt/forum/posts/101/favorite', 'mock-token-viewer')
+    expect(call('get', '/qt/forum/me/favorites', 'mock-token-viewer').total).toBe(1)
+    expect(call('get', '/qt/forum/me/favorites', 'mock-token-ceo').total).toBe(0)
+    call('delete', path, 'mock-token-viewer')
+    expect(call('get', '/qt/forum/me/likes', 'mock-token-viewer').total).toBe(0)
+    call('delete', '/qt/forum/posts/101', 'mock-token-ceo')
+    expect(call('get', '/qt/forum/me/favorites', 'mock-token-viewer').total).toBe(0)
+  })
+
   it('allows logged-in members to view and publish posts', () => {
     expect(call('get', '/qt/forum/posts', 'mock-token-viewer').total).toBe(2)
     const created = call('post', '/qt/forum/posts', 'mock-token-viewer', { title: '讨论', content: '内容', category: 'TECH' })

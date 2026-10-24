@@ -18,6 +18,12 @@
     </properties>
 
     <dependencies>
+        <!-- 沿用主应用已管理的MySQL驱动，仅用于显式启用的真实SQL集成测试。 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common</artifactId>

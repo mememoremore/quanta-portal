@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MemberAuthor from '@/components/MemberAuthor.vue'
 import { safeProfileReturn } from '@/utils/member-profile'
 import { useRoute, useRouter } from 'vue-router'
@@ -9,11 +9,14 @@ import { createForumComment, deleteForumComment, deleteForumPost, forumCategoryL
 import { groupForumComments, canManageForumContent } from './comment-tree'
 import MarkdownContent from './MarkdownContent.vue'
 import ArticleToc from './ArticleToc.vue'
+import ForumReactions from './ForumReactions.vue'
+import { useForumReactions } from './reactions'
 import './community.css'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const reactions = useForumReactions()
 const post = ref(null)
 const headings = ref([])
 const comments = ref([])
@@ -36,6 +39,11 @@ const permissions = computed(() => userStore.permissions || [])
 const canEditPost = computed(() => post.value?.authorId === currentUserId.value)
 const canDeletePost = computed(() => canManageForumContent(post.value, currentUserId.value, permissions.value))
 const returnPath = computed(() => safeProfileReturn(router.options?.history.state?.postReturn))
+const returnLabel = computed(() => {
+  if (returnPath.value.startsWith('/member/people/')) return '返回成员主页'
+  const scope = new URLSearchParams(returnPath.value.split('?')[1] || '').get('scope')
+  return scope === 'liked' ? '返回我赞过的' : scope === 'favorites' ? '返回我的收藏' : '返回社区'
+})
 function goBack(event) {
   if (event?.metaKey || event?.ctrlKey || event?.shiftKey || event?.altKey) return
   event?.preventDefault()
@@ -46,6 +54,7 @@ let postRequestId = 0, commentRequestId = 0
 
 async function loadPost() {
   const current = ++postRequestId
+  const startedAt = reactions.revision.value
   headings.value = []
   post.value = null; replyTarget.value = null; editingCommentId.value = null; commentText.value = ''
   loading.value = true
@@ -55,12 +64,19 @@ async function loadPost() {
     const result = await getForumPost(route.params.postId)
     if (current !== postRequestId) return
     post.value = result
+    reactions.ingest([result], startedAt)
     await commentsRequest
   } catch (error) {
     if (current === postRequestId) errorMessage.value = error.message || '帖子加载失败'
   } finally {
     if (current === postRequestId) loading.value = false
   }
+  if (current === postRequestId && route.hash === '#discussion') { await nextTick(); showComments() }
+}
+
+function showComments() { document.getElementById('discussion')?.scrollIntoView({ block: 'start', behavior: 'smooth' }) }
+function onVisible() {
+  if (document.visibilityState === 'visible' && post.value) reactions.refresh(post.value.postId).catch(() => {})
 }
 
 async function loadComments(reset = false) {
@@ -152,13 +168,14 @@ async function removePost() {
   finally { deleting.value = false }
 }
 
-watch(() => route.params.postId, loadPost, { immediate:true })
-onBeforeUnmount(() => { postRequestId++; commentRequestId++ })
+watch([() => route.params.postId, () => userStore.user?.userId], loadPost, { immediate:true })
+onMounted(() => document.addEventListener('visibilitychange', onVisible))
+onBeforeUnmount(() => { postRequestId++; commentRequestId++; document.removeEventListener('visibilitychange', onVisible) })
 </script>
 
 <template>
   <section class="member-page community-page community-detail" :class="{ 'community-detail--outline': headings.length > 1 }">
-    <a class="community-back" :href="returnPath" @click="goBack">← {{ returnPath.startsWith('/member/people/') ? '返回成员主页' : '返回社区' }}</a>
+    <a class="community-back" :href="returnPath" @click="goBack">← {{ returnLabel }}</a>
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">{{ errorMessage }} <button type="button" @click="loadPost">重试</button></p>
     <div v-if="loading" class="member-loading portal-card">正在加载帖子…</div>
     <template v-else-if="post">
@@ -169,12 +186,13 @@ onBeforeUnmount(() => { postRequestId++; commentRequestId++ })
           <div class="community-detail__author"><MemberAuthor :member-id="post.authorId" :name="post.authorName" :avatar="post.authorAvatar" :department="post.authorDepartment" /><time :datetime="post.createdAt">{{ post.createdAt }}</time></div>
           <p v-if="post.viewCount != null" class="community-detail__views">{{ post.viewCount }} 次浏览</p>
           <MarkdownContent :source="post.content" outline media-preview @outline="headings = $event" />
+          <ForumReactions :post="{ ...post, commentCount: commentTotal }" detail @comments="showComments" />
           <div v-if="canEditPost || canDeletePost" class="community-detail__actions"><RouterLink v-if="canEditPost" class="member-secondary-button" :to="`/member/community/${post.postId}/edit`">编辑帖子</RouterLink><button v-if="canDeletePost" class="member-secondary-button is-danger" type="button" :disabled="deleting" @click="removePost">删除帖子</button></div>
         </article>
         <ArticleToc :headings="headings" />
       </div>
 
-      <section class="community-comments portal-card" aria-label="评论区">
+      <section id="discussion" class="community-comments portal-card" aria-label="评论区">
         <h2>讨论 <small>{{ commentTotal }} 条</small></h2>
         <p v-if="commentError" class="member-feedback is-error" role="alert">{{ commentError }}</p>
         <form class="community-comments__form" @submit.prevent="submitComment">

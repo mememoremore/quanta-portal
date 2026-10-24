@@ -61,6 +61,70 @@ public class QtForumController extends BaseController
     }
 
     @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me/likes")
+    public TableDataInfo likedPosts(QtForumPost query)
+    {
+        QtAuthUtils.requireQuantaMember();
+        // 探测必须早于startPage，避免元数据查询误消耗PageHelper分页上下文。
+        qtForumService.checkReactionsAvailable();
+        startPage();
+        return getDataTable(qtForumService.selectPersonalPostList(query, "liked"));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me/favorites")
+    public TableDataInfo favoritePosts(QtForumPost query)
+    {
+        QtAuthUtils.requireQuantaMember();
+        qtForumService.checkReactionsAvailable();
+        startPage();
+        return getDataTable(qtForumService.selectPersonalPostList(query, "favorites"));
+    }
+
+    /** 轻量核对互动，不增加正文浏览量。 */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/posts/{postId:\\d+}/reactions")
+    public AjaxResult reactions(@PathVariable Long postId)
+    {
+        QtAuthUtils.requireQuantaMember();
+        return success(qtForumService.getReactions(postId));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/posts/{postId:\\d+}/like")
+    public AjaxResult like(@PathVariable Long postId)
+    {
+        return changeReaction(postId, "liked", true);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/posts/{postId:\\d+}/like")
+    public AjaxResult unlike(@PathVariable Long postId)
+    {
+        return changeReaction(postId, "liked", false);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/posts/{postId:\\d+}/favorite")
+    public AjaxResult favorite(@PathVariable Long postId)
+    {
+        return changeReaction(postId, "favorites", true);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/posts/{postId:\\d+}/favorite")
+    public AjaxResult unfavorite(@PathVariable Long postId)
+    {
+        return changeReaction(postId, "favorites", false);
+    }
+
+    private AjaxResult changeReaction(Long postId, String kind, boolean active)
+    {
+        QtAuthUtils.requireQuantaMember();
+        return success(qtForumService.setReaction(postId, kind, active));
+    }
+
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/posts")
     public AjaxResult addPost(@RequestBody QtForumPost body)
     {

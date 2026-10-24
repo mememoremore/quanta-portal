@@ -23,9 +23,47 @@ export function mapForumPost(row = {}) {
     authorAvatar: assetUrl(row.authorAvatar || ''),
     authorDepartment: row.authorDepartment || row.department || '',
     commentCount: Number(row.commentCount || 0),
+    likeCount: hasReactionState(row) ? Number(row.likeCount) : 0,
+    liked: row.liked === true,
+    favorited: row.favorited === true,
+    reactionsReady: hasReactionState(row),
     viewCount: row.viewCount != null && row.viewCount !== '' && Number.isSafeInteger(Number(row.viewCount)) && Number(row.viewCount) >= 0 ? Number(row.viewCount) : null,
     createdAt: row.createdAt || row.createTime || '',
   }
+}
+
+function hasReactionState(row) {
+  return row.reactionsReady !== false && row.likeCount !== null && row.likeCount !== '' && Number.isSafeInteger(Number(row.likeCount)) && Number(row.likeCount) >= 0
+    && typeof row.liked === 'boolean' && typeof row.favorited === 'boolean'
+}
+
+function reactionState(row, postId) {
+  if (Number(row?.postId) !== Number(postId) || !hasReactionState(row || {})) {
+    throw new Error('互动结果未确认，请刷新后核对')
+  }
+  return { postId: Number(postId), likeCount: Number(row.likeCount), liked: row.liked, favorited: row.favorited }
+}
+
+function reactionPath(kind) {
+  if (kind === 'liked') return 'like'
+  if (kind === 'favorites') return 'favorite'
+  throw new Error('不支持的互动类型')
+}
+
+export async function listMyForumReactions(kind, params = {}) {
+  reactionPath(kind)
+  const response = await request({ url: `/qt/forum/me/${kind === 'liked' ? 'likes' : 'favorites'}`, method: 'get', params: { pageNum: 1, pageSize: 10, ...params } })
+  return { rows: (response.rows || []).map(mapForumPost), total: Number(response.total) || 0 }
+}
+
+export async function setForumReaction(postId, kind, active) {
+  const response = await request({ url: `/qt/forum/posts/${postId}/${reactionPath(kind)}`, method: active ? 'put' : 'delete' })
+  return reactionState(response.data, postId)
+}
+
+export async function getForumReactions(postId) {
+  const response = await request({ url: `/qt/forum/posts/${postId}/reactions`, method: 'get' })
+  return reactionState(response.data, postId)
 }
 
 export function mapForumComment(row = {}) {

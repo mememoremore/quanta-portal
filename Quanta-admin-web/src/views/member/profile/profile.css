@@ -1,4 +1,16 @@
 .member-profile-page .member-profile-identity { display:flex; align-items:center; gap:20px; padding:24px; }
+.member-community-shortcuts { padding:24px; }
+.member-community-shortcuts > header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.member-community-shortcuts h2 { margin:0; font-size:20px; }
+.member-community-shortcuts small { color:var(--portal-muted); font-size:12px; }
+.member-community-shortcuts > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.member-community-shortcuts a { display:flex; min-height:80px; align-items:center; gap:14px; padding:16px; border:1px solid var(--portal-line); border-radius:14px; color:var(--portal-ink); text-decoration:none; }
+.member-community-shortcuts a > svg { width:22px; height:22px; flex-shrink:0; color:var(--portal-muted); }
+.member-community-shortcuts a > svg:last-child { width:16px; height:16px; margin-left:auto; }
+.member-community-shortcuts a strong { display:block; font-size:16px; }
+.member-community-shortcuts a small { display:block; margin-top:7px; line-height:1.6; }
+.member-community-shortcuts a:hover strong { color:var(--portal-orange-strong); }
+@media(max-width:600px) { .member-community-shortcuts { padding:20px 18px; }.member-community-shortcuts > div { grid-template-columns:minmax(0,1fr); } }
 .member-profile-page > .member-page__heading h1 { font-size:32px; }
 .member-profile-page .member-profile-avatar-action > span:last-child svg { width:14px; height:14px; }
 .member-profile-page .member-profile-avatar-action { padding:0; border:0; background:none; position:relative; cursor:pointer; flex-shrink:0; border-radius:20px; }

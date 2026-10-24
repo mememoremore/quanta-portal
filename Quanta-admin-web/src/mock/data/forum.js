@@ -19,8 +19,10 @@ const initialComments = [
 
 export let mockForumPosts = structuredClone(initialPosts)
 export let mockForumComments = structuredClone(initialComments)
+export let mockForumReactions = []
 
 export function resetMockForum() {
   mockForumPosts = structuredClone(initialPosts)
   mockForumComments = structuredClone(initialComments)
+  mockForumReactions = []
 }

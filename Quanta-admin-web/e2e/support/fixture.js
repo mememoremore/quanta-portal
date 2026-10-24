@@ -78,6 +78,12 @@ function responseFor(request, state) {
   const path = url.pathname
   const method = request.method()
   const account = accountFromRequest(request)
+  const forumSnapshot = post => {
+    const entries = (state.forumReactions || []).filter(item => item.postId === post.postId)
+    return { ...post, likeCount: entries.filter(item => item.kind === 'liked').length,
+      liked: entries.some(item => item.kind === 'liked' && item.userId === account?.user.userId),
+      favorited: entries.some(item => item.kind === 'favorites' && item.userId === account?.user.userId) }
+  }
 
   if (method === 'GET' && path === '/captchaImage') return { code: 200, captchaEnabled: false }
   if (method === 'POST' && path === '/auth/refresh') {
@@ -119,7 +125,7 @@ function responseFor(request, state) {
   }
   if(method === 'GET' && /^\/qt\/member\/\d+\/posts$/.test(path)) {
     const rows=Number(path.split('/')[3]) === state.forumPost.authorId ? [state.forumPost] : []
-    return {code:200,rows,total:rows.length}
+    return {code:200,rows:rows.map(forumSnapshot),total:rows.length}
   }
 
   if (method === 'GET' && path === '/qt/interview/my') {
@@ -133,6 +139,28 @@ function responseFor(request, state) {
   }
   if (method === 'GET' && path === '/qt/activity/list') return { code: 200, rows: [], total: 0 }
   if (method === 'GET' && path === '/system/notice/listTop') return { code: 200, data: [], unreadCount: 0 }
+  if (method === 'GET' && ['/qt/forum/me/likes', '/qt/forum/me/favorites'].includes(path)) {
+    if (!account) return { code: 401, msg: '请先登录' }
+    const kind = path.endsWith('/likes') ? 'liked' : 'favorites'
+    const post = state.forumPost
+    const rows = (state.forumReactions || []).some(item => item.postId === post.postId && item.userId === account.user.userId && item.kind === kind)
+      && (!url.searchParams.get('category') || url.searchParams.get('category') === post.category) ? [forumSnapshot(post)] : []
+    const page = Number(url.searchParams.get('pageNum') || 1), size = Number(url.searchParams.get('pageSize') || 10)
+    return { code: 200, rows: rows.slice((page - 1) * size, page * size), total: rows.length }
+  }
+  if (/^\/qt\/forum\/posts\/\d+\/(like|favorite|reactions)$/.test(path)) {
+    if (!account) return { code: 401, msg: '请先登录' }
+    if (Number(path.split('/')[4]) !== state.forumPost.postId) return { code: 404, msg: '帖子不存在或已删除' }
+    if (['PUT', 'DELETE'].includes(method)) {
+      if (state.forumReactionFailure) return { code: 403, msg: '模拟互动失败' }
+      state.forumReactions ||= []
+      const kind = path.endsWith('/like') ? 'liked' : 'favorites'
+      const index = state.forumReactions.findIndex(item => item.postId === state.forumPost.postId && item.userId === account.user.userId && item.kind === kind)
+      if (method === 'PUT' && index === -1) state.forumReactions.unshift({ postId: state.forumPost.postId, userId: account.user.userId, kind })
+      if (method === 'DELETE' && index !== -1) state.forumReactions.splice(index, 1)
+    }
+    return { code: 200, data: forumSnapshot(state.forumPost) }
+  }
   if (method === 'GET' && path === '/qt/forum/posts') {
     const post = state.forumPost
     const rows = url.searchParams.get('category') && url.searchParams.get('category') !== post.category
@@ -140,9 +168,9 @@ function responseFor(request, state) {
       : url.searchParams.get('scope') === 'mine' && account?.user.userId !== post.authorId
         ? []
         : [post]
-    return { code: 200, rows:rows.map(p=>({...p,authorAvatar:state.avatars[p.authorId] || '',authorCommunityNickname:state.profiles[p.authorId]?.communityNickname || ''})), total: rows.length }
+    return { code: 200, rows:rows.map(p=>({...forumSnapshot(p),authorAvatar:state.avatars[p.authorId] || '',authorCommunityNickname:state.profiles[p.authorId]?.communityNickname || ''})), total: rows.length }
   }
-  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...state.forumPost,authorAvatar:state.avatars[state.forumPost.authorId] || '',authorCommunityNickname:state.profiles[state.forumPost.authorId]?.communityNickname || ''} }
+  if (method === 'GET' && /^\/qt\/forum\/posts\/\d+$/.test(path)) return { code: 200, data: {...forumSnapshot(state.forumPost),authorAvatar:state.avatars[state.forumPost.authorId] || '',authorCommunityNickname:state.profiles[state.forumPost.authorId]?.communityNickname || ''} }
   if (method === 'GET' && /^\/qt\/forum\/posts\/\d+\/comments$/.test(path)) return { code: 200, rows:state.forumComments, total:state.forumComments.length }
   if ((method === 'POST' && path === '/qt/forum/posts') || (method === 'PUT' && /^\/qt\/forum\/posts\/\d+$/.test(path))) {
     if (state.forumPublishFailure) return { code: 500, msg: '模拟发布失败' }

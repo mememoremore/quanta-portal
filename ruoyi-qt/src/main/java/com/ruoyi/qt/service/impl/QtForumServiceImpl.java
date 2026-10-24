@@ -1,15 +1,21 @@
 package com.ruoyi.qt.service.impl;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
+import com.ruoyi.qt.domain.QtForumReaction;
+import com.ruoyi.qt.mapper.QtForumReactionMapper;
 import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
 import com.ruoyi.qt.service.IQtForumService;
@@ -31,12 +37,34 @@ public class QtForumServiceImpl implements IQtForumService
     @Autowired
     private QtForumCommentMapper commentMapper;
 
+    @Autowired
+    private QtForumReactionMapper reactionMapper;
+    private volatile boolean reactionsSchemaReady;
+
+    private boolean reactionsAvailable()
+    {
+        if (!reactionsSchemaReady) reactionsSchemaReady = reactionMapper.isSchemaReady();
+        return reactionsSchemaReady;
+    }
+
+    private void requireReactionsAvailable()
+    {
+        if (!reactionsAvailable()) throw new ServiceException("论坛互动尚未开放，请稍后重试", 503);
+    }
+
+    @Override
+    public void checkReactionsAvailable()
+    {
+        QtAuthUtils.requireQuantaMember();
+        requireReactionsAvailable();
+    }
+
     @Override
     public List<QtForumPost> selectPostList(QtForumPost query, boolean mine)
     {
         // 作者过滤只认服务端登录身份，忽略客户端传入的 authorId
         query.setAuthorId(mine ? SecurityUtils.getUserId() : null);
-        return postMapper.selectPostList(query);
+        return withReactions(postMapper.selectPostList(query));
     }
 
     @Override
@@ -44,7 +72,90 @@ public class QtForumServiceImpl implements IQtForumService
     {
         QtForumPost query = new QtForumPost();
         query.setAuthorId(authorId);
-        return postMapper.selectPostList(query);
+        return withReactions(postMapper.selectPostList(query));
+    }
+
+    @Override
+    public List<QtForumPost> selectPersonalPostList(QtForumPost query, String kind)
+    {
+        QtAuthUtils.requireQuantaMember();
+        requireKind(kind);
+        // 不使用客户端的authorId/userId/params，只接受分类及分页。
+        requireReactionsAvailable();
+        return withReactions(postMapper.selectPersonalPostList(query.getCategory(), SecurityUtils.getUserId(), kind));
+    }
+
+    private List<QtForumPost> withReactions(List<QtForumPost> posts)
+    {
+        if (posts == null || posts.isEmpty()) return posts;
+        if (!reactionsAvailable()) return posts;
+        Map<Long, QtForumReaction> states = reactionMapper.selectStates(
+                posts.stream().map(QtForumPost::getPostId).collect(Collectors.toList()), SecurityUtils.getUserId())
+                .stream().collect(Collectors.toMap(QtForumReaction::getPostId, Function.identity()));
+        for (QtForumPost post : posts)
+        {
+            QtForumReaction state = states.get(post.getPostId());
+            if (state != null)
+            {
+                post.setLikeCount(state.getLikeCount());
+                post.setLiked(state.isLiked());
+                post.setFavorited(state.isFavorited());
+                post.setReactionsReady(true);
+            }
+        }
+        return posts;
+    }
+
+    @Override
+    public QtForumReaction getReactions(Long postId)
+    {
+        QtAuthUtils.requireQuantaMember();
+        requirePostId(postId);
+        requireReactionsAvailable();
+        List<QtForumReaction> states = reactionMapper.selectStates(List.of(postId), SecurityUtils.getUserId());
+        if (states.isEmpty()) throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
+        return states.get(0);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public QtForumReaction setReaction(Long postId, String kind, boolean active)
+    {
+        QtAuthUtils.requireQuantaMember();
+        requireKind(kind);
+        requireReactionsAvailable();
+        lockPost(postId);
+        Long userId = SecurityUtils.getUserId();
+        if ("liked".equals(kind))
+        {
+            if (active) reactionMapper.insertLike(postId, userId);
+            else reactionMapper.deleteLike(postId, userId);
+        }
+        else
+        {
+            if (active) reactionMapper.insertFavorite(postId, userId);
+            else reactionMapper.deleteFavorite(postId, userId);
+        }
+        return getReactions(postId);
+    }
+
+    private void requireKind(String kind)
+    {
+        if (!"liked".equals(kind) && !"favorites".equals(kind))
+            throw new ServiceException("不支持的互动类型", HttpStatus.BAD_REQUEST);
+    }
+
+    private void requirePostId(Long postId)
+    {
+        if (postId == null || postId <= 0) throw new ServiceException("无效的帖子编号", HttpStatus.BAD_REQUEST);
+    }
+
+    private QtForumPost lockPost(Long postId)
+    {
+        requirePostId(postId);
+        QtForumPost post = postMapper.lockPostById(postId);
+        if (post == null) throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
+        return post;
     }
 
     @Override
@@ -55,6 +166,7 @@ public class QtForumServiceImpl implements IQtForumService
         {
             throw new ServiceException("帖子不存在或已删除", HttpStatus.NOT_FOUND);
         }
+        withReactions(List.of(post));
         return post;
     }
 
@@ -100,12 +212,17 @@ public class QtForumServiceImpl implements IQtForumService
     @Transactional
     public void deletePostById(Long postId)
     {
-        QtForumPost post = selectPostById(postId);
+        QtForumPost post = lockPost(postId);
         if (!canModerate(post.getAuthorId()))
         {
             throw new ServiceException("只能删除自己发布的帖子", HttpStatus.FORBIDDEN);
         }
-        // 帖子删除后评论一并级联删除
+        // 与互动写入持相同帖子行锁，先清关系再删帖子。
+        if (reactionsAvailable())
+        {
+            reactionMapper.deleteLikesByPostId(postId);
+            reactionMapper.deleteFavoritesByPostId(postId);
+        }
         commentMapper.deleteByPostId(postId);
         postMapper.deletePostById(postId);
     }
