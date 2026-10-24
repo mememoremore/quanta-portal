@@ -16,6 +16,7 @@ import com.ruoyi.qt.domain.QtPageSiteSaveResult;
 import com.ruoyi.qt.domain.QtPageSiteUpdateBody;
 import com.ruoyi.qt.mapper.QtPageSiteMapper;
 import com.ruoyi.qt.pages.QtPagesAccess;
+import com.ruoyi.qt.pages.QtPagesRuntime;
 import com.ruoyi.qt.service.IQtPageDeployService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,6 +43,9 @@ class QtPageSiteServiceTest
 
     @Mock
     private IQtPageDeployService deployService;
+
+    @Mock
+    private QtPagesRuntime runtime;
 
     @InjectMocks
     private QtPageSiteServiceImpl service;

@@ -1,5 +1,7 @@
 package com.ruoyi.qt.mapper;
 
+import java.util.Date;
+import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.qt.domain.QtPageSite;
 
@@ -22,4 +24,7 @@ public interface QtPageSiteMapper
     int updateSite(QtPageSite site);
 
     int updateStatus(@Param("siteId") Long siteId, @Param("status") String status);
+
+    /** 到期待轮询的启用站点 */
+    List<QtPageSite> selectDueSites(@Param("now") Date now, @Param("limit") int limit);
 }

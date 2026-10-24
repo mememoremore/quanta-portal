@@ -20,6 +20,7 @@ import com.ruoyi.qt.domain.QtPageSiteSaveResult;
 import com.ruoyi.qt.domain.QtPageSiteUpdateBody;
 import com.ruoyi.qt.mapper.QtPageSiteMapper;
 import com.ruoyi.qt.pages.QtPagesAccess;
+import com.ruoyi.qt.pages.QtPagesRuntime;
 import com.ruoyi.qt.service.IQtPageDeployService;
 import com.ruoyi.qt.service.IQtPageSiteService;
 
@@ -60,10 +61,14 @@ public class QtPageSiteServiceImpl implements IQtPageSiteService
     @Autowired
     private IQtPageDeployService deployService;
 
+    @Autowired
+    private QtPagesRuntime runtime;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public QtPageSiteSaveResult create(QtPageSiteCreateBody body)
     {
+        runtime.requireReady();
         long userId = access.requireCurrentMemberId();
         if (body == null || StringUtils.isEmpty(body.getRepoUrl()))
         {
@@ -126,6 +131,7 @@ public class QtPageSiteServiceImpl implements IQtPageSiteService
     @Transactional(rollbackFor = Exception.class)
     public QtPageSiteSaveResult update(Long siteId, QtPageSiteUpdateBody body)
     {
+        runtime.requireReady();
         long userId = access.requireCurrentMemberId();
         QtPageSite site = siteMapper.selectForUpdate(siteId);
         if (site == null || site.getUserId() == null || !site.getUserId().equals(userId))

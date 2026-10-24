@@ -115,4 +115,37 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by request_version desc, deployment_id desc
     </select>
 
+    <select id="selectDispatchable" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where status = 'PENDING'
+          and (next_attempt_time is null or next_attempt_time &lt;= #{now})
+        order by deployment_id
+        limit #{limit}
+    </select>
+
+    <select id="selectInterrupted" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where status in ('RESOLVING', 'DOWNLOADING', 'VALIDATING')
+        order by deployment_id
+    </select>
+
+    <select id="selectPublishing" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where status = 'PUBLISHING'
+        order by deployment_id
+    </select>
+
+    <select id="selectUnresolvedForSite" parameterType="Long" resultMap="QtPageDeploymentResult">
+        <include refid="selectDeploymentColumns"/>
+        where site_id = #{siteId}
+          and commit_sha is null
+          and status in ('PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING')
+          and repo_owner = (select repo_owner from qt_page_site where site_id = #{siteId})
+          and repo_name = (select repo_name from qt_page_site where site_id = #{siteId})
+          and branch = (select branch from qt_page_site where site_id = #{siteId})
+          and publish_dir = (select publish_dir from qt_page_site where site_id = #{siteId})
+        order by deployment_id desc
+        limit 1
+    </select>
+
 </mapper>

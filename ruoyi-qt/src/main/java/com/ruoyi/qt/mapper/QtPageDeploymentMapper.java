@@ -1,5 +1,6 @@
 package com.ruoyi.qt.mapper;
 
+import java.util.Date;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.qt.domain.QtPageDeployment;
@@ -28,4 +29,16 @@ public interface QtPageDeploymentMapper
 
     /** 历史列表（Task 6 分页使用） */
     List<QtPageDeployment> selectListBySite(@Param("siteId") Long siteId);
+
+    /** 可领取的到期 PENDING 任务 */
+    List<QtPageDeployment> selectDispatchable(@Param("now") Date now, @Param("limit") int limit);
+
+    /** 中断恢复：RESOLVING/DOWNLOADING/VALIDATING 状态的遗留任务 */
+    List<QtPageDeployment> selectInterrupted();
+
+    /** 启动恢复：PUBLISHING 状态的遗留任务 */
+    List<QtPageDeployment> selectPublishing();
+
+    /** 同站点、同配置且尚未解析出 SHA 的非终态任务（用于轮询去重） */
+    QtPageDeployment selectUnresolvedForSite(@Param("siteId") Long siteId);
 }

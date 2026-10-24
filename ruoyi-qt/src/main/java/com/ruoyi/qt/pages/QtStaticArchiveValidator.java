@@ -337,7 +337,8 @@ public class QtStaticArchiveValidator
         }
     }
 
-    static void deleteRecursively(Path path) throws IOException
+    /** 递归删除目录树；供 Pages 组件清理 staging 与回收 release 使用。 */
+    public static void deleteRecursively(Path path) throws IOException
     {
         if (path == null || !Files.exists(path))
         {

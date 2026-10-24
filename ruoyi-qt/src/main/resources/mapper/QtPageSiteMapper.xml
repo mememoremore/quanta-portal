@@ -96,4 +96,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update qt_page_site set status = #{status} where site_id = #{siteId}
     </update>
 
+    <select id="selectDueSites" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where status = 'ENABLED'
+          and next_poll_time &lt;= #{now}
+        order by next_poll_time, site_id
+        limit #{limit}
+    </select>
+
 </mapper>
