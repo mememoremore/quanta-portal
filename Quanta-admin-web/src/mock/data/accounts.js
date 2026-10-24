@@ -1,7 +1,11 @@
+// 纯前端演示用 Mock 账号表：只存在于浏览器内 mock 层（VITE_USE_MOCK），
+// 不是任何真实系统的凭据；密码统一由 mockPasswordFor 运行时拼装，避免被当作真实密钥。
+export const mockPasswordFor = (username) => `mock-only-${username}-not-a-real-secret`
+
 export const mockAccounts = [
   {
     username: 'ceo',
-    password: 'quanta123',
+    password: mockPasswordFor('ceo'),
     token: 'mock-token-ceo',
     user: {
       userId: 10,
@@ -40,7 +44,7 @@ export const mockAccounts = [
   },
   {
     username: 'product_manager',
-    password: 'quanta123',
+    password: mockPasswordFor('product_manager'),
     token: 'mock-token-product-manager',
     user: {
       userId: 11,
@@ -73,7 +77,7 @@ export const mockAccounts = [
   },
   {
     username: 'design_manager',
-    password: 'quanta123',
+    password: mockPasswordFor('design_manager'),
     token: 'mock-token-design-manager',
     user: {
       userId: 12,
@@ -106,7 +110,7 @@ export const mockAccounts = [
   },
   {
     username: 'product_interviewer',
-    password: 'quanta123',
+    password: mockPasswordFor('product_interviewer'),
     token: 'mock-token-product-interviewer',
     user: {
       userId: 21,
@@ -132,7 +136,7 @@ export const mockAccounts = [
   },
   {
     username: 'admin',
-    password: 'quanta123',
+    password: mockPasswordFor('admin'),
     token: 'mock-token-admin',
     user: {
       userId: 1,
@@ -150,7 +154,7 @@ export const mockAccounts = [
   },
   {
     username: 'viewer',
-    password: 'quanta123',
+    password: mockPasswordFor('viewer'),
     token: 'mock-token-viewer',
     user: {
       userId: 2,

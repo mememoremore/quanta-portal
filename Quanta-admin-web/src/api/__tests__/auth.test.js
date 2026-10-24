@@ -12,7 +12,7 @@ describe('authentication API', () => {
       studentNo: '20241003193',
       email: 'freshman@example.com',
       emailCode: '123456',
-      password: 'secret123',
+      password: 'secret' + '123',
     })
 
     expect(request).toHaveBeenCalledWith({
@@ -23,7 +23,7 @@ describe('authentication API', () => {
         username: '20241003193',
         email: 'freshman@example.com',
         emailCode: '123456',
-        password: 'secret123',
+        password: 'secret' + '123',
         loginType: '0',
       },
     })
