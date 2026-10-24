@@ -145,6 +145,13 @@
                 <version>${kaptcha.version}</version>
             </dependency>
 
+            <!-- Pages 安全归档解包（tar.gz 流式读取），官方 1.28.0 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+
             <!-- 定时任务-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
