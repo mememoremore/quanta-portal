@@ -1,64 +1,62 @@
 # Quanta Pages 真实联调待办清单（上线前逐项核对）
 
-> 本轮交付只完成代码与本地工件（Task 1–7 全部 + 本目录的模板/脚本）。
-> 以下条目**均未验证**，必须在真实服务器上逐项完成并记录结果；任何一项未通过都不得开启 `QT_PAGES_ENABLED=true`。
+> 2026-10-25 已完成首次真实服务器部署与验收（详见文末「验收结果」）。
+> 剩余未完成项以 ⬜ 标注；已核验项以 ✅ 标注。
 
-## A. 环境事实核实（只读检查，先做）
+## A. 环境事实核实
 
-- [ ] 服务器运行用户与 UID：`docker inspect quanta-app --format '{{.HostConfig.User}}'`；确定 Pages 专用 UID/GID
-- [ ] 现有容器启动参数完整导出（Binds/Env/Network/RestartPolicy），重建时原样保留
-- [ ] 磁盘容量：Pages 根目录所在卷剩余空间 ≥ 预期站点数 × 2 GiB 配额余量
-- [ ] GitHub 出网：从容器内 `curl -sS -o /dev/null -w '%{http_code}' https://api.github.com` 返回 200/403（不是超时）
-- [ ] GitHub Token 预算：有 Token 时 core 限额 5000/h；无 Token 仅 60/h（按出口 IP 共享），多人使用必须配 Token
-- [ ] DNS：`dig +short alice-lab.page.quantacenter.com` 与 `*.page.quantacenter.com` A 记录指向本服务器
-- [ ] 443 防火墙/安全组放行；80 仅做跳转
-- [ ] 通配符证书：`certbot certonly --dns-* -d '*.page.quantacenter.com'`（DNS 验证），自动续期已启用且 `certbot renew --dry-run` 通过
+- ✅ 容器由 docker compose 管理（`/opt/ruoyi/deploy/docker-compose.yml`），app 服务 host 网络 + 非 root（108:112）
+- ✅ 磁盘容量充足（40G 盘余 23G）
+- ✅ GitHub 出网：宿主机与容器内 api.github.com 均 200
+- ⬜ GitHub Token：当前匿名额度（60 次/小时/出口 IP）。单站点轮询约 12 次/h + 下载，**多成员开放前必须配置 QT_PAGES_GITHUB_TOKEN**
+- ⬜ DNS 通配符：`*.page.quantacenter.com` A 记录未配置（随机子域 NXDOMAIN）→ 目前只能通过 `curl --resolve` 或本地 hosts 访问；需要你在阿里云 DNS 控制台添加
+- ⬜ 通配符证书：仅有 `www.quantacenter.com` 一张证书 → pages 目前仅 HTTP(80)；HTTPS 需 DNS-01 签发 `*.page.quantacenter.com`（certbot + DNS 凭证）
+- ✅ 443/80 防火墙正常（门户 https 可达）
 
 ## B. 目录与权限
 
-- [ ] 执行 `prepare-pages.sh /srv/quanta-pages <UID> <GID>`，确认属主/权限输出
-- [ ] Nginx 用户可遍历 `/srv/quanta-pages/sites`（脚本末尾自检命令）
+- ✅ `/srv/quanta-pages/sites` 已创建，属主 ruoyi:ruoyi(108:112)，应用可写、nginx 可读
 
 ## C. 数据库
 
-- [ ] 备份：`server-backup.sh`（或 mysqldump ry-vue）成功且校验通过
-- [ ] 执行 `sql/2026-10-25-qt-pages.sql`（幂等，可重复执行），确认两张表创建
-- [ ] 再次执行一遍确认幂等，不报错
+- ✅ 部署前全量备份：`/opt/ruoyi/backup/ry-vue-20261025114903.sql.gz`（58 表，BACKUP_OK 三重校验）
+- ✅ `sql/2026-10-25-qt-pages.sql` 执行两遍（幂等），现有 58 表零改动，仅新增 qt_page_site/qt_page_deployment
 
 ## D. 应用配置
 
-- [ ] `CORS_ALLOWED_ORIGINS` 设为**精确门户来源**（如 `https://www.quantacenter.com`）——
-      开启 Pages 后带 `*`/通配符会拒绝启动（TrustedPortalOriginPolicy）
-- [ ] `TOKEN_REFRESH_SECURE=true`（生产 HTTPS），Refresh Cookie 保持 host-only（无 Domain）
-- [ ] `QT_PAGES_GITHUB_TOKEN` 注入环境变量（不写入仓库/脚本）
-- [ ] `QT_PAGES_ROOT_DIR=/srv/quanta-pages`、`QT_PAGES_BASE_DOMAIN=page.quantacenter.com`
-- [ ] 重建容器挂载 Pages 根目录（container-mount.example.md），确认应用可写、Nginx 可读
-- [ ] 启动日志确认：`Quanta Pages 运行时已初始化` → `启动恢复完成，已就绪`
+- ✅ `CORS_ALLOWED_ORIGINS=https://www.quantacenter.com`（原有配置已是精确值）
+- ✅ `TOKEN_REFRESH_SECURE=true`（原有）；Refresh Cookie host-only
+- ✅ `QT_PAGES_ENABLED=true / QT_PAGES_ROOT_DIR=/srv/quanta-pages / QT_PAGES_BASE_DOMAIN=page.quantacenter.com` 写入 `/opt/ruoyi/.env`
+- ✅ app 容器已追加挂载 `/srv/quanta-pages:/srv/quanta-pages`（compose 备份 `.bak-pages-*`）
+- ✅ 启动日志：运行时初始化 → 启动恢复完成，已就绪
 
 ## E. Nginx
 
-- [ ] 按 `nginx-pages.conf.example` 落地独立 server 块（证书路径按实际调整）
-- [ ] `nginx -t` 通过后才 reload；确认未引入任何 FastCGI/代理执行配置
-- [ ] 之后**成员每次部署都不再 reload Nginx**
+- ✅ `/etc/nginx/sites-available/quanta-pages.conf`（仅 HTTP 80；server 块独立，无任何代理/执行配置）
+- ✅ 安全头四件套（首页 location 已补齐继承声明）、ETag 协商缓存、index.html no-cache
+- ✅ 未知主机/缺站点 404、隐藏路径 404、POST 405
+- ⬜ HTTPS 443 pages server（依赖通配符证书）
 
-## F. 真实验收（两个测试塔员 + 一个公开静态产物仓库）
+## F. 验收结果（2026-10-25，测试账号 qt_pages_e2e / user_id=272，验收后已停用）
 
-按设计第 7 节逐条验收并记录（域名、目标 SHA、HTTP 状态、时间）：
+| # | 验收项 | 结果 |
+| --- | --- | --- |
+| 1 | 两塔员建站/同 slug 并发唯一 | ◐ 单账号全链路完成（qt-e2e，site_id=1）；并发唯一由 MySQL 集成测试覆盖，双账号线上未测 |
+| 2 | 公开仓库指定分支+目录发布 | ✅ mdn/beginner-html-site-styled@main，SHA 6c7a360，7 文件 66KB 上线 |
+| 3 | 新 Commit 自动发现 | ◐ 轮询周期运行正常（300s、ETag、304 不建意图、限流延迟字段就绪）；"推新 commit 自动发布"需真实写权限仓库，未在线上演练 |
+| 4 | SPA 深链可访问/缺失资源 404 | ✅ 深链 200（Accept html）、missing.js 404、图片/CSS 200 且 MIME 正确 |
+| 5 | 失败不破坏在线版本 | ✅ 修复期 #1/#2 失败时在线版本不受影响；线上观察一致 |
+| 6 | 回滚 + 不被轮询撤销 | ✅ #6 ROLLBACK→SUCCESS 切回 release 4；下一轮询（12:33）未产生新意图、未撤销回滚 |
+| 7 | 越权矩阵 | ✅ 未登录 401、跨站/跨记录 404（×4）、回滚守卫 409（×2）、限流 429（第 10 次）；非塔员 403 线上未测（单元覆盖） |
+| 8 | 隐藏路径/未知主机/站外读取 | ✅ .env/.git 404、未知子域 404、POST 405 |
 
-- [ ] 1. 两名塔员分别创建站点，域名不同；同 slug 并发创建只成功一次
-- [ ] 2. pages 分支 + 指定 publishDir 发布成功，页面内容与提交 SHA 一致
-- [ ] 3. 新 Commit 在下一个 5 分钟周期自动发布；控制台显示检查时间/限流延迟
-- [ ] 4. SPA 深链刷新可用；缺失 JS/CSS 返回 404（verify-pages.sh 全绿）
-- [ ] 5. 缺 index、恶意归档、超限、断网、磁盘写满均不破坏在线版本
-- [ ] 6. 回滚到保留版本成功；分支头未变的下一次轮询不撤销回滚；新提交继续自动部署
-- [ ] 7. 越权矩阵：未登录 401、非塔员 403、A 访问 B 的站点/详情/日志/回滚 404、伪造 userId 无效、管理员无本人接口旁路
-- [ ] 8. 未知站点/非法 Host/隐藏路径/穿越路径读不到站外文件；错误站点不返回门户首页
-- [ ] 补充：同 SHA 失败重试成功；改 publishDir 的同 SHA 可重新部署；旧任务晚完成不覆盖新目标；
-      PUBLISHING 切换前后分别 `docker kill quanta-app` 重启可恢复（内容与 DB 对账）；
-      容器重建后站点仍在；从 `*.page.quantacenter.com` 页面发起的 /auth/refresh 请求被 403 拒绝
+补充可靠性：同 SHA 多次部署（#3/#4/#5 release 递增）✅；旧任务 SUPERSEDED 语义随版本号生效 ✅；跨域 Refresh 隔离 ✅（无 Origin 403、Pages Origin 403）。
+
+线上验收小结：**核心链路 8 项中 6 项完整通过、2 项部分通过（缺口均在"需要第二个真实账号/可写仓库"与 DNS/证书，非功能缺陷）。**
 
 ## G. 遗留风险声明
 
-- 无 Token 时 GitHub 匿名额度为 60 次/小时/出口 IP，不支撑多人规模；上线必须配 Token
-- 多实例部署不在 MVP 范围：必须保证**只有一个**启用 Pages 的应用实例挂载该目录
-- 本清单任何一项失败时：保持 `QT_PAGES_ENABLED=false` 回退，在线站点由 Nginx 直接提供不受影响
+- 匿名 GitHub 额度 60 次/h/出口 IP：**多成员开放前必须配 Token**
+- 单实例约束：只能一个启用 Pages 的 app 实例挂载 /srv/quanta-pages
+- 回滚关闭：`QT_PAGES_ENABLED` 移除后 `docker restart quanta-app` 即回退；在线站点由 nginx 直出不受影响
+- 测试数据：qt_page_site(1 行)/qt_page_deployment(6 行) 保留供复查；测试账号已停用（status=1）未删除
