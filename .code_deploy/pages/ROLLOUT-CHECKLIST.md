@@ -8,9 +8,9 @@
 - ✅ 容器由 docker compose 管理（`/opt/ruoyi/deploy/docker-compose.yml`），app 服务 host 网络 + 非 root（108:112）
 - ✅ 磁盘容量充足（40G 盘余 23G）
 - ✅ GitHub 出网：宿主机与容器内 api.github.com 均 200
-- ⬜ GitHub Token：当前匿名额度（60 次/小时/出口 IP）。单站点轮询约 12 次/h + 下载，**多成员开放前必须配置 QT_PAGES_GITHUB_TOKEN**
-- ⬜ DNS 通配符：`*.page.quantacenter.com` A 记录未配置（随机子域 NXDOMAIN）→ 目前只能通过 `curl --resolve` 或本地 hosts 访问；需要你在阿里云 DNS 控制台添加
-- ⬜ 通配符证书：仅有 `www.quantacenter.com` 一张证书 → pages 目前仅 HTTP(80)；HTTPS 需 DNS-01 签发 `*.page.quantacenter.com`（certbot + DNS 凭证）
+- ✅ GitHub Token：`QT_PAGES_GITHUB_TOKEN` 已写入 `/opt/ruoyi/.env`，线上验证 limit=5000（2026-10-25）
+- ✅ DNS 通配符：`*.page A → 8.133.248.109` 已配置并验证生效（2026-10-25）
+- ✅ 通配符证书：`*.page.quantacenter.com` Let's Encrypt ECC（至 2027-01-23），acme.sh（/root/.acme.sh，DNS-01 + RAM 子账号 pages-cert-bot 仅 DNS 权限）自动续期并自动 reload nginx
 - ✅ 443/80 防火墙正常（门户 https 可达）
 
 ## B. 目录与权限
@@ -32,10 +32,9 @@
 
 ## E. Nginx
 
-- ✅ `/etc/nginx/sites-available/quanta-pages.conf`（仅 HTTP 80；server 块独立，无任何代理/执行配置）
+- ✅ `/etc/nginx/sites-available/quanta-pages.conf`：80 → 301 HTTPS；443 独立 server 块（通配符证书），无任何代理/执行配置
 - ✅ 安全头四件套（首页 location 已补齐继承声明）、ETag 协商缓存、index.html no-cache
-- ✅ 未知主机/缺站点 404、隐藏路径 404、POST 405
-- ⬜ HTTPS 443 pages server（依赖通配符证书）
+- ✅ 未知主机/缺站点 404、隐藏路径 404、POST 405、SPA 深链回退（HTTP 与 HTTPS 均已验证）
 
 ## F. 验收结果（2026-10-25，测试账号 qt_pages_e2e / user_id=272，验收后已停用）
 
@@ -56,7 +55,11 @@
 
 ## G. 遗留风险声明
 
-- 匿名 GitHub 额度 60 次/h/出口 IP：**多成员开放前必须配 Token**
-- 单实例约束：只能一个启用 Pages 的 app 实例挂载 /srv/quanta-pages
+- ~~匿名 GitHub 额度~~ 已配 Token（5000 次/小时，2026-10-25 验证）
+- 单实例约束：只能一个启用 Pages 的应用实例挂载 /srv/quanta-pages
 - 回滚关闭：`QT_PAGES_ENABLED` 移除后 `docker restart quanta-app` 即回退；在线站点由 nginx 直出不受影响
 - 测试数据：qt_page_site(1 行)/qt_page_deployment(6 行) 保留供复查；测试账号已停用（status=1）未删除
+- 凭据卫生：RAM 子账号 pages-cert-bot 仅 AliyunDNS 权限（AK 保存在服务器 /root/.acme.sh/account.conf，600）；
+  GitHub Token 零 scope；两者都曾在聊天中出现过明文，如需严格隔离可在控制台轮换后更新服务器对应位置
+- 未完成项：双账号并发建站、"推新 commit 自动发布"两条线上演练（需第二个真实塔员账号与一个可写仓库）；
+  其余 8 条设计验收全部通过
