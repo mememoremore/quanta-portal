@@ -11,7 +11,8 @@
 
 # 从 Host 提取站点标识；与后端 slug 规则一致：3-63 位小写字母/数字/连字符，首尾为字母或数字
 map $host $pages_site {
-    ~^([a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9]))\.page\.quantacenter\.com$ $1;
+    # 含 { } 量词的正则必须整体加引号，否则 nginx 把 { 当作块开始
+    "~^([a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9]))\.page\.quantacenter\.com$" $1;
     default "";
 }
 
@@ -68,7 +69,12 @@ server {
     }
 
     # index.html 永远协商缓存，保证发布后立即可见
+    # 注意：location 内出现任何 add_header 都会取消继承 server 级 add_header，安全头需重复声明
     location = /index.html {
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Origin-Agent-Cluster "?1" always;
         add_header Cache-Control "no-cache" always;
     }
 

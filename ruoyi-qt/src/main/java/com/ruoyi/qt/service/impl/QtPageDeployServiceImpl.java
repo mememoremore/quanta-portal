@@ -324,12 +324,13 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
         }
         logText.append("resolved commit " + sha);
 
-        // 3. DOWNLOADING：受限流式下载到隔离 staging
+        // 3. DOWNLOADING：受限流式下载。归档放在 staging 目录之外：
+        //    validator.extract 会先清空 staging，归档若在其中会被自己删掉
         transactions.transition(deployment.getDeploymentId(), QtPageDeployment.STATUS_DOWNLOADING,
                 logText.toString());
         Path staging = store.stagingDirectory(site, deployment.getDeploymentId());
         Files.createDirectories(staging);
-        Path archive = staging.resolve("archive.tar.gz");
+        Path archive = staging.getParent().resolve(deployment.getDeploymentId() + "-archive.tar.gz");
         client.downloadArchive(source, sha, archive);
 
         // 4. VALIDATING：安全解包与预算校验
@@ -571,6 +572,8 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
         try
         {
             QtStaticArchiveValidator.deleteRecursively(store.stagingDirectory(site, deploymentId));
+            QtStaticArchiveValidator.deleteRecursively(
+                    store.stagingRoot(site).resolve(deploymentId + "-archive.tar.gz"));
         }
         catch (IOException ignored)
         {

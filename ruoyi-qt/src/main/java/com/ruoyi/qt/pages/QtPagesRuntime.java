@@ -47,7 +47,8 @@ public class QtPagesRuntime
         {
             throw new IllegalStateException("qt.pages.enabled 需要 POSIX 文件系统（Linux），当前环境不支持");
         }
-        this.store = new QtPageReleaseStore(Paths.get(properties.getRootDir()));
+        // 磁盘布局 {rootDir}/sites/{slug}/，与 nginx 模板和 prepare-pages.sh 一致
+        this.store = new QtPageReleaseStore(Paths.get(properties.getRootDir(), "sites"));
         this.gitHubClient = new QtGitHubClient(properties);
         this.validator = new QtStaticArchiveValidator(properties.getExtractedLimitBytes(),
                 properties.getMaxFileBytes(), properties.getMaxFiles(), properties.getMaxEntries());

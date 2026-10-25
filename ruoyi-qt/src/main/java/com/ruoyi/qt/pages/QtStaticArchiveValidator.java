@@ -155,7 +155,8 @@ public class QtStaticArchiveValidator
         catch (IOException e)
         {
             deleteRecursively(staging);
-            throw new ArchiveValidationException(ERROR_CORRUPT_ARCHIVE, "unreadable archive: " + e.getMessage());
+            // 消息不得携带服务器路径（IOException 消息常含绝对路径）
+            throw new ArchiveValidationException(ERROR_CORRUPT_ARCHIVE, "归档无法读取或不是有效的 tar.gz");
         }
         catch (RuntimeException e)
         {
