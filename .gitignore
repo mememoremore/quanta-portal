@@ -13,8 +13,12 @@ application-local.yml
 .env.*.local
 .code_deploy/deploy.env.local
 .code_deploy/release/
+.code_deploy/__pycache__/
 /.mimosa/
 /.local/
+.zcode/
+Quanta-admin-web/.mimosa/
+__pycache__/
 
 # Private keys and certificates
 *.pem
