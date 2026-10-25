@@ -47,6 +47,19 @@ describe('material library state', () => {
     expect(fetcher).toHaveBeenLastCalledWith({ category: 'FRONTEND', pageNum: 1, pageSize: 20 })
   })
 
+  it('follows the uploaded department and type after clearing search', async () => {
+    const { state, fetcher } = library()
+    await state.chooseType('TRAINING')
+    state.searchText.value = 'Vue'
+    await state.search()
+    expect(state.materialType.value).toBe('')
+    await state.showUploadTarget('FRONTEND', 'TRAINING')
+    expect(state.keyword.value).toBe('')
+    expect(state.searchText.value).toBe('')
+    expect(state.materialType.value).toBe('TRAINING')
+    expect(fetcher).toHaveBeenLastCalledWith({ category: 'FRONTEND', folderId: 12, pageNum: 1, pageSize: 20 })
+  })
+
   it('searches across the department as contracted, then restores the previous type', async () => {
     const { state, fetcher } = library()
     await state.chooseType('TRAINING')

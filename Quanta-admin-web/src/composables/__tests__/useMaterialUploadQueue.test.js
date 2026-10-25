@@ -10,6 +10,9 @@ describe('material upload queue', () => {
     for (let i = 0; i < 20; i++) expect(queue.add(file(`${i}.pdf`))).toBe('')
     expect(queue.add(file('21.pdf'))).toContain('20')
     expect(upload).not.toHaveBeenCalled()
+    queue.files.value.forEach(item => { item.status = 'success' })
+    expect(queue.add(file('more.pdf'))).toBe('')
+    expect(queue.pending.value).toHaveLength(1)
   })
   it('continues after failure and retries only failed files, strictly serially', async () => {
     let active = 0, maximum = 0, fail = true
@@ -24,6 +27,8 @@ describe('material upload queue', () => {
     for (const name of ['1.pdf', '2.pdf', '3.pdf']) queue.add(file(name))
     await queue.confirm({ category: 'PRODUCT', type: 'TRAINING' })
     expect(queue.files.value.map(item => item.status)).toEqual(['success', 'error', 'success'])
+    expect(queue.files.value[0].raw).toBeUndefined()
+    expect(queue.files.value[1].raw).toBeInstanceOf(File)
     expect(queue.files.value[1].error).toBe('服务暂不可用')
     expect(maximum).toBe(1)
     fail = false

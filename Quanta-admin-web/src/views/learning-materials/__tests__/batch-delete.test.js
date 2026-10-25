@@ -33,11 +33,18 @@ describe('CEO material batch deletion', () => {
   })
   afterEach(() => wrapper?.unmount())
 
-  it.each([{ roles: ['admin'], permissions: ['*:*:*'] }, { roles: ['qt_mgmt'], permissions: ['qt:material:remove'] }, { roles: ['ceo'], permissions: [] }])('does not grant batch controls via other admin roles or missing permission: $roles', async ({ roles, permissions }) => {
+  it.each([
+    { roles: ['admin'], permissions: ['*:*:*'], visible: false },
+    { roles: ['qt_member'], permissions: ['qt:material:remove'], visible: false },
+    { roles: ['ceo'], permissions: [], visible: false },
+    { roles: ['qt_mgmt'], permissions: ['qt:material:remove'], visible: true },
+    { roles: ['qt_manager'], permissions: ['qt:material:remove'], visible: true },
+    { roles: ['qt_manager'], permissions: [], visible: false },
+  ])('shows batch controls only for ceo, management, or manager with delete permission: $roles', async ({ roles, permissions, visible }) => {
     setup(roles, permissions)
     await flushPromises()
-    expect(wrapper.find('[data-testid="material-batch-delete"]').exists()).toBe(false)
-    expect(wrapper.find('.learning-materials-mobile input[type=checkbox]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="material-batch-delete"]').exists()).toBe(visible)
+    expect(wrapper.find('.learning-materials-mobile input[type=checkbox]').exists()).toBe(visible)
   })
 
   it('starts disabled, confirms selected files, and uses only the batch endpoint', async () => {

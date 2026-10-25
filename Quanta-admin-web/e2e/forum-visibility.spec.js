@@ -85,6 +85,12 @@ test('protected pictures use an authenticated request and open as a local blob',
   await expect(image).toHaveAttribute('src', /^blob:/)
   await expect.poll(() => image.evaluate(node => node.complete && node.naturalWidth > 0)).toBe(true)
   expect(api.requests).toContain('GET /qt/forum/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  await image.click()
+  const dialog = page.getByRole('dialog', { name: '全屏看图' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).not.toContainText('图片地址无效')
+  const viewerImage = dialog.locator('.community-media-viewer__content img')
+  await expect.poll(() => viewerImage.evaluate(node => node.complete && node.naturalWidth > 0)).toBe(true)
 })
 
 test('making an existing restricted post public requires explicit confirmation', async ({ page, api }) => {

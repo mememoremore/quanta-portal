@@ -165,7 +165,7 @@ public class QtMaterialServiceImpl implements IQtMaterialService
     {
         if (!QtAuthUtils.canBatchDeleteMaterials())
         {
-            throw new ServiceException("仅 CEO 可执行批量删除", HttpStatus.FORBIDDEN);
+            throw new ServiceException("仅管理层或经理可执行批量删除", HttpStatus.FORBIDDEN);
         }
         List<Long> ids = parseBatchIds(body);
         List<QtMaterial> locked = qtMaterialMapper.selectMaterialsByIdsForUpdate(ids);

@@ -18,6 +18,9 @@ public class QtLabMemberImportParserTest
     {
         assertEquals("FRONTEND", QtLabMemberImportParser.normalizeDepartment("\u524d\u7aef"));
         assertEquals("BACKEND", QtLabMemberImportParser.normalizeDepartment("\u540e\u7aef"));
+        assertEquals("BACKEND", QtLabMemberImportParser.normalizeDepartment("\u7814\u53d1\u90e8"));
+        assertEquals("FRONTEND", QtLabMemberImportParser.normalizeDepartment("\u5168\u6808\uff08\u524d\u7aef\uff09"));
+        assertEquals("BACKEND", QtLabMemberImportParser.normalizeDepartment("\u5168\u6808\uff08\u540e\u7aef\uff09"));
         assertEquals("PRODUCT", QtLabMemberImportParser.normalizeDepartment("PRODUCT"));
         assertEquals("1", QtLabMemberImportParser.normalizeMemberFlag("\u662f"));
         assertEquals("1", QtLabMemberImportParser.normalizeMemberFlag("\u5854\u5458"));

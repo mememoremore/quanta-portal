@@ -108,7 +108,8 @@ export const materialHandlers = [
     method: 'post', path: '/qt/materials/batch-delete', handle(config) {
       const current = account(config)
       if (!current) return { code: 401, msg: '登录状态已失效' }
-      if (!current.roles.includes('ceo') || !has(current, 'qt:material:remove')) return { code: 403, msg: '仅 CEO 可执行批量删除' }
+      const batchRoles = ['ceo', 'qt_mgmt', 'qt_manager']
+      if (!current.roles.some(role => batchRoles.includes(role)) || !has(current, 'qt:material:remove')) return { code: 403, msg: '仅管理层或经理可执行批量删除' }
       const ids = config.data?.materialIds
       if (!Array.isArray(ids) || !ids.length || ids.length > 20 || new Set(ids).size !== ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0)) return { code: 400, msg: '资料ID无效' }
       const deletedIds = ids.filter(id => mockMaterials.some(row => row.materialId === id))

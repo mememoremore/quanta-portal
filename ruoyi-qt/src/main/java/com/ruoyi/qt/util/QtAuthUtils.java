@@ -81,11 +81,13 @@ public final class QtAuthUtils
     }
 
     /**
-     * 学习资料批量删除只认角色键 ceo，再要求删除权限。admin、超管权限和 isCeo() 都不能代替。
+     * 学习资料批量删除只认角色键 ceo、qt_mgmt、qt_manager，再要求删除权限。
+     * admin、单独的超管权限和 isCeo() 都不能代替这些角色键。
      */
     public static boolean canBatchDeleteMaterials()
     {
-        return hasExactRole(ROLE_CEO)
+        boolean allowedRole = hasExactRole(ROLE_CEO) || hasExactRole(ROLE_MGMT) || hasExactRole(ROLE_MANAGER);
+        return allowedRole
                 && (hasPermi("qt:material:remove") || hasPermi(com.ruoyi.common.constant.Constants.ALL_PERMISSION));
     }
 

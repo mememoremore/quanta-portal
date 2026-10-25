@@ -47,6 +47,24 @@ it('shows image failure safely and restores scroll on destroy without late load 
   expect(image.onerror).toBeNull()
 })
 
+it('opens an in-page blob image and reads its dimensions', () => {
+  const blobUrl = 'blob:https://quanta.example/11111111-1111-1111-1111-111111111111'
+  source = document.createElement('img')
+  source.setAttribute('src', blobUrl)
+  source.alt = '流程图'
+  document.body.append(source)
+  viewer.open(source)
+  const dialog = document.querySelector('dialog')
+  const image = dialog.querySelector('img')
+  expect(image?.getAttribute('src')).toBe(blobUrl)
+  expect(dialog.querySelector('[role=status]').textContent).not.toContain('图片地址无效')
+  Object.defineProperty(image, 'naturalWidth', { configurable: true, value: 32 })
+  Object.defineProperty(image, 'naturalHeight', { configurable: true, value: 16 })
+  image.dispatchEvent(new Event('load'))
+  expect(dialog.querySelector('[role=status]').hidden).toBe(true)
+  expect(dialog.querySelector('.community-media-viewer__content').style.width).toBe('32px')
+})
+
 it('rejects unsafe image sources without assigning them to a viewer image', () => {
   source = document.createElement('img'); source.setAttribute('src', 'javascript:alert(1)')
   document.body.append(source)

@@ -104,6 +104,10 @@ public final class QtLabMemberImportParser
         {
             return "BACKEND";
         }
+        if ("\u7814\u53d1\u90e8".equals(value))
+        {
+            return "BACKEND";
+        }
         return upper;
     }
 
