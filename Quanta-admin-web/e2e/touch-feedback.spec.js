@@ -70,7 +70,7 @@ test.describe('官网全站触摸反馈', () => {
     expect(api.requests).toContain('GET /qt/member/list')
   })
 
-  test('OAuth 登录、授权和完成页使用淡橙色反馈', async ({ page, api }) => {
+  test('OAuth 登录和授权使用淡橙色反馈，完成后直接续接', async ({ page, api }) => {
     const id = 'a'.repeat(43)
     await page.route(`http://127.0.0.1:18080/oauth2/interaction/${id}**`, async route => {
       const headers = {
@@ -80,6 +80,7 @@ test.describe('官网全站触摸反馈', () => {
         'access-control-allow-methods': 'GET,POST,OPTIONS',
       }
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
+      if (new URL(route.request().url()).pathname.endsWith('/continue')) return route.fulfill({ status: 200, headers, contentType: 'text/html; charset=utf-8', body: '<h1>测试授权续接端点</h1>' })
       const expiresAt = new Date(Date.now() + 600000).toISOString()
       const data = route.request().method() === 'POST'
         ? { status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt }
@@ -97,9 +98,8 @@ test.describe('官网全站触摸反馈', () => {
     await expect(approve).toBeVisible()
     await expect(approve).toHaveCSS('-webkit-tap-highlight-color', tapColor)
     await approve.tap()
-    await expect(page.getByRole('heading', { name: '登录成功，欢迎回来' })).toBeVisible()
-    await expect(page.getByTestId('oauth-return')).toHaveCount(0)
-    await expect(page.getByTestId('oauth-countdown')).toContainText('秒后自动进入 Challenge')
+    await expect(page).toHaveURL(`http://127.0.0.1:18080/oauth2/interaction/${id}/continue`)
+    await expect(page.getByRole('heading', { name: '测试授权续接端点' })).toBeVisible()
     expect(api.requests).toContain('POST /login')
   })
 })

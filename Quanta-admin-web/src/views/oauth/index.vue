@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { CircleCheck } from '@element-plus/icons-vue'
 import { getInteraction, decideInteraction, getOAuthIdentity } from '@/api/oauth'
 import { challengeOrigin, interactionId, isOAuthMember, validateInteraction, validateApproval, validateDeniedRedirect, navigateOAuthContinuation, assertUnexpired } from '@/utils/oauth'
 import { useUserStore } from '@/stores/user'
@@ -23,9 +22,7 @@ const phase = ref('loading')
 const busy = ref(false)
 const message = ref('')
 const clock = ref(Date.now())
-const returnAt = ref(0)
-const returnSeconds = computed(() => Math.max(0, Math.ceil((returnAt.value - clock.value) / 1000)))
-let returnTimer
+let continuedGeneration = -1
 let generation = 0
 let alive = true
 const expired = computed(() => Boolean(context.value && Date.parse(approval.value?.expiresAt || context.value.expiresAt) <= clock.value))
@@ -46,6 +43,7 @@ async function identify(expectedGeneration = generation) {
       if (String(context.value.subjectUserId) !== String(identity.value.userId)) throw new Error('授权账号已变化，请重新从 Challenge 发起登录。')
       approval.value = validateApproval({ ...context.value, continuePath: `/oauth2/interaction/${id()}/continue` }, id())
       phase.value = 'complete'
+      continueToChallenge(expectedGeneration)
     }
   } catch (failure) {
     if (!alive || expectedGeneration !== generation) return
@@ -75,6 +73,7 @@ async function decide(action) {
     if (action === 'deny') { window.location.assign(validateDeniedRedirect(result.redirectUrl, context.value.client.redirectUri)); return }
     approval.value = validateApproval(result, id())
     phase.value = 'complete'
+    continueToChallenge(current)
   } catch (failure) {
     if (alive && current === generation) {
       message.value = failure.message
@@ -82,26 +81,17 @@ async function decide(action) {
     }
   } finally { busy.value = false }
 }
-function continueToChallenge() {
-  if (busy.value || !alive || phase.value !== 'complete') return
+function continueToChallenge(expectedGeneration) {
+  // Decision requests already hold busy; do not block their validated continuation.
+  if (!alive || expectedGeneration !== generation || continuedGeneration === generation || phase.value !== 'complete') return
   try {
     validateApproval(approval.value, id())
     assertUnexpired(context.value.expiresAt)
     busy.value = true
+    continuedGeneration = generation
     navigateOAuthContinuation(id())
   } catch (failure) { busy.value = false; message.value = failure.message; phase.value = 'error' }
 }
-watch([phase, approval, expired, () => route.query.interaction], () => {
-  clearTimeout(returnTimer)
-  returnAt.value = 0
-  if (phase.value !== 'complete' || expired.value) return
-  const current = generation
-  clock.value = Date.now()
-  returnAt.value = clock.value + 3000
-  returnTimer = setTimeout(() => {
-    if (alive && current === generation && !expired.value) continueToChallenge()
-  }, 3000)
-}, { flush: 'sync' })
 async function switchAccount() {
   if (busy.value || !window.confirm('切换后将退出当前浏览器中的主站账号，是否继续？')) return
   busy.value = true
@@ -111,23 +101,20 @@ async function switchAccount() {
 }
 watch(() => route.query.interaction, load)
 const timer = setInterval(() => { clock.value = Date.now() }, 1000)
-onBeforeUnmount(() => { alive = false; generation++; clearInterval(timer); clearTimeout(returnTimer) })
+onBeforeUnmount(() => { alive = false; generation++; clearInterval(timer) })
 onMounted(load)
 </script>
 
 <template>
-  <main class="oauth-page" :class="{ 'oauth-page--complete': phase === 'complete' && !expired }">
-    <div class="oauth-shell">
-      <LoginBrand :tone="phase === 'complete' && !expired ? 'light' : 'dark'" />
+  <main class="oauth-page">
+    <div v-if="phase !== 'complete' || expired" class="oauth-shell">
+      <LoginBrand tone="dark" />
       <section class="oauth-panel" aria-live="polite">
         <template v-if="phase === 'loading'"><h1>正在验证授权请求</h1><p>请稍候…</p></template>
         <template v-else-if="expired"><h1>本次授权已过期</h1><p>为保护账号安全，请返回 Challenge 重新发起登录。</p><a class="oauth-primary" :href="`${returnOrigin}/auth/login`">返回 Challenge</a></template>
         <template v-else-if="phase === 'error'"><h1>暂时无法继续登录</h1><p role="alert">{{ message }}</p><button class="oauth-secondary" @click="load">重新检查</button><a class="oauth-primary" :href="`${returnOrigin}/auth/login`">返回 Challenge</a></template>
         <MemberLogin v-else-if="phase === 'login'" @signed-in="identify()" />
         <template v-else-if="phase === 'ineligible'"><h1>该登录方式仅向塔员开放</h1><p>当前账号没有有效塔员身份，请切换账号后重试。</p><button class="oauth-primary" :disabled="busy" @click="switchAccount">切换塔员账号</button><button class="oauth-secondary" :disabled="busy" @click="decide('deny')">取消并返回 Challenge</button></template>
-        <template v-else-if="phase === 'complete'">
-          <div class="oauth-success" aria-hidden="true"><CircleCheck /></div><h1>登录成功，欢迎回来</h1><p>Quanta 身份验证及 Challenge 授权已完成。<br><span data-testid="oauth-countdown">{{ busy ? '正在安全进入 Challenge…' : `${returnSeconds} 秒后自动进入 Challenge。` }}</span></p>
-        </template>
         <template v-else>
           <span class="oauth-eyebrow">CONNECT WITH QUANTA</span><h1>登录 Quanta Challenge</h1><p>请确认使用以下塔员账号登录。</p>
           <div class="oauth-application"><strong>{{ context.client.name }}</strong><small>{{ context.client.origin.replace('https://', '') }}</small></div>

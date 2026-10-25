@@ -22,7 +22,11 @@ async function setup(user = { userId: 1, nickName: '实名同学', communityNick
   wrappers.push(wrapper); await flushPromises()
   return wrapper
 }
-beforeEach(() => { vi.clearAllMocks(); api.getInteraction.mockResolvedValue(value()) })
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.spyOn(oauth, 'navigateOAuthContinuation').mockImplementation(() => {})
+  api.getInteraction.mockResolvedValue(value())
+})
 afterEach(() => { wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.useRealTimers() })
 
 describe('Quanta OAuth page', () => {
@@ -48,14 +52,15 @@ describe('Quanta OAuth page', () => {
     expect(wrapper.text()).toContain('该登录方式仅向塔员开放')
     expect(wrapper.find('[data-testid="oauth-approve"]').exists()).toBe(false)
   })
-  it('stays on the portal completion screen after approval, with no immediate navigation', async () => {
+  it('continues immediately after approval without rendering a success card or countdown', async () => {
     api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
     const wrapper = await setup()
     await wrapper.get('[data-testid="oauth-approve"]').trigger('click'); await flushPromises()
     expect(api.decideInteraction).toHaveBeenCalledExactlyOnceWith(id, 'approve', 'c'.repeat(43))
-    expect(wrapper.text()).toContain('登录成功，欢迎回来')
+    expect(oauth.navigateOAuthContinuation).toHaveBeenCalledExactlyOnceWith(id)
+    expect(wrapper.text()).not.toContain('登录成功，欢迎回来')
     expect(wrapper.find('[data-testid="oauth-return"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('3 秒后自动')
+    expect(wrapper.find('[data-testid="oauth-countdown"]').exists()).toBe(false)
   })
   it('rejects unsafe approval responses instead of showing success', async () => {
     api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: 'https://evil.test', expiresAt: value().expiresAt })
@@ -77,46 +82,59 @@ describe('Quanta OAuth page', () => {
     expect(wrapper.find('[data-testid="oauth-approve"]').exists()).toBe(false)
   })
 
-  it('continues exactly once after three seconds, never directly to the homepage', async () => {
+  it('continues exactly once without advancing any timers, never directly to the homepage', async () => {
     vi.useFakeTimers()
     const navigate = vi.spyOn(oauth, 'navigateOAuthContinuation').mockImplementation(() => {})
     api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
     const wrapper = await setup()
     await wrapper.get('[data-testid="oauth-approve"]').trigger('click'); await flushPromises()
-    await vi.advanceTimersByTimeAsync(2999)
-    expect(navigate).not.toHaveBeenCalled()
-    await vi.advanceTimersByTimeAsync(1)
     expect(navigate).toHaveBeenCalledExactlyOnceWith(id)
     await vi.advanceTimersByTimeAsync(10000)
     expect(navigate).toHaveBeenCalledOnce()
   })
 
-  it('cancels continuation after unmount or approval expiry', async () => {
+  it('never continues with an expired approval response', async () => {
     vi.useFakeTimers()
     const navigate = vi.spyOn(oauth, 'navigateOAuthContinuation').mockImplementation(() => {})
-    api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: new Date(Date.now() + 1500).toISOString() })
+    api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: new Date(Date.now() - 1).toISOString() })
     const wrapper = await setup()
     await wrapper.get('[data-testid="oauth-approve"]').trigger('click'); await flushPromises()
-    await vi.advanceTimersByTimeAsync(3100)
     expect(navigate).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('本次授权已过期')
-    api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
-    const second = await setup()
-    await second.get('[data-testid="oauth-approve"]').trigger('click'); await flushPromises()
-    second.unmount()
-    await vi.advanceTimersByTimeAsync(4000)
-    expect(navigate).not.toHaveBeenCalled()
   })
-  it('cancels the previous continuation when the interaction changes', async () => {
-    vi.useFakeTimers()
-    const navigate = vi.spyOn(oauth, 'navigateOAuthContinuation').mockImplementation(() => {})
-    api.decideInteraction.mockResolvedValue({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
+  it('ignores an approval that resolves after unmount', async () => {
+    let resolve
+    api.decideInteraction.mockReturnValue(new Promise(done => { resolve = done }))
     const wrapper = await setup()
-    await wrapper.get('[data-testid="oauth-approve"]').trigger('click'); await flushPromises()
+    await wrapper.get('[data-testid="oauth-approve"]').trigger('click')
+    wrapper.unmount()
+    resolve({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
+    await flushPromises()
+    expect(oauth.navigateOAuthContinuation).not.toHaveBeenCalled()
+  })
+  it('continues an already-approved transaction immediately after checking the same account', async () => {
+    api.getInteraction.mockResolvedValue({ ...value(), status: 'approved', subjectUserId: 1 })
+    await setup()
+    expect(oauth.navigateOAuthContinuation).toHaveBeenCalledExactlyOnceWith(id)
+    expect(api.decideInteraction).not.toHaveBeenCalled()
+  })
+  it('does not continue an approved transaction belonging to a different account', async () => {
+    api.getInteraction.mockResolvedValue({ ...value(), status: 'approved', subjectUserId: 2 })
+    const wrapper = await setup()
+    expect(wrapper.text()).toContain('授权账号已变化')
+    expect(oauth.navigateOAuthContinuation).not.toHaveBeenCalled()
+  })
+  it('ignores an approval that resolves after the interaction changes', async () => {
+    const navigate = vi.spyOn(oauth, 'navigateOAuthContinuation').mockImplementation(() => {})
+    let resolve
+    api.decideInteraction.mockReturnValue(new Promise(done => { resolve = done }))
+    const wrapper = await setup()
+    await wrapper.get('[data-testid="oauth-approve"]').trigger('click')
     api.getInteraction.mockRejectedValue(new Error('新授权已失效'))
     await wrapper.vm.$router.push(`/oauth/authorize?interaction=${'b'.repeat(43)}`)
     await flushPromises()
-    await vi.advanceTimersByTimeAsync(4000)
+    resolve({ status: 'approved', continuePath: `/oauth2/interaction/${id}/continue`, expiresAt: value().expiresAt })
+    await flushPromises()
     expect(navigate).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('新授权已失效')
   })

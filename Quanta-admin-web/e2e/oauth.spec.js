@@ -10,7 +10,7 @@ async function setup(page, { member = '1', expired = false, missing = false } = 
     const headers = { 'access-control-allow-origin': 'http://127.0.0.1:5177', 'access-control-allow-credentials': 'true', 'access-control-allow-headers': 'authorization,content-type,x-trace-id,x-csrf-token,istoken', 'access-control-allow-methods': 'GET,POST,OPTIONS' }
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
     calls.push(`${request.method()} ${path}`)
-    if (path.endsWith('/continue')) return route.fulfill({ status: 200, headers, contentType: 'text/html', body: '<h1>测试授权续接端点</h1>' })
+    if (path.endsWith('/continue')) return route.fulfill({ status: 200, headers, contentType: 'text/html; charset=utf-8', body: '<h1>测试授权续接端点</h1>' })
     const expiresAt = new Date(Date.now() + (expired ? -1000 : 600000)).toISOString()
     let payload
     if (path === `/oauth2/interaction/${id}`) payload = { code: missing ? 503 : 200, msg: '授权服务尚未就绪', data: { interactionId: id, status: 'pending', expiresAt, csrfToken: 'c'.repeat(43), consentRequired: true, scopes: ['openid', 'profile'], client: { clientId: 'quanta-challenge', name: 'Quanta Challenge', origin: 'https://challenge.quantacenter.com', redirectUri: 'https://challenge.quantacenter.com/api/auth/quanta/callback' } } }
@@ -25,7 +25,7 @@ async function setup(page, { member = '1', expired = false, missing = false } = 
 }
 
 for (const width of [1440, 390]) {
-  test(`官网授权与完成页 ${width}px：成功停留三秒后自动安全续接`, async ({ page }, info) => {
+  test(`官网授权 ${width}px：完成后立即安全续接，不显示成功卡片`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 940 })
     const calls = await setup(page)
     await page.goto(`/oauth/authorize?interaction=${id}`)
@@ -35,13 +35,8 @@ for (const width of [1440, 390]) {
     await expect(page.locator('#nprogress')).toHaveCount(0)
     await page.screenshot({ path: info.outputPath(`oauth-consent-${width}.png`) })
     await page.getByTestId('oauth-approve').click()
-    await expect(page.getByRole('heading', { name: '登录成功，欢迎回来' })).toBeVisible()
-    await expect(page).toHaveURL(new RegExp(`/oauth/authorize\\?interaction=${id}$`))
-    expect(calls.some(call => call.endsWith('/continue'))).toBe(false)
-    await expect(page.locator('.oauth-page')).toHaveCSS('background-color', 'rgb(17, 17, 17)')
-    await page.screenshot({ path: info.outputPath(`oauth-complete-${width}.png`) })
-    await expect(page.getByTestId('oauth-return')).toHaveCount(0)
     await expect(page).toHaveURL(`${apiOrigin}/oauth2/interaction/${id}/continue`)
+    await expect(page.getByRole('heading', { name: '测试授权续接端点' })).toBeVisible()
     expect(calls.filter(call => call.endsWith('/continue'))).toHaveLength(1)
   })
 }
