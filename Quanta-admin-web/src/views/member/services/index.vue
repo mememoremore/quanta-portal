@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { getMyServices } from '@/api/portal/services'
 
 const tabs = [
@@ -43,7 +44,10 @@ onMounted(loadServices)
   <section class="member-service-page">
     <header class="member-service-heading">
       <div><p>MY SERVICES</p><h1>我的服务</h1><span>统一查看图书与塔服的办理记录。</span></div>
-      <button class="member-secondary-button" type="button" :disabled="loading" @click="loadServices">刷新记录</button>
+      <div class="member-service-heading__actions">
+        <RouterLink class="member-secondary-button" to="/member/pages" data-testid="services-pages-link">个人网站 →</RouterLink>
+        <button class="member-secondary-button" type="button" :disabled="loading" @click="loadServices">刷新记录</button>
+      </div>
     </header>
 
     <p v-if="errorMessage" class="member-feedback is-error" role="alert">
@@ -84,3 +88,7 @@ onMounted(loadServices)
 </template>
 
 <style src="./services.css"></style>
+<style scoped>
+.member-service-heading__actions { display: flex; align-items: center; gap: 10px; }
+.member-service-heading__actions a { text-decoration: none; display: inline-flex; align-items: center; }
+</style>

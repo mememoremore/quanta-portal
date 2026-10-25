@@ -1,0 +1,86 @@
+# Quanta Pages 宿主机 Nginx 模板（生产实际使用的最终版，2026-10-25 已在服务器生效）
+#
+# 设计约束（docs/specs/2026-10-25-quanta-pages-mvp-design.md 第 6 节）：
+# - 80 一律 301 跳转 HTTPS；443 由 acme.sh 自动续期的通配符证书提供服务
+# - 未知主机/缺站点/缺 current/index 返回真实 404
+# - 独立 server 块，不继承门户 API 代理、PHP/FastCGI 或任何执行配置
+# - 只允许 GET/HEAD；目录列表关闭；隐藏路径（以 . 开头）一律 404
+# - SPA 只对"接受 HTML 的无扩展路径"回退 index.html；缺失 js/css/图片必须 404
+# - index.html 不长期缓存；其余资源走 ETag 协商缓存
+# - 成员部署不 reload Nginx
+
+# 从 Host 提取站点标识；与后端 slug 规则一致：3-63 位小写字母/数字/连字符，首尾为字母或数字
+# 注意：含 { } 量词的正则必须整体加引号，否则 nginx 把 { 当作块开始
+map $host $pages_site {
+    "~^([a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9]))\.page\.quantacenter\.com$" $1;
+    default "";
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name *.page.quantacenter.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name *.page.quantacenter.com;
+
+    # 通配符证书由服务器 /root/.acme.sh 自动签发与续期（DNS-01 + Aliyun DNS API），
+    # 续期后自动 nginx -t && reload
+    ssl_certificate     /etc/nginx/ssl/pages.fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/pages.key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    root /srv/quanta-pages/sites/$pages_site/current;
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    autoindex off;
+    server_tokens off;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Origin-Agent-Cluster "?1" always;
+
+    if ($request_method !~ ^(GET|HEAD)$) {
+        return 405;
+    }
+
+    # 隐藏路径（.git/.env/点开头目录）一律 404
+    location ~ ^/\. {
+        return 404;
+    }
+
+    # index.html 永远协商缓存，保证发布后立即可见
+    # 注意：location 内出现任何 add_header 都会取消继承 server 级 add_header，安全头需重复声明
+    location = /index.html {
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Origin-Agent-Cluster "?1" always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location / {
+        try_files $uri $uri/ @pages_fallback;
+    }
+
+    location @pages_fallback {
+        # SPA 深链回退：只对"无扩展名 + 客户端接受 HTML"的请求开放
+        if ($uri ~ "\.[A-Za-z0-9]+$") {
+            return 404;
+        }
+        if ($http_accept !~* "text/html") {
+            return 404;
+        }
+        try_files /index.html =404;
+    }
+
+    access_log /var/log/nginx/quanta-pages.access.log;
+    error_log  /var/log/nginx/quanta-pages.error.log warn;
+}

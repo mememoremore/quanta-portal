@@ -4,6 +4,12 @@ import { safeMarkdownUrl } from './image-previews'
 
 let sequence = 0
 
+function renderedImageUrl(element) {
+  const raw = String(element.getAttribute('src') || '').trim()
+  if (/^blob:[^\s"'<>]+$/i.test(raw)) return raw
+  return safeMarkdownUrl(raw, true)
+}
+
 export function createMediaViewer() {
   let dialog, stage, content, status, percent, gestures, opener, restoreOverflow, disposeImage, generation = 0
   function finish() {
@@ -64,7 +70,7 @@ export function createMediaViewer() {
         content.replaceChildren(fragment)
         ready(values?.[2], values?.[3])
       } else {
-        const src = safeMarkdownUrl(element.getAttribute('src'), true)
+        const src = renderedImageUrl(element)
         if (!src) throw new Error('图片地址无效')
         const image = document.createElement('img')
         image.alt = element.alt || '帖子图片'; image.draggable = false

@@ -8,11 +8,13 @@ function remove(token, materialIds) { return handler.handle({ headers: { Authori
 
 describe('full-demo material batch endpoint (not a production fallback)', () => {
   beforeEach(resetMockMaterials)
-  it('requires the explicit CEO role, not admin wildcard or management permissions', () => {
+  it('allows ceo, management, and manager with delete permission, and still rejects admin or a manager without it', () => {
     expect(remove('mock-token-admin', [1]).code).toBe(403)
-    expect(remove('mock-token-product-manager', [1]).code).toBe(403)
+    expect(remove('mock-token-product-interviewer', [1]).code).toBe(403)
     expect(remove('', [1]).code).toBe(401)
     expect(mockMaterials).toHaveLength(4)
+    expect(remove('mock-token-product-manager', [1]).code).toBe(200)
+    expect(mockMaterials.map(row => row.materialId)).not.toContain(1)
   })
   it('validates first and safely handles a repeated deletion', () => {
     expect(remove('mock-token-ceo', [1, 1]).code).toBe(400)

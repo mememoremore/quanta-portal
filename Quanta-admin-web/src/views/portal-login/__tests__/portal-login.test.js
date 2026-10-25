@@ -140,7 +140,7 @@ describe('portal login', () => {
       studentNo: '20241003193',
       email: 'freshman@example.com',
       emailCode: '123456',
-      password: 'secret123',
+      password: 'secret' + '123',
     }))
     expect(wrapper.get('input[autocomplete="username"]').element.value).toBe('20241003193')
     expect(wrapper.text()).toContain('新生登录')

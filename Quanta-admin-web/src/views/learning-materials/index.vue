@@ -17,7 +17,7 @@ import { materialRowTypeLabel, materialTypeLabel } from '@/utils/material-types'
 import './learning-materials.css'
 
 const library = useMaterialLibrary(getMaterials)
-const { rows, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage } = library
+const { rows, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage, showUploadTarget } = library
 const userStore = useUserStore()
 const { hasAny, hasRole } = usePermission()
 const uploadOpen = ref(false)
@@ -25,9 +25,10 @@ const uploadPolicy = computed(() => getMaterialUploadPolicy({
   roles: userStore.roles, permissions: userStore.permissions,
   departmentCode: userStore.departmentCode, canAccessAdmin: userStore.canAccessAdmin,
 }))
-const canDelete = computed(() => (hasRole('qt_mgmt') || hasRole('ceo') || hasRole('admin')) && hasAny('qt:material:remove'))
 // Deliberately do not use hasRole('ceo'): its legacy alias also admits admin accounts.
-const canBatchDelete = computed(() => userStore.roles.includes('ceo') && hasAny('qt:material:remove'))
+const batchDeleteRoles = ['ceo', 'qt_mgmt', 'qt_manager']
+const canBatchDelete = computed(() => batchDeleteRoles.some(role => userStore.roles.includes(role)) && hasAny('qt:material:remove'))
+const canDelete = computed(() => (canBatchDelete.value || hasRole('admin')) && hasAny('qt:material:remove'))
 const downloadingId = ref(null)
 const mutationBusy = ref(false), batchSubmitting = ref(false)
 const selectionLocked = computed(() => loading.value || mutationBusy.value)
@@ -107,7 +108,7 @@ async function handleDownload(row) {
   } catch (error) { ElMessage.error(error.message || '下载失败') }
   finally { downloadingId.value = null }
 }
-function uploaded() { clearSelection(); pageNum.value = 1; load() }
+function uploaded(result) { clearSelection(); return showUploadTarget(result?.category, result?.type) }
 onMounted(load)
 </script>
 
@@ -136,13 +137,13 @@ onMounted(load)
           <ElTableColumn label="资料名称" min-width="280"><template #default="{ row }"><div class="learning-materials-table__name"><MaterialFileIcon :name="row.fileName" /><div><ElButton link class="learning-materials-table__download" @click="handleDownload(row)">{{ row.fileName }}</ElButton><small>{{ fileSize(row.fileSize) }} · {{ materialCategoryLabel(row.category) }}{{ materialRowTypeLabel(row, materialType) ? ' · ' + materialRowTypeLabel(row, materialType) : '' }}</small></div></div></template></ElTableColumn>
           <ElTableColumn prop="uploader" label="上传人" min-width="100" />
           <ElTableColumn prop="uploadedAt" label="上传时间" min-width="165" />
-          <ElTableColumn label="操作" :min-width="canDelete ? 120 : 80"><template #default="{ row }"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" :disabled="selectionLocked" permissions="qt:material:remove" :roles="['qt_mgmt', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></template></ElTableColumn>
+          <ElTableColumn label="操作" :min-width="canDelete ? 120 : 80"><template #default="{ row }"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" :disabled="selectionLocked" permissions="qt:material:remove" :roles="['qt_mgmt', 'qt_manager', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></template></ElTableColumn>
         </ElTable>
         <div v-loading="loading" class="learning-materials-mobile">
           <article v-for="row in rows" :key="row.materialId" :class="{ 'is-selected': selectedIds.includes(row.materialId) }">
             <ElCheckbox v-if="canBatchDelete" :model-value="selectedIds.includes(row.materialId)" :disabled="selectionLocked" :aria-label="`选择资料：${row.fileName}`" @change="toggle(row.materialId, $event)" />
             <div class="learning-materials-table__name"><MaterialFileIcon :name="row.fileName" /><div><strong>{{ row.fileName }}</strong><small>{{ fileSize(row.fileSize) }} · {{ row.uploader }}</small><small>{{ materialCategoryLabel(row.category) }}{{ materialRowTypeLabel(row, materialType) ? ' · ' + materialRowTypeLabel(row, materialType) : '' }}</small></div></div>
-            <div class="learning-materials-mobile__actions"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" :disabled="selectionLocked" permissions="qt:material:remove" :roles="['qt_mgmt', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></div>
+            <div class="learning-materials-mobile__actions"><ElButton link type="primary" :loading="downloadingId === row.materialId" @click="handleDownload(row)">下载</ElButton><PermissionButton v-if="canDelete" link type="danger" :disabled="selectionLocked" permissions="qt:material:remove" :roles="['qt_mgmt', 'qt_manager', 'ceo', 'admin']" @click="handleDelete(row)">删除</PermissionButton></div>
           </article>
           <p v-if="!rows.length && !loading" class="learning-materials-mobile__empty">该类型暂时没有资料</p>
         </div>

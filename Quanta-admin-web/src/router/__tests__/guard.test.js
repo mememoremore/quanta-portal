@@ -6,6 +6,7 @@ import { useUserStore } from '@/stores/user'
 import { staticRoutes } from '../routes'
 import { buildDocumentTitle, setupRouterGuard } from '../guard'
 import { setAudience } from '@/utils/session-audience'
+import { mockPasswordFor } from '@/mock/data/accounts'
 import { setToken } from '@/utils/token'
 
 function createTestRouter() {
@@ -63,7 +64,7 @@ describe('global route guard', () => {
 
   it('restores user info and installs prefixed dynamic routes on a cold deep link', async () => {
     const router = createTestRouter()
-    await userStore.login({ username: 'admin', password: 'quanta123' }, 'admin')
+    await userStore.login({ username: 'admin', password: mockPasswordFor('admin') }, 'admin')
     await router.push('/admin/dashboard')
 
     expect(router.currentRoute.value.name).toBe('Dashboard')
@@ -81,7 +82,7 @@ describe('global route guard', () => {
       component: { template: '<div>admin only</div>' },
       meta: { permission: 'system:secret:manage' },
     })
-    await userStore.login({ username: 'viewer', password: 'quanta123' }, 'admin')
+    await userStore.login({ username: 'viewer', password: mockPasswordFor('viewer') }, 'admin')
     await router.push('/admin-only')
 
     expect(router.currentRoute.value.path).toBe('/403')
@@ -126,7 +127,7 @@ describe('global route guard', () => {
   it('allows a member with management permissions into admin routes', async () => {
     const router = createTestRouter()
     await userStore.login(
-      { username: 'product_interviewer', password: 'quanta123' },
+      { username: 'product_interviewer', password: mockPasswordFor('product_interviewer') },
       'member',
     )
     userStore.user = { userName: 'manager', isQuantaMember: '1' }

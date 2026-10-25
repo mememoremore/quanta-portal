@@ -121,20 +121,31 @@ class QtMaterialBatchDeleteTest
         ServiceException error = assertThrows(ServiceException.class,
                 () -> service.batchDelete(json("{\"materialIds\":[101]}")));
         assertEquals(HttpStatus.FORBIDDEN, error.getCode());
-        assertEquals("仅 CEO 可执行批量删除", error.getMessage());
+        assertEquals("仅管理层或经理可执行批量删除", error.getMessage());
         verifyNoInteractions(qtMaterialMapper);
     }
 
     @Test
-    void managementRolesCannotBatchDelete() throws Exception
+    void managementAndManagerCanBatchDelete() throws Exception
     {
-        for (String role : List.of("qt_mgmt", "qt_manager", "qt_member"))
+        for (String role : List.of("qt_mgmt", "qt_manager"))
         {
-            login(9L, role, Set.of("qt:material:remove", "*:*:*"));
-            ServiceException error = assertThrows(ServiceException.class,
-                    () -> service.batchDelete(json("{\"materialIds\":[101]}")));
-            assertEquals(HttpStatus.FORBIDDEN, error.getCode());
+            login(9L, role, Set.of("qt:material:remove"));
+            when(qtMaterialMapper.selectMaterialsByIdsForUpdate(List.of(101L))).thenReturn(List.of(stored(101L)));
+            when(qtMaterialMapper.deleteMaterialsByIds(List.of(101L))).thenReturn(1);
+            QtMaterialBatchDeleteResult result = service.batchDelete(json("{\"materialIds\":[101]}"));
+            assertEquals(List.of(101L), result.getDeletedIds());
         }
+    }
+
+    @Test
+    void ordinaryMemberCannotBatchDelete() throws Exception
+    {
+        login(9L, "qt_member", Set.of("qt:material:remove", "*:*:*"));
+        ServiceException error = assertThrows(ServiceException.class,
+                () -> service.batchDelete(json("{\"materialIds\":[101]}")));
+        assertEquals(HttpStatus.FORBIDDEN, error.getCode());
+        assertEquals("仅管理层或经理可执行批量删除", error.getMessage());
         verifyNoInteractions(qtMaterialMapper);
     }
 

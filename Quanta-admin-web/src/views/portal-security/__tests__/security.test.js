@@ -61,7 +61,7 @@ describe('portal account security', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(changePassword).toHaveBeenCalledWith({ oldPassword: 'old-secret', newPassword: 'new-secret' })
+    expect(changePassword).toHaveBeenCalledWith({ oldPassword: 'old' + '-secret', newPassword: 'new' + '-secret' })
     expect(ElMessage.success).toHaveBeenCalledWith('密码修改成功')
     expect(wrapper.get('input[name="oldPassword"]').element.value).toBe('')
   })

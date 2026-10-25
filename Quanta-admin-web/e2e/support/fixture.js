@@ -24,6 +24,14 @@ const accounts = {
     loginType: '1', roles: ['qt_manager'], permissions: ['qt:dashboard:stats', 'qt:interview:admin:list'],
     user: { userId: 104, userName: 'viewer_demo', nickName: '测试面试官', isQuantaMember: 1, deptCode: 'PRODUCT' },
   },
+  mgmt_demo: {
+    loginType: '1', roles: ['qt_mgmt'], permissions: ['qt:dashboard:stats', 'qt:material:list', 'qt:material:remove'],
+    user: { userId: 106, userName: 'mgmt_demo', nickName: '测试VP', isQuantaMember: 1, deptCode: 'PRODUCT', memberTitle: 'VP' },
+  },
+  manager_demo: {
+    loginType: '1', roles: ['qt_manager'], permissions: ['qt:dashboard:stats', 'qt:material:list', 'qt:material:remove'],
+    user: { userId: 107, userName: 'manager_demo', nickName: '测试经理', isQuantaMember: 1, deptCode: 'PRODUCT', memberTitle: '经理' },
+  },
 }
 
 const adminRoutes = [
@@ -229,9 +237,10 @@ function responseFor(request, state) {
     const body = request.postDataJSON()
     state.materialBatchRequests ||= []
     state.materialBatchRequests.push(body)
-    if (!account?.roles.includes('ceo') || !account.permissions.some(permission => ['*:*:*', 'qt:material:remove'].includes(permission))) return { code: 403, msg: '仅 CEO 可执行批量删除' }
+    const batchRoles = ['ceo', 'qt_mgmt', 'qt_manager']
+    if (!account?.roles.some(role => batchRoles.includes(role)) || !account.permissions.some(permission => ['*:*:*', 'qt:material:remove'].includes(permission))) return { code: 403, msg: '仅管理层或经理可执行批量删除' }
     if (state.materialBatchMode === 'missing') return { code: 404, msg: '接口未提供' }
-    if (state.materialBatchMode === 'forbidden') return { code: 403, msg: '仅 CEO 可执行批量删除' }
+    if (state.materialBatchMode === 'forbidden') return { code: 403, msg: '仅管理层或经理可执行批量删除' }
     if (state.materialBatchMode === 'conflict') return { code: 409, msg: '资料存在业务引用，整个批次未删除' }
     const ids = body.materialIds
     if (!Array.isArray(ids) || !ids.length || ids.length > 20 || new Set(ids).size !== ids.length || !ids.every(id => Number.isSafeInteger(id) && id > 0)) return { code: 400, msg: '资料ID无效' }
@@ -337,10 +346,13 @@ export async function loginAs(page, audience) {
     admin: { url: '/admin/login', username: 'admin_demo', button: '登录' },
     viewer: { url: '/admin/login', username: 'viewer_demo', button: '登录' },
     ceo: { url:'/admin/login',username:'ceo_demo',button:'登录' },
+    mgmt: { url: '/admin/login', username: 'mgmt_demo', button: '登录' },
+    manager: { url: '/admin/login', username: 'manager_demo', button: '登录' },
   }[audience]
+  const adminLogin = ['admin', 'viewer', 'ceo', 'mgmt', 'manager'].includes(audience)
   await page.goto(identity.url)
-  await page.getByPlaceholder(['admin','viewer','ceo'].includes(audience) ? '用户名' : audience === 'freshman' ? '请输入学号' : '请输入学号或用户名').fill(identity.username)
-  await page.getByPlaceholder(['admin','viewer','ceo'].includes(audience) ? '密码' : '请输入密码', { exact: true }).fill('demo-password')
+  await page.getByPlaceholder(adminLogin ? '用户名' : audience === 'freshman' ? '请输入学号' : '请输入学号或用户名').fill(identity.username)
+  await page.getByPlaceholder(adminLogin ? '密码' : '请输入密码', { exact: true }).fill('demo-password')
   await page.getByRole('button', { name: identity.button, exact: true }).click()
   const destination = audience === 'freshman' ? '/freshman/home' : audience === 'member' ? '/member/home' : '/admin/dashboard'
   await expect(page).toHaveURL(new URL(destination, appOrigin).href)

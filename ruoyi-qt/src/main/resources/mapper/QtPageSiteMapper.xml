@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.qt.mapper.QtPageSiteMapper">
+
+    <resultMap type="QtPageSite" id="QtPageSiteResult">
+        <id property="siteId" column="site_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="slug" column="slug"/>
+        <result property="repoUrl" column="repo_url"/>
+        <result property="repoOwner" column="repo_owner"/>
+        <result property="repoName" column="repo_name"/>
+        <result property="branch" column="branch"/>
+        <result property="publishDir" column="publish_dir"/>
+        <result property="configVersion" column="config_version"/>
+        <result property="requestVersion" column="request_version"/>
+        <result property="lastObservedSha" column="last_observed_sha"/>
+        <result property="desiredSha" column="desired_sha"/>
+        <result property="currentSha" column="current_sha"/>
+        <result property="currentDeploymentId" column="current_deployment_id"/>
+        <result property="currentReleaseId" column="current_release_id"/>
+        <result property="status" column="status"/>
+        <result property="pollEtag" column="poll_etag"/>
+        <result property="nextPollTime" column="next_poll_time"/>
+        <result property="lastCheckedTime" column="last_checked_time"/>
+        <result property="lastCheckError" column="last_check_error"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="selectSiteColumns">
+        select site_id, user_id, slug, repo_url, repo_owner, repo_name, branch, publish_dir,
+               config_version, request_version, last_observed_sha, desired_sha, current_sha,
+               current_deployment_id, current_release_id, status, poll_etag, next_poll_time,
+               last_checked_time, last_check_error, create_time, update_time
+        from qt_page_site
+    </sql>
+
+    <insert id="insertSite" parameterType="QtPageSite" useGeneratedKeys="true" keyProperty="siteId">
+        insert into qt_page_site (
+            user_id, slug, repo_url, repo_owner, repo_name, branch, publish_dir,
+            config_version, request_version, status, next_poll_time, create_time, update_time
+        ) values (
+            #{userId}, #{slug}, #{repoUrl}, #{repoOwner}, #{repoName}, #{branch}, #{publishDir},
+            #{configVersion}, #{requestVersion}, #{status}, #{nextPollTime}, now(), now()
+        )
+    </insert>
+
+    <select id="selectById" parameterType="Long" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where site_id = #{siteId}
+    </select>
+
+    <select id="selectByUserId" parameterType="Long" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where user_id = #{userId}
+    </select>
+
+    <select id="selectBySlug" parameterType="String" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where slug = #{slug}
+    </select>
+
+    <select id="selectForUpdate" parameterType="Long" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where site_id = #{siteId} for update
+    </select>
+
+    <update id="updateSite" parameterType="QtPageSite">
+        update qt_page_site
+        <set>
+            <if test="slug != null">slug = #{slug},</if>
+            <if test="repoUrl != null">repo_url = #{repoUrl},</if>
+            <if test="repoOwner != null">repo_owner = #{repoOwner},</if>
+            <if test="repoName != null">repo_name = #{repoName},</if>
+            <if test="branch != null">branch = #{branch},</if>
+            <if test="publishDir != null">publish_dir = #{publishDir},</if>
+            <if test="configVersion != null">config_version = #{configVersion},</if>
+            <if test="requestVersion != null">request_version = #{requestVersion},</if>
+            <if test="lastObservedSha != null">last_observed_sha = #{lastObservedSha},</if>
+            <if test="desiredSha != null">desired_sha = #{desiredSha},</if>
+            <if test="currentSha != null">current_sha = #{currentSha},</if>
+            <if test="currentDeploymentId != null">current_deployment_id = #{currentDeploymentId},</if>
+            <if test="currentReleaseId != null">current_release_id = #{currentReleaseId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="pollEtag != null">poll_etag = #{pollEtag},</if>
+            <if test="nextPollTime != null">next_poll_time = #{nextPollTime},</if>
+            <if test="lastCheckedTime != null">last_checked_time = #{lastCheckedTime},</if>
+            <if test="lastCheckError != null">last_check_error = #{lastCheckError},</if>
+        </set>
+        where site_id = #{siteId}
+    </update>
+
+    <update id="updateStatus">
+        update qt_page_site set status = #{status} where site_id = #{siteId}
+    </update>
+
+    <select id="selectDueSites" resultMap="QtPageSiteResult">
+        <include refid="selectSiteColumns"/>
+        where status = 'ENABLED'
+          and next_poll_time &lt;= #{now}
+        order by next_poll_time, site_id
+        limit #{limit}
+    </select>
+
+</mapper>

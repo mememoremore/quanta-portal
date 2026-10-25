@@ -78,7 +78,16 @@ export function useMaterialLibrary(fetchMaterials, { allowAll = false } = {}) {
   }
 
   function goToPage(next) { pageNum.value = next; return load() }
+  function showUploadTarget(nextCategory, nextType) {
+    keyword.value = ''
+    searchText.value = ''
+    previousType = ''
+    if (isMaterialCategory(nextCategory)) category.value = nextCategory
+    materialType.value = nextType || ''
+    pageNum.value = 1
+    return load()
+  }
   watch(searchText, value => { if (!value.trim() && keyword.value) clearSearch() })
   onBeforeUnmount(() => { sequence += 1 })
-  return { rows, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage }
+  return { rows, total, pageNum, pageSize, category, materialType, keyword, searchText, loading, errorMessage, load, chooseCategory, chooseType, clearSearch, search, goToPage, showUploadTarget }
 }

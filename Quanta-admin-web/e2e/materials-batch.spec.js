@@ -130,7 +130,7 @@ for (const mode of ['missing', 'forbidden', 'conflict', 'unconfirmed']) {
     } else {
       await expect(page.getByLabel('批量操作')).toContainText('已选 1 项')
       await expect(list(page, 1440)).toContainText('Vue 入门培训.pdf')
-      await expect(page.locator('.el-message--error')).toContainText(mode === 'missing' ? '接口尚未接通' : mode === 'forbidden' ? '仅 CEO' : '整个批次未删除')
+      await expect(page.locator('.el-message--error')).toContainText(mode === 'missing' ? '接口尚未接通' : mode === 'forbidden' ? '仅管理层或经理' : '整个批次未删除')
     }
     expect(api.requests.some(value => value.startsWith('DELETE /qt/materials/'))).toBe(false)
     await expect(page.locator('.el-message--success')).toHaveCount(0)
@@ -170,6 +170,20 @@ test('非CEO手机资料条目紧凑排列且不出现勾选和批删', async ({
   expect(api.materialBatchRequests || []).toHaveLength(0)
   await page.screenshot({ path: testInfo.outputPath('admin-materials-nonceo-390.png'), fullPage: true })
 })
+
+for (const audience of ['mgmt', 'manager']) {
+  test(`${audience} 可以批量删除当前页资料`, async ({ page, api }) => {
+    await page.setViewportSize({ width: 1440, height: 1050 })
+    await loginAs(page, audience)
+    await page.goto('/admin/learning-materials')
+    await expect(page.getByTestId('material-batch-delete')).toBeVisible()
+    await list(page, 1440).locator('.el-checkbox').first().click()
+    await page.getByTestId('material-batch-delete').click()
+    await page.getByRole('dialog', { name: '批量删除资料', exact: true }).getByRole('button', { name: '确认删除 1 份' }).click()
+    await expect(page.getByLabel('批量操作')).toContainText('已选 0 项')
+    expect(api.materialBatchRequests).toEqual([{ materialIds: [1] }])
+  })
+}
 
 test('admin不自动获得CEO批删权限，塔员端保持现有分类行为', async ({ page, api }) => {
   await loginAs(page, 'admin')

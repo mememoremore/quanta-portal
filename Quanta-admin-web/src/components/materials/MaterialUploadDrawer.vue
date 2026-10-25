@@ -10,8 +10,15 @@ import MaterialFileIcon from './MaterialFileIcon.vue'
 
 const props = defineProps({ modelValue: Boolean, policy: { type: Object, required: true }, initialCategory: { type: String, default: '' }, initialType: { type: String, default: '' } })
 const emit = defineEmits(['update:modelValue', 'uploaded'])
-const { files, uploading, feedback, pending, add, remove, confirm } = useMaterialUploadQueue()
-const category = ref(''), type = ref('TRAINING'), uploadRef = ref(null)
+const uploadRef = ref(null)
+let limitNoticeAt = 0
+function releasePickerFile(file) {
+  if (file?.uid != null) uploadRef.value?.handleRemove({ uid: file.uid })
+}
+const { files, uploading, feedback, pending, add, remove, confirm } = useMaterialUploadQueue({
+  onSettled(file) { if (file.status === 'success') releasePickerFile(file) },
+})
+const category = ref(''), type = ref('TRAINING')
 const selectedCategory = computed(() => props.policy.canChoose ? category.value : props.policy.category)
 const stateLabels = { waiting: '待上传', uploading: '上传中', success: '已上传', error: '上传失败' }
 const retrying = computed(() => pending.value.length && pending.value.every(file => file.status === 'error'))
@@ -29,12 +36,19 @@ watch(() => props.modelValue, open => {
 function selectFile(uploadFile) {
   if (!uploadFile.raw) return
   const error = add(uploadFile.raw)
-  if (error) { ElMessage.warning(error); uploadRef.value?.handleRemove(uploadFile) }
+  if (!error) return
+  uploadRef.value?.handleRemove(uploadFile)
+  if (error === '一次最多选择 20 个文件') {
+    const now = Date.now()
+    if (now - limitNoticeAt < 500) return
+    limitNoticeAt = now
+  }
+  ElMessage.warning(error)
 }
 
 function removeFile(file) {
   remove(file.id)
-  uploadRef.value?.handleRemove({ uid: file.raw.uid })
+  uploadRef.value?.handleRemove({ uid: file.uid ?? file.raw?.uid })
 }
 
 function close() { if (!uploading.value) emit('update:modelValue', false) }
@@ -72,7 +86,7 @@ if (inject(routeLocationKey, null)) onBeforeRouteLeave(async () => {
       <span class="material-upload-drawer__label">资料类型</span>
       <div class="material-upload-drawer__types" role="group" aria-label="上传资料类型"><button v-for="item in MATERIAL_TYPES" :key="item.value" type="button" :aria-pressed="type === item.value" :disabled="targetLocked" @click="type = item.value">{{ item.label }}</button></div>
       <p v-if="inheritedTarget" class="material-upload-drawer__note">{{ initialType ? '已沿用当前页面的部门与类型。' : '已带入当前部门，请确认本次上传的资料类型。' }}</p>
-      <ElUpload ref="uploadRef" multiple drag action="#" :auto-upload="false" :show-file-list="false" :limit="20" :on-change="selectFile" :on-exceed="() => ElMessage.warning('一次最多选择 20 个文件')" :disabled="uploading || !selectedCategory" :accept="MATERIAL_EXTENSIONS.map(item => `.${item}`).join(',')">
+      <ElUpload ref="uploadRef" multiple drag action="#" :auto-upload="false" :show-file-list="false" :on-change="selectFile" :disabled="uploading || !selectedCategory" :accept="MATERIAL_EXTENSIONS.map(item => `.${item}`).join(',')">
         <ElIcon><UploadFilled /></ElIcon><strong>点击选择，或拖拽文件到这里</strong><span>PDF、Word、PPT、Excel、TXT、Markdown、图片</span><small>最多 20 个文件 · 单个文件不超过 20 MB</small>
       </ElUpload>
       <div class="material-upload-drawer__queue-heading">上传队列 <span>{{ files.length }}</span></div>

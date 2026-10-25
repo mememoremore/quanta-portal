@@ -14,6 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import com.ruoyi.common.annotation.RateLimiter;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.enums.LimitType;
 import com.ruoyi.common.exception.ServiceException;
@@ -61,7 +62,8 @@ public class RateLimiterAspect
             Long number = redisTemplate.execute(limitScript, keys, count, time);
             if (StringUtils.isNull(number) || number.intValue() > count)
             {
-                throw new ServiceException("访问过于频繁，请稍候再试");
+                // 携带 429：Pages 专属异常处理会映射为真实 HTTP 429，其余模块 body code 更精确
+                throw new ServiceException("访问过于频繁，请稍候再试", HttpStatus.TOO_MANY_REQUESTS);
             }
             log.info("限制请求'{}',当前请求'{}',缓存key'{}'", count, number.intValue(), combineKey);
         }

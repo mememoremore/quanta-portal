@@ -3,7 +3,7 @@ import { uploadMaterial } from '@/api/materials'
 import { ensureMaterialTypeFolder } from '@/api/material-folders'
 import { materialFileError } from '@/utils/material-categories'
 
-export function useMaterialUploadQueue({ upload = uploadMaterial, resolveFolder = ensureMaterialTypeFolder } = {}) {
+export function useMaterialUploadQueue({ upload = uploadMaterial, resolveFolder = ensureMaterialTypeFolder, onSettled = () => {} } = {}) {
   const files = ref([]), uploading = ref(false), feedback = ref('')
   const pending = computed(() => files.value.filter(file => file.status !== 'success'))
   let nextId = 0
@@ -12,8 +12,8 @@ export function useMaterialUploadQueue({ upload = uploadMaterial, resolveFolder 
     if (uploading.value) return '正在上传，请稍候'
     const error = materialFileError(file)
     if (error) return error
-    if (files.value.length >= 20) return '一次最多选择 20 个文件'
-    files.value.push({ id: ++nextId, raw: file, name: file.name, size: file.size, status: 'waiting', progress: 0, error: '' })
+    if (pending.value.length >= 20) return '一次最多选择 20 个文件'
+    files.value.push({ id: ++nextId, uid: file.uid, raw: file, name: file.name, size: file.size, status: 'waiting', progress: 0, error: '' })
     feedback.value = ''
     return ''
   }
@@ -37,6 +37,8 @@ export function useMaterialUploadQueue({ upload = uploadMaterial, resolveFolder 
           } })
           file.status = 'success'
           file.progress = 100
+          file.raw = undefined
+          onSettled(file)
         } catch (error) {
           file.status = 'error'
           file.error = error.message || '上传失败，请重试'

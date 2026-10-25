@@ -36,6 +36,13 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
+        <!-- 测试（JUnit5 + Mockito + spring-mock）-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- 核心模块-->
         <dependency>
             <groupId>com.ruoyi</groupId>

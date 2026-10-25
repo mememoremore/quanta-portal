@@ -36,9 +36,15 @@ describe('portal route contract', () => {
 
     expect(freshman.children.map((child) => child.path)).toContain('security')
     expect(member.children.map((child) => child.path)).toEqual(
-      expect.arrayContaining(['materials', 'materials/:materialId/preview', 'security']),
+      expect.arrayContaining(['materials', 'materials/:materialId/preview', 'pages', 'security']),
     )
     expect(member.children.map((child) => child.path)).not.toContain('notifications')
+  })
+
+  it('exposes the member pages console under the member audience', () => {
+    const member = portalRoutes.find((route) => route.path === '/member')
+    const pages = member.children.find((child) => child.path === 'pages')
+    expect(pages).toMatchObject({ name: 'MemberPages', meta: { title: '个人网站', portalAudience: 'member' } })
   })
 
   it('builds production assets from the site root', () => {

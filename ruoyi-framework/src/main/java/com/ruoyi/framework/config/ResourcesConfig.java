@@ -13,10 +13,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.framework.interceptor.RepeatSubmitInterceptor;
+import com.ruoyi.framework.security.TrustedPortalOriginPolicy;
 
 /**
  * 通用配置
- * 
+ *
  * @author ruoyi
  */
 @Configuration
@@ -24,6 +25,9 @@ public class ResourcesConfig implements WebMvcConfigurer
 {
     @Autowired
     private RepeatSubmitInterceptor repeatSubmitInterceptor;
+
+    @Autowired
+    private TrustedPortalOriginPolicy trustedPortalOriginPolicy;
 
     @Value("${ruoyi.cors.allowed-origins:*}")
     private String allowedOrigins;
@@ -51,6 +55,8 @@ public class ResourcesConfig implements WebMvcConfigurer
     @Bean
     public CorsFilter corsFilter()
     {
+        // Pages 子域与门户同主域；启用 Pages 前必须把 CORS 来源收紧为精确列表
+        trustedPortalOriginPolicy.assertStrictOriginsForPages();
         CorsConfiguration config = new CorsConfiguration();
         for (String origin : allowedOrigins.split(","))
         {

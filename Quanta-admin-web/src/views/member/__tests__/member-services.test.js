@@ -37,7 +37,8 @@ beforeEach(() => {
 
 describe('member self-service pages', () => {
   it('renders service history without workstation reservations', async () => {
-    const wrapper = mount(MemberServices)
+    // 服务页页头含跳转个人网站的 RouterLink，测试环境用 stub 替代真实路由
+    const wrapper = mount(MemberServices, { global: { stubs: { RouterLink: true } } })
     await flushPromises()
 
     expect(wrapper.get('[role="tablist"]').text()).not.toContain('工位预约')

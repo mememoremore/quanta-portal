@@ -4,6 +4,7 @@ import { getMetricsLatest } from '@/api/metrics'
 import { refreshMock } from '@/mock/handlers/auth'
 import { getToken, removeToken, setToken } from '@/utils/token'
 import { setUnauthorizedHandler } from '@/utils/unauthorized'
+import { mockPasswordFor } from '@/mock/data/accounts'
 import { isMockApiRequest, shouldUseMock } from '@/config/mock-api'
 import { request, service } from '@/utils/request'
 import { requestBlob } from '@/utils/download'
@@ -17,7 +18,7 @@ describe('request and mock adapter', () => {
   afterEach(() => vi.unstubAllEnvs())
 
   it('returns a RuoYi-shaped login response', async () => {
-    const response = await login({ username: 'admin', password: 'quanta123' })
+    const response = await login({ username: 'admin', password: mockPasswordFor('admin') })
     expect(response).toMatchObject({ code: 200, token: 'mock-token-admin' })
   })
 

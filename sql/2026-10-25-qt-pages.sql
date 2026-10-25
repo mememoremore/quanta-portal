@@ -1,0 +1,63 @@
+-- Quanta Pages：成员静态站点托管（MVP）
+-- 只新增两张表，不修改既有业务数据；可重复执行（create table if not exists）。
+-- 字段与索引依据 docs/specs/2026-10-25-quanta-pages-mvp-design.md 第 4 节。
+
+create table if not exists qt_page_site (
+  site_id bigint not null auto_increment comment '站点ID',
+  user_id bigint not null comment '所属塔员 sys_user.user_id，一人一站',
+  slug varchar(63) not null comment '站点标识，域名 {slug}.page.quantacenter.com，创建后不可改',
+  repo_url varchar(512) not null comment '规范化 GitHub 仓库地址 https://github.com/{owner}/{repo}',
+  repo_owner varchar(100) not null comment '仓库属主',
+  repo_name varchar(100) not null comment '仓库名',
+  branch varchar(128) not null default 'pages' comment '发布分支',
+  publish_dir varchar(255) not null default '/' comment '仓库内发布目录，/ 表示仓库根',
+  config_version bigint not null default 1 comment '配置版本，更新配置时 +1',
+  request_version bigint not null default 0 comment '部署意图序号，每次新意图 +1',
+  last_observed_sha varchar(64) default null comment '轮询最后观察到的分支头（回滚不回退此值）',
+  desired_sha varchar(64) default null comment '最新目标提交，解析前可为空',
+  current_sha varchar(64) default null comment '实际在线提交',
+  current_deployment_id bigint default null comment '当前发布操作ID（可因回滚与实体不同）',
+  current_release_id bigint default null comment '当前实体目录所属部署ID，为空表示站点未上线',
+  status varchar(20) not null default 'ENABLED' comment 'ENABLED/SUSPENDED',
+  poll_etag varchar(255) default null comment 'GitHub 分支头条件请求 ETag',
+  next_poll_time datetime default null comment '下一次轮询时间',
+  last_checked_time datetime default null comment '最近一次检查时间',
+  last_check_error varchar(1000) default null comment '最近一次检查错误摘要（不影响在线版本）',
+  create_time datetime default current_timestamp comment '创建时间',
+  update_time datetime default current_timestamp on update current_timestamp comment '更新时间',
+  primary key (site_id),
+  unique key uk_qt_page_user (user_id),
+  unique key uk_qt_page_slug (slug),
+  key idx_qt_page_poll (status, next_poll_time, site_id)
+) engine=innodb auto_increment=1 comment='成员静态站点';
+
+create table if not exists qt_page_deployment (
+  deployment_id bigint not null auto_increment comment '部署ID',
+  site_id bigint not null comment '站点ID',
+  request_version bigint not null comment '部署意图序号，(site_id, request_version) 唯一',
+  config_version bigint not null comment '本次部署使用的配置版本快照',
+  repo_owner varchar(100) not null comment '快照：仓库属主，执行期间不再读取站点当前值',
+  repo_name varchar(100) not null comment '快照：仓库名',
+  branch varchar(128) not null comment '快照：分支',
+  publish_dir varchar(255) not null comment '快照：发布目录',
+  commit_sha varchar(64) default null comment '目标提交，解析前可为空，解析后不变；下载固定使用该 SHA',
+  trigger_type varchar(20) not null comment 'CREATE/CONFIG/POLL/MANUAL/ROLLBACK',
+  status varchar(20) not null default 'PENDING' comment 'PENDING/RESOLVING/DOWNLOADING/VALIDATING/PUBLISHING/SUCCESS/FAILED/SUPERSEDED',
+  release_id bigint default null comment '目标实体目录：普通部署=deployment_id，回滚=来源记录的 release_id',
+  previous_release_id bigint default null comment '发布前的在线实体ID，用于 PUBLISHING 中断恢复',
+  attempt_count int not null default 0 comment '已尝试次数，自动重试更新同一任务',
+  next_attempt_time datetime default null comment '下一次可执行时间（限流退避）',
+  error_code varchar(64) default null comment '稳定错误码，如 RATE_LIMITED/ARCHIVE_INVALID/BRANCH_MISSING',
+  error_message varchar(1000) default null comment '面向成员的错误摘要，不含上游响应正文与服务器路径',
+  log_text mediumtext comment '阶段日志，应用侧截断至 32KiB 并脱敏',
+  file_count int default null comment '发布文件数',
+  total_bytes bigint default null comment '发布总字节数',
+  release_available tinyint not null default 0 comment '实体目录是否仍存在；为 0 时该记录不可回滚',
+  finished_time datetime default null comment '终态时间',
+  create_time datetime default current_timestamp comment '创建时间',
+  update_time datetime default current_timestamp on update current_timestamp comment '更新时间',
+  primary key (deployment_id),
+  unique key uk_qt_page_deploy_intent (site_id, request_version),
+  key idx_qt_page_deploy_history (site_id, create_time, deployment_id),
+  key idx_qt_page_deploy_scan (status, next_attempt_time, deployment_id)
+) engine=innodb auto_increment=1 comment='成员静态站点部署记录';
