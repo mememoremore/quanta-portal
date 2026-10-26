@@ -4,6 +4,7 @@ import { getMyPageSite, getPageDeployments, isDeploymentActive } from '@/api/por
 import SiteConfigForm from './components/SiteConfigForm.vue'
 import DeploymentHistory from './components/DeploymentHistory.vue'
 import DeploymentLogDialog from './components/DeploymentLogDialog.vue'
+import SiteApiGuide from './components/SiteApiGuide.vue'
 
 const POLL_INTERVAL = 5000
 
@@ -140,6 +141,8 @@ onBeforeUnmount(() => {
         </article>
 
         <DeploymentHistory :site="site" :rows="deployments" :total="total" @changed="refresh()" @view-log="openLog" />
+
+        <SiteApiGuide :site="site" />
       </template>
     </template>
 

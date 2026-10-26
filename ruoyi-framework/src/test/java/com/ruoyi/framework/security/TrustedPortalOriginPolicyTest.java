@@ -113,4 +113,15 @@ class TrustedPortalOriginPolicyTest
         pages.addHeader("Referer", "https://alice.page.quantacenter.com/");
         assertFalse(policy.isRefreshAllowed(pages));
     }
+
+    @Test
+    void pagesOriginPatternsCoverBareAndWildcardSubdomains()
+    {
+        assertEquals(List.of("https://page.quantacenter.com", "https://*.page.quantacenter.com"),
+                policy.pagesOriginPatterns());
+
+        ReflectionTestUtils.setField(policy, "pagesBaseDomain", " ");
+        assertEquals(List.of("https://page.quantacenter.com", "https://*.page.quantacenter.com"),
+                policy.pagesOriginPatterns());
+    }
 }

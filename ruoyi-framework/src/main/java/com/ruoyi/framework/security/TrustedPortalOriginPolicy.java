@@ -130,6 +130,20 @@ public class TrustedPortalOriginPolicy
         return host.equals(base) || host.endsWith("." + base);
     }
 
+    /**
+     * Pages 子域的公网来源模式，供 /open/pages/** 的独立 CORS 使用。
+     * 仅用于匿名只读接口（allowCredentials=false），不得用于门户 API。
+     */
+    public List<String> pagesOriginPatterns()
+    {
+        String base = pagesBaseDomain == null ? "" : pagesBaseDomain.trim().toLowerCase(Locale.ROOT);
+        if (base.isEmpty())
+        {
+            base = "page.quantacenter.com";
+        }
+        return List.of("https://" + base, "https://*." + base);
+    }
+
     private boolean wildcardActive()
     {
         if (StringUtils.isEmpty(allowedOrigins))

@@ -251,3 +251,31 @@ describe('deployment history contract', () => {
     expect(ElMessage.error).toHaveBeenCalledWith('功能正在恢复，请稍后再试')
   })
 })
+
+describe('site api guide', () => {
+  it('lists the open endpoints for the owned slug with privacy hints', async () => {
+    pagesApi.getMyPageSite.mockResolvedValueOnce(ownedSite)
+    const wrapper = await mountIndex()
+
+    const guide = wrapper.find('[data-testid="pages-api-guide"]')
+    expect(guide.exists()).toBe(true)
+    expect(guide.text()).toContain('/open/pages/octo-lab/posts')
+    expect(guide.text()).toContain('/open/pages/octo-lab/posts/{postId}/comments')
+    expect(guide.text()).toContain('社区昵称')
+    expect(guide.text()).toContain('图片在公网页面无法加载')
+    expect(wrapper.findAll('[data-testid="pages-api-endpoint"]')).toHaveLength(3)
+  })
+
+  it('copies the fetch snippet to the clipboard', async () => {
+    pagesApi.getMyPageSite.mockResolvedValueOnce(ownedSite)
+    const writeText = vi.fn().mockResolvedValue()
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const wrapper = await mountIndex()
+
+    await wrapper.find('[data-testid="pages-api-copy"]').trigger('click')
+    await flushPromises()
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/open/pages/octo-lab/posts?pageNum=1&pageSize=20'))
+    expect(ElMessage.success).toHaveBeenCalledWith('示例代码已复制')
+  })
+})

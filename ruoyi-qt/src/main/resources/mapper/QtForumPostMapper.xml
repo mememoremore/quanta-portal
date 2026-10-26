@@ -92,6 +92,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         order by r.create_time desc, r.id desc
     </select>
 
+    <!-- 开放 API：仅站主公网可见文章（MEMBERS 或历史 null），MANAGERS 永远排除 -->
+    <select id="selectPublicPostsByAuthor" resultMap="QtForumPostResult">
+        select post_id, title, category, visibility, content, author_id, comment_count, view_count,
+               create_time, update_time
+        from qt_forum_post
+        where author_id = #{authorId}
+          and (visibility = 'MEMBERS' or visibility is null)
+        order by create_time desc, post_id desc
+    </select>
+
     <insert id="insertPost" parameterType="QtForumPost" useGeneratedKeys="true" keyProperty="postId">
         insert into qt_forum_post
         (title, category, visibility, content, author_id, comment_count, create_time, update_time)

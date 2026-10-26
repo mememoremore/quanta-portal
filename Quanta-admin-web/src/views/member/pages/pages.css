@@ -35,6 +35,18 @@
 .pages-history__error { margin: 0; color: #b3261e; font-size: 12px; overflow-wrap: anywhere; }
 .pages-history__actions { display: flex; flex: 0 0 auto; gap: 8px; }
 
+.pages-api { padding: 25px; display: grid; gap: 14px; }
+.pages-api header p { margin: 0 0 4px; color: var(--portal-orange-strong); font-size: 10px; font-weight: 850; letter-spacing: .14em; }
+.pages-api h2 { margin: 0; font-size: 20px; }
+.pages-api__hint { margin: 0; color: var(--portal-muted); line-height: 1.8; }
+.pages-api__hint b { color: var(--portal-ink-soft); }
+.pages-api__list { display: grid; margin: 0; padding: 0; gap: 8px; list-style: none; }
+.pages-api__list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #f7f7f8; }
+.pages-api__list code { padding: 2px 8px; border-radius: 6px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); font-size: 11px; font-weight: 800; }
+.pages-api__url { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.pages-api__list small { flex-basis: 100%; color: var(--portal-muted); }
+.pages-api__snippet { margin: 0; padding: 14px; border-radius: 12px; background: #17181b; color: #d7d9de; font-size: 12px; line-height: 1.7; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 .pages-log-dialog { position: fixed; inset: 0; z-index: 60; display: grid; padding: 24px; background: rgb(15 16 18 / 45%); place-items: center; }
 .pages-log-dialog__panel { width: min(760px, 100%); max-height: 82vh; padding: 22px; display: grid; gap: 14px; }
 .pages-log-dialog__panel header { display: flex; align-items: center; justify-content: space-between; }

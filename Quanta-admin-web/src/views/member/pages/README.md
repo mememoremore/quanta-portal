@@ -67,3 +67,24 @@
 - 改 API 字段：`pages.js` 的 map 函数 + 后端 domain/Mapper XML + 本文档同步改。
 - 新增接口：`QtPageSiteController` + `pages.js` + 本文档。
 - 改状态集合：`pages.js` 的 `PAGES_ACTIVE_STATUSES` 必须与后端 `QtPageDeployment` 状态机一致。
+
+## 站点数据 Open API（供成员自己的静态站调用）
+
+后端在 `ruoyi-qt`：`QtPagesOpenController`（`/open/pages`，类级 `@Anonymous`）+ `QtPagesOpenServiceImpl`；
+控制台说明组件是 `components/SiteApiGuide.vue`。这些接口**匿名只读**，按站点 slug 解析站主，
+仅返回站主本人「塔员可见(MEMBERS)」的文章与这些文章的留言，`MANAGERS` 文章永远 404。
+
+| 方法 | 路径 | data |
+| --- | --- | --- |
+| GET | `/open/pages/{slug}/posts?pageNum&pageSize` | `{items:[{postId,title,category,excerpt,commentCount,createdAt}], total, pageNum, pageSize}` |
+| GET | `/open/pages/{slug}/posts/{postId}` | `{postId,title,category,content(Markdown),commentCount,createdAt,authorNickname}` |
+| GET | `/open/pages/{slug}/posts/{postId}/comments?pageNum&pageSize` | `{items:[{commentId,parentId,content,authorNickname,replyToNickname,createdAt}], total, pageNum, pageSize}` |
+
+- 错误：未知 slug / 非法 slug / 文章不属于站主或为 MANAGERS → 真实 HTTP 404；参数错误 400；限流 429（每 IP 60 秒 120 次）；`qt.pages.enabled=false` → 404。
+- CORS：后端 `ResourcesConfig` 仅为 `/open/pages/**` 注册 Pages 子域来源（`https://*.{qt.pages.base-domain}`），
+  `allowCredentials=false`；**不要**把 Pages 子域加进 `ruoyi.cors.allowed-origins`（那会削弱门户凭据隔离）。
+- 隐私：评论只返回社区昵称（空串表示未设置），不含真实姓名/部门/userId/头像；文章正文为 Markdown 原文，
+  论坛上传的图片是登录保护资源，公网页面无法加载（文档与控制台均已提示）。
+- 限流/分页：`pageSize` 默认 20、最大 50；不递增论坛浏览量。
+- 测试：后端 `QtPagesOpenServiceTest` / `QtPagesOpenControllerTest` / `QtPagesOpenMapperMySqlTest`（`QUANTA_PAGES_MYSQL_TEST=true`）；
+  前端 `pages.test.js` 的 `site api guide` 用例；契约或字段变更需同步 `SiteApiGuide.vue` 与本文档。

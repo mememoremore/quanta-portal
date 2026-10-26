@@ -82,8 +82,21 @@ public class ResourcesConfig implements WebMvcConfigurer
         config.setAllowCredentials(true);
         // 有效期 1800秒
         config.setMaxAge(1800L);
-        // 添加映射路径，拦截一切请求
+        // 公开数据 API：仅允许 Pages 子域匿名读取，不带任何凭据（Cookie），与门户 CORS 完全隔离
+        CorsConfiguration openPages = new CorsConfiguration();
+        for (String pattern : trustedPortalOriginPolicy.pagesOriginPatterns())
+        {
+            openPages.addAllowedOriginPattern(pattern);
+        }
+        openPages.addAllowedHeader("*");
+        openPages.addAllowedMethod("GET");
+        openPages.addAllowedMethod("HEAD");
+        openPages.addExposedHeader("X-Trace-Id");
+        openPages.setAllowCredentials(false);
+        openPages.setMaxAge(1800L);
+        // 添加映射路径，拦截一切请求（UrlBasedCorsConfigurationSource 首个匹配生效，具体路径必须先注册）
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/open/pages/**", openPages);
         source.registerCorsConfiguration("/**", config);
         // 返回新的CorsFilter
         return new CorsFilter(source);

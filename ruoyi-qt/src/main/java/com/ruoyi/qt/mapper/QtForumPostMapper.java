@@ -18,6 +18,12 @@ public interface QtForumPostMapper
     List<QtForumPost> selectPersonalPostList(@Param("category") String category,
             @Param("userId") Long userId, @Param("kind") String kind);
 
+    /**
+     * 开放 API 专用：站点主人的公网可见文章（MEMBERS 或历史 null），
+     * MANAGERS 限定文章永远不返回；分页由调用方 PageHelper 控制。
+     */
+    List<QtForumPost> selectPublicPostsByAuthor(@Param("authorId") Long authorId);
+
     int insertPost(QtForumPost post);
 
     int updatePost(QtForumPost post);
