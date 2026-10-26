@@ -78,12 +78,12 @@
 | --- | --- | --- |
 | GET | `/open/pages/{slug}/posts?pageNum&pageSize` | `{items:[{postId,title,category,excerpt,commentCount,createdAt}], total, pageNum, pageSize}` |
 | GET | `/open/pages/{slug}/posts/{postId}` | `{postId,title,category,content(Markdown),commentCount,createdAt,authorNickname}` |
-| GET | `/open/pages/{slug}/posts/{postId}/comments?pageNum&pageSize` | `{items:[{commentId,parentId,content,authorNickname,replyToNickname,createdAt}], total, pageNum, pageSize}` |
+| GET | `/open/pages/{slug}/posts/{postId}/comments?pageNum&pageSize` | `{items:[{commentId,parentId,content,authorNickname,authorAvatar,replyToNickname,createdAt}], total, pageNum, pageSize}` |
 
 - 错误：未知 slug / 非法 slug / 文章不属于站主或为 MANAGERS → 真实 HTTP 404；参数错误 400；限流 429（每 IP 60 秒 120 次）；`qt.pages.enabled=false` → 404。
 - CORS：后端 `ResourcesConfig` 仅为 `/open/pages/**` 注册 Pages 子域来源（`https://*.{qt.pages.base-domain}`），
   `allowCredentials=false`；**不要**把 Pages 子域加进 `ruoyi.cors.allowed-origins`（那会削弱门户凭据隔离）。
-- 隐私：评论只返回社区昵称（空串表示未设置），不含真实姓名/部门/userId/头像；文章正文为 Markdown 原文，
+- 隐私：评论只返回社区昵称与门户域名下的公开头像 URL（无头像为空串），不含真实姓名/部门/userId；文章正文为 Markdown 原文，
   论坛上传的图片是登录保护资源，公网页面无法加载（文档与控制台均已提示）。
 - 限流/分页：`pageSize` 默认 20、最大 50；不递增论坛浏览量。
 - 测试：后端 `QtPagesOpenServiceTest` / `QtPagesOpenControllerTest` / `QtPagesOpenMapperMySqlTest`（`QUANTA_PAGES_MYSQL_TEST=true`）；

@@ -11,7 +11,7 @@ const baseUrl = computed(() => `${window.location.origin}/open/pages/${props.sit
 const endpoints = computed(() => [
   { method: 'GET', url: `${baseUrl.value}/posts`, desc: '文章列表（分页：pageNum / pageSize，最大 50）' },
   { method: 'GET', url: `${baseUrl.value}/posts/{postId}`, desc: '文章详情（content 为 Markdown 原文）' },
-  { method: 'GET', url: `${baseUrl.value}/posts/{postId}/comments`, desc: '文章留言（仅社区昵称，分页）' },
+  { method: 'GET', url: `${baseUrl.value}/posts/{postId}/comments`, desc: '文章留言（社区昵称 + 头像，分页）' },
 ])
 
 const snippet = computed(() => `// 在你的站点页面里直接 fetch（服务端已允许 ${props.site.slug}.page.quantacenter.com 跨域读取）
@@ -43,7 +43,7 @@ async function copySnippet() {
     </header>
     <p class="pages-api__hint">
       你的站点页面可以直接读取你在论坛发布的<b>文章</b>与这些文章的<b>留言</b>，自行渲染成博客列表、归档页等。
-      只包含你本人「塔员可见」的文章（经理可见的文章不会公开）；留言只显示社区昵称，不含真实姓名；
+      只包含你本人「塔员可见」的文章（经理可见的文章不会公开）；留言只显示社区昵称与公开头像，不含真实姓名；
       论坛里上传的图片在公网页面无法加载，建议使用外链图片；接口限流每 IP 每分钟 120 次。
     </p>
     <ul class="pages-api__list">

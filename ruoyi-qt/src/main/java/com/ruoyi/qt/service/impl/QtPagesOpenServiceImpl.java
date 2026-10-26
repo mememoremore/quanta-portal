@@ -10,6 +10,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.qt.config.QtPagesProperties;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.domain.QtPageSite;
@@ -18,12 +19,14 @@ import com.ruoyi.qt.mapper.QtForumPostMapper;
 import com.ruoyi.qt.mapper.QtPageSiteMapper;
 import com.ruoyi.qt.pages.QtPagesRuntime;
 import com.ruoyi.qt.service.IQtPagesOpenService;
+import com.ruoyi.qt.util.QtPagesAssetUrl;
 
 /**
  * 开放数据 API 实现：匿名、只读、按站点 slug 授权。
  *
- * 不调用任何需要登录态的工具类；不递增论坛浏览量；所有对不存在/越权/不可公开
- * 资源的访问统一返回 404，避免暴露站点与文章的存在性。
+ * 不调用任何需要登录态的工具类；不递增论坛浏览量；留言只暴露社区昵称与
+ * 门户域名下的公开头像 URL；所有对不存在/越权/不可公开资源的访问统一返回 404，
+ * 避免暴露站点与文章的存在性。
  */
 @Service
 public class QtPagesOpenServiceImpl implements IQtPagesOpenService
@@ -49,6 +52,9 @@ public class QtPagesOpenServiceImpl implements IQtPagesOpenService
 
     @Autowired
     private QtForumCommentMapper commentMapper;
+
+    @Autowired
+    private QtPagesProperties properties;
 
     @Override
     public PageResult<PublicPostSummary> listPosts(String slug, Integer pageNum, Integer pageSize)
@@ -132,6 +138,7 @@ public class QtPagesOpenServiceImpl implements IQtPagesOpenService
     {
         return new PublicComment(comment.getCommentId(), comment.getParentId(), comment.getContent(),
                 nullToEmpty(comment.getAuthorCommunityNickname()),
+                QtPagesAssetUrl.toPublicUrl(comment.getAuthorAvatar(), properties.getAssetBaseUrl()),
                 nullToEmpty(comment.getReplyToCommunityNickname()), formatTime(comment.getCreatedAt()));
     }
 

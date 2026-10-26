@@ -262,6 +262,7 @@ describe('site api guide', () => {
     expect(guide.text()).toContain('/open/pages/octo-lab/posts')
     expect(guide.text()).toContain('/open/pages/octo-lab/posts/{postId}/comments')
     expect(guide.text()).toContain('社区昵称')
+    expect(guide.text()).toContain('头像')
     expect(guide.text()).toContain('图片在公网页面无法加载')
     expect(wrapper.findAll('[data-testid="pages-api-endpoint"]')).toHaveLength(3)
   })

@@ -14,6 +14,7 @@ import org.mockito.quality.Strictness;
 import com.github.pagehelper.PageHelper;
 import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.qt.config.QtPagesProperties;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.domain.QtPageSite;
@@ -49,6 +50,9 @@ class QtPagesOpenServiceTest
     @Mock
     private QtForumCommentMapper commentMapper;
 
+    @Mock
+    private QtPagesProperties properties;
+
     @InjectMocks
     private QtPagesOpenServiceImpl service;
 
@@ -59,6 +63,7 @@ class QtPagesOpenServiceTest
     {
         when(runtime.isEnabled()).thenReturn(true);
         when(siteMapper.selectBySlug("demo-lab")).thenReturn(site);
+        when(properties.getAssetBaseUrl()).thenReturn("https://www.quantacenter.com");
     }
 
     @AfterEach
@@ -168,6 +173,7 @@ class QtPagesOpenServiceTest
         comment.setContent("写得好");
         comment.setAuthorName("真实姓名");
         comment.setAuthorCommunityNickname("小鹿");
+        comment.setAuthorAvatar("/profile/avatar/2026/10/26/abc.png");
         comment.setReplyToCommunityNickname(null);
         comment.setCreatedAt(new Date(1700000000000L));
         when(commentMapper.selectCommentList(any())).thenReturn(List.of(comment));
@@ -178,7 +184,28 @@ class QtPagesOpenServiceTest
         assertEquals(20, page.pageSize());
         assertEquals("写得好", page.items().get(0).content());
         assertEquals("小鹿", page.items().get(0).authorNickname());
+        assertEquals("https://www.quantacenter.com/profile/avatar/2026/10/26/abc.png",
+                page.items().get(0).authorAvatar());
         assertEquals("", page.items().get(0).replyToNickname());
+    }
+
+    @Test
+    void commentsWithoutAvatarOrWithUnsafeAvatarReturnEmpty()
+    {
+        QtForumPost own = post(7L, 9L, "MEMBERS", "自己的文章");
+        when(postMapper.selectPostById(7L)).thenReturn(own);
+        QtForumComment missing = new QtForumComment();
+        missing.setCommentId(11L);
+        QtForumComment unsafe = new QtForumComment();
+        unsafe.setCommentId(12L);
+        unsafe.setAuthorAvatar("javascript:alert(1)");
+        when(commentMapper.selectCommentList(any())).thenReturn(List.of(missing, unsafe));
+
+        IQtPagesOpenService.PageResult<IQtPagesOpenService.PublicComment> page =
+                service.listComments("demo-lab", 7L, 1, 20);
+
+        assertEquals("", page.items().get(0).authorAvatar());
+        assertEquals("", page.items().get(1).authorAvatar());
     }
 
     @Test

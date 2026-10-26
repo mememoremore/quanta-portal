@@ -22,6 +22,9 @@ public class QtPagesProperties
     /** 成员站点域名后缀，slug 拼接为 {slug}.{baseDomain} */
     private String baseDomain = "page.quantacenter.com";
 
+    /** 开放 API 中头像等公开资源的绝对 URL 前缀（个人站点与门户不同源） */
+    private String assetBaseUrl = "https://www.quantacenter.com";
+
     /** Pages 发布根目录（Linux 绝对路径），独立于 ruoyi.profile */
     private String rootDir = "/srv/quanta-pages";
 
@@ -90,6 +93,10 @@ public class QtPagesProperties
         if (StringUtils.isEmpty(baseDomain) || baseDomain.contains("*"))
         {
             throw new IllegalStateException("qt.pages.base-domain 不能为空或包含通配符");
+        }
+        if (StringUtils.isEmpty(assetBaseUrl) || !assetBaseUrl.matches("^https?://[A-Za-z0-9.-]+(?::[0-9]+)?$"))
+        {
+            throw new IllegalStateException("qt.pages.asset-base-url 必须是无路径的 http(s) 绝对地址");
         }
         if (pollIntervalSeconds < 60)
         {
@@ -160,6 +167,16 @@ public class QtPagesProperties
     public void setBaseDomain(String baseDomain)
     {
         this.baseDomain = baseDomain;
+    }
+
+    public String getAssetBaseUrl()
+    {
+        return assetBaseUrl;
+    }
+
+    public void setAssetBaseUrl(String assetBaseUrl)
+    {
+        this.assetBaseUrl = assetBaseUrl == null ? null : assetBaseUrl.trim().replaceAll("/+$", "");
     }
 
     public String getRootDir()

@@ -51,6 +51,8 @@ qt:
     # 3) 完成服务器目录挂载、DNS/证书准备（见 .code_deploy/pages/README.md 与联调清单）
     enabled: ${QT_PAGES_ENABLED:false}
     base-domain: ${QT_PAGES_BASE_DOMAIN:page.quantacenter.com}
+    # 开放 API 中头像等公开资源的绝对 URL 前缀（个人站点与门户不同源）
+    asset-base-url: ${QT_PAGES_ASSET_BASE_URL:https://www.quantacenter.com}
     # Linux 绝对路径，独立于 ruoyi.profile；Windows 上无法启用
     root-dir: ${QT_PAGES_ROOT_DIR:/srv/quanta-pages}
     # GitHub Token 仅从服务器环境变量注入，可留空（匿名额度有限，仅适合小规模验证）

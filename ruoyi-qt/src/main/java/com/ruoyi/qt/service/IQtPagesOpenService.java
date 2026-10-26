@@ -26,7 +26,7 @@ public interface IQtPagesOpenService
     }
 
     record PublicComment(Long commentId, Long parentId, String content,
-            String authorNickname, String replyToNickname, String createdAt)
+            String authorNickname, String authorAvatar, String replyToNickname, String createdAt)
     {
     }
 

@@ -70,16 +70,19 @@ class QtPagesOpenControllerTest
     }
 
     @Test
-    void commentsReturnNicknamesOnly() throws Exception
+    void commentsExposeNicknameAndAvatarOnly() throws Exception
     {
         when(openService.listComments(eq("demo-lab"), eq(7L), eq(null), eq(null)))
                 .thenReturn(new IQtPagesOpenService.PageResult<>(
-                        java.util.List.of(new IQtPagesOpenService.PublicComment(11L, null, "留言", "小鹿", "", "2026-10-25 10:00:00")),
+                        java.util.List.of(new IQtPagesOpenService.PublicComment(11L, null, "留言", "小鹿",
+                                "https://www.quantacenter.com/profile/avatar/2026/10/26/abc.png", "", "2026-10-25 10:00:00")),
                         1L, 1, 20));
 
         mockMvc.perform(get("/open/pages/demo-lab/posts/7/comments"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].authorNickname").value("小鹿"))
+                .andExpect(jsonPath("$.data.items[0].authorAvatar").value(
+                        "https://www.quantacenter.com/profile/avatar/2026/10/26/abc.png"))
                 .andExpect(jsonPath("$.data.items[0].authorName").doesNotExist());
     }
 

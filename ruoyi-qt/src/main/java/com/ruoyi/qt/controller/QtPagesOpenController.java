@@ -16,7 +16,7 @@ import com.ruoyi.qt.service.IQtPagesOpenService;
  * Quanta Pages 开放数据 API（匿名只读）。
  *
  * 供成员个人静态站点（{slug}.page.quantacenter.com）的页面 JS 跨域读取：
- * 站主本人「塔员可见」的文章与这些文章的留言。只暴露公开字段（评论仅社区昵称），
+ * 站主本人「塔员可见」的文章与这些文章的留言。只暴露公开字段（评论仅社区昵称与公开头像），
  * MANAGERS 限定文章永远不返回；错误由 QtPagesOpenExceptionHandler 映射为真实 HTTP 状态。
  * CORS 仅放行 Pages 子域且不携带凭据（见 ResourcesConfig）。
  */
@@ -57,7 +57,7 @@ public class QtPagesOpenController
     }
 
     /**
-     * 文章留言（仅社区昵称，分页）。
+     * 文章留言（社区昵称 + 公开头像，分页）。
      */
     @RateLimiter(time = RATE_LIMIT_SECONDS, count = RATE_LIMIT_COUNT, limitType = LimitType.IP, key = RATE_LIMIT_KEY)
     @GetMapping("/{slug}/posts/{postId:\\d+}/comments")
