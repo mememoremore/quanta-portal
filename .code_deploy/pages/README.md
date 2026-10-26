@@ -31,3 +31,10 @@
 - 单机 Linux、本地文件系统、一个启用 Pages 的应用实例
 - Pages 根目录独立于 `ruoyi.profile`，`/profile/**` 静态映射、门户发布脚本与用户上传均触不到
 - `qt.pages.enabled=false`（默认）时不建目录、不联网；启用前置条件全部在 ROLLOUT-CHECKLIST.md
+
+## 门户 nginx 反代要求（开放数据 API）
+
+成员站点页面会跨域调用门户的 `/open/pages/{slug}/...`（站主文章/留言）。门户宿主机 nginx
+必须把 `/open/` 前缀反代到后端（生产 `quanta-https.conf` 已配置 `location ^~ /open/`），
+否则请求会落到前端静态目录返回 index.html。该路径的 CORS 由后端 `/open/pages/**` 独立放行
+（仅 Pages 子域、无凭据），不要把它加进门户 CORS 白名单。
