@@ -1,11 +1,14 @@
 #Requires -Version 5.1
+# Keep this file ASCII-only: PowerShell 5.1 decodes BOM-less .ps1 as ANSI, which
+# turns UTF-8 Chinese into mojibake and can swallow the closing quote of the
+# generated shell script (server then fails with "Unterminated quoted string").
 $ErrorActionPreference = "Stop"
 
 & (Join-Path $PSScriptRoot "build-release.ps1")
 
 $EnvFile = Join-Path $PSScriptRoot "deploy.env.local"
 if (-not (Test-Path $EnvFile)) {
-    throw "缺少 $EnvFile，请复制 deploy.env.example 为 deploy.env.local 并填写 OSS_BUCKET"
+    throw "missing $EnvFile; copy deploy.env.example to deploy.env.local and set OSS_BUCKET"
 }
 
 $config = @{}
@@ -22,7 +25,7 @@ $prefix = if ($config["OSS_PREFIX"]) { $config["OSS_PREFIX"] } else { "deploy" }
 $instanceId = $config["ECS_INSTANCE_ID"]
 $region = $config["ECS_REGION"]
 
-if (-not $bucket -or -not $endpoint) { throw "deploy.env.local 需配置 OSS_BUCKET、OSS_ENDPOINT" }
+if (-not $bucket -or -not $endpoint) { throw "deploy.env.local must define OSS_BUCKET and OSS_ENDPOINT" }
 
 $ts = Get-Date -Format "yyyyMMddHHmmss"
 $objectKey = "$prefix/quanta-portal-$ts.tar.gz"
@@ -31,7 +34,7 @@ $relName = "release-$ts"
 
 $credPath = $config["ALIYUN_CREDENTIALS_FILE"]
 if (-not $credPath) { $credPath = Join-Path $env:USERPROFILE ".aliyun\credentials" }
-if (-not (Test-Path -LiteralPath $credPath)) { throw "找不到凭证文件: $credPath" }
+if (-not (Test-Path -LiteralPath $credPath)) { throw "credentials file not found: $credPath" }
 $credVals = @{}
 Get-Content -LiteralPath $credPath -Encoding UTF8 | ForEach-Object {
     $line = ($_.Trim() -replace [char]0x200B, '')
@@ -41,7 +44,7 @@ Get-Content -LiteralPath $credPath -Encoding UTF8 | ForEach-Object {
 }
 $ak = $credVals["access_key_id"]
 $sk = $credVals["access_key_secret"]
-if (-not $ak -or -not $sk) { throw "credentials 文件需包含 access_key_id、access_key_secret" }
+if (-not $ak -or -not $sk) { throw "credentials file must define access_key_id and access_key_secret" }
 
 $py = @"
 import oss2
@@ -77,18 +80,20 @@ mkdir -p "`${BASE}"
 if [ -x /opt/ruoyi/remote-deploy.sh ]; then
   /bin/bash /opt/ruoyi/remote-deploy.sh "`${REL}"
 else
-  echo "缺少 /opt/ruoyi/remote-deploy.sh，请按 docs/quanta-portal-deploy-oss-oos.md 一次性安装"
+  echo "missing /opt/ruoyi/remote-deploy.sh; install it per docs/quanta-portal-deploy-oss-oos.md"
   exit 1
 fi
 echo DEPLOY_OK "`${REL}"
 "@
 
 $cmdFile = Join-Path $PSScriptRoot "release\last-oos-command.sh"
-Set-Content -Path $cmdFile -Value $remote -Encoding UTF8
+# The remote script must be plain UTF-8 without BOM and with LF endings so sh
+# sees no stray \r and no BOM before the first assignment.
+[System.IO.File]::WriteAllText($cmdFile, ($remote -replace "`r`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ""
-Write-Host "========== 云助手命令（实例 $instanceId，地域 $region）=========="
+Write-Host "========== Cloud Assistant command (instance $instanceId, region $region) =========="
 Write-Host $remote
 Write-Host "================================================================"
-Write-Host "已保存: $cmdFile"
-Write-Host "OSS 对象: $objectKey"
+Write-Host "Saved: $cmdFile"
+Write-Host "OSS object: $objectKey"
