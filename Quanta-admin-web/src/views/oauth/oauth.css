@@ -1,4 +1,14 @@
-.oauth-page { min-height: 100dvh; padding: 44px 20px; color: #202124; background: #f7f7f9; font-family: "Microsoft YaHei", system-ui, sans-serif; }
+/* The app locks body scrolling; OAuth owns a viewport-bounded scroll container. */
+.oauth-page {
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 44px 20px;
+  color: #202124;
+  background: #f7f7f9;
+  font-family: "Microsoft YaHei", system-ui, sans-serif;
+}
 .oauth-shell { width: 100%; max-width: 470px; margin: auto; }
 .oauth-panel { margin-top: 30px; padding: 30px; background: #fff; border: 1px solid #e7e9ef; border-radius: 24px; box-shadow: 0 16px 44px #20212408; }
 .oauth-panel h1 { font-size: 25px; line-height: 1.4; margin: 8px 0 12px; }
