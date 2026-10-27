@@ -1,7 +1,7 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { createPageSite, updatePageSite } from '@/api/portal/pages'
+import { createPageSite, isTemplateRepo, updatePageSite } from '@/api/portal/pages'
 
 const props = defineProps({
   site: { type: Object, default: null },
@@ -17,6 +17,20 @@ const form = reactive({
 })
 const submitting = ref(false)
 const errorMessage = ref('')
+const publishDirHint = ref('')
+const wasTemplateSite = isTemplateRepo(props.site?.repoUrl)
+
+watch(() => form.repoUrl, (value) => {
+  if (!wasTemplateSite) return
+  if (isTemplateRepo(value)) {
+    publishDirHint.value = ''
+    return
+  }
+  if (form.publishDir.startsWith('/templates/')) {
+    form.publishDir = '/'
+    publishDirHint.value = '已把发布目录重置为 /，请按你的仓库结构调整。'
+  }
+})
 
 async function submit() {
   submitting.value = true
@@ -65,6 +79,8 @@ async function submit() {
         <input v-model="form.publishDir" type="text" data-testid="pages-publish-dir" placeholder="/" />
       </label>
     </div>
+    <p v-if="publishDirHint" class="pages-form__hint" data-testid="pages-publish-dir-hint">{{ publishDirHint }}</p>
+    <p v-else-if="wasTemplateSite" class="pages-form__hint">当前是官方模板；切换自己的仓库后，发布目录通常应改为 <code>/</code>。</p>
     <p v-if="errorMessage" class="member-feedback is-error" role="alert" data-testid="pages-form-error">{{ errorMessage }}</p>
     <button class="member-primary-button" type="submit" :disabled="submitting" data-testid="pages-form-submit">
       {{ isCreate() ? '创建站点' : '保存配置并重新部署' }}

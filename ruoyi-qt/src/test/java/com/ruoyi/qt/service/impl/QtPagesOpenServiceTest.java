@@ -18,8 +18,10 @@ import com.ruoyi.qt.config.QtPagesProperties;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.domain.QtPageSite;
+import com.ruoyi.qt.domain.QtPagesPublicProfile;
 import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
+import com.ruoyi.qt.mapper.QtMemberProfileMapper;
 import com.ruoyi.qt.mapper.QtPageSiteMapper;
 import com.ruoyi.qt.pages.QtPagesRuntime;
 import com.ruoyi.qt.service.IQtPagesOpenService;
@@ -49,6 +51,9 @@ class QtPagesOpenServiceTest
 
     @Mock
     private QtForumCommentMapper commentMapper;
+
+    @Mock
+    private QtMemberProfileMapper memberProfileMapper;
 
     @Mock
     private QtPagesProperties properties;
@@ -206,6 +211,60 @@ class QtPagesOpenServiceTest
 
         assertEquals("", page.items().get(0).authorAvatar());
         assertEquals("", page.items().get(1).authorAvatar());
+    }
+
+    @Test
+    void profileExposesPublicFieldsOnly()
+    {
+        QtPagesPublicProfile profile = new QtPagesPublicProfile();
+        profile.setUserId(9L);
+        profile.setCommunityNickname("苏秉铂");
+        profile.setAvatar("/profile/avatar/2026/10/17/abc.jpg");
+        profile.setHeadline("Java 后端 / 并发");
+        profile.setBio("写代码，也写下为什么。");
+        profile.setSkills("[\"Java\",\"MySQL\"]");
+        profile.setGithubUrl("https://github.com/subingbo");
+        profile.setWebsiteUrl("https://example.com");
+        profile.setContactEmail("me@example.com");
+        profile.setShowContactEmail("1");
+        when(memberProfileMapper.selectPublicProfileByUserId(9L)).thenReturn(profile);
+
+        IQtPagesOpenService.PublicProfile result = service.getProfile("demo-lab");
+
+        assertEquals("demo-lab", result.slug());
+        assertEquals("苏秉铂", result.displayName());
+        assertEquals("https://www.quantacenter.com/profile/avatar/2026/10/17/abc.jpg", result.avatar());
+        assertEquals("Java 后端 / 并发", result.headline());
+        assertEquals("写代码，也写下为什么。", result.bio());
+        assertEquals(List.of("Java", "MySQL"), result.skills());
+        assertEquals("https://github.com/subingbo", result.githubUrl());
+        assertEquals("https://example.com", result.websiteUrl());
+        assertEquals("me@example.com", result.contactEmail());
+    }
+
+    @Test
+    void profileHidesContactEmailAndToleratesBrokenSkills()
+    {
+        QtPagesPublicProfile profile = new QtPagesPublicProfile();
+        profile.setCommunityNickname("");
+        profile.setSkills("not-json");
+        profile.setContactEmail("me@example.com");
+        profile.setShowContactEmail("0");
+        when(memberProfileMapper.selectPublicProfileByUserId(9L)).thenReturn(profile);
+
+        IQtPagesOpenService.PublicProfile result = service.getProfile("demo-lab");
+
+        assertEquals("", result.displayName());
+        assertEquals("", result.avatar());
+        assertEquals(List.of(), result.skills());
+        assertEquals("", result.contactEmail());
+    }
+
+    @Test
+    void profileForUnknownSlugReturns404()
+    {
+        assertEquals(HttpStatus.NOT_FOUND,
+                assertThrows(ServiceException.class, () -> service.getProfile("ghost")).getCode());
     }
 
     @Test

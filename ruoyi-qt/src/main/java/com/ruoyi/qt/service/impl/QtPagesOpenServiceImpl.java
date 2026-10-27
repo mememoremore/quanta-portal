@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.alibaba.fastjson2.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.ruoyi.common.constant.HttpStatus;
@@ -14,8 +15,10 @@ import com.ruoyi.qt.config.QtPagesProperties;
 import com.ruoyi.qt.domain.QtForumComment;
 import com.ruoyi.qt.domain.QtForumPost;
 import com.ruoyi.qt.domain.QtPageSite;
+import com.ruoyi.qt.domain.QtPagesPublicProfile;
 import com.ruoyi.qt.mapper.QtForumCommentMapper;
 import com.ruoyi.qt.mapper.QtForumPostMapper;
+import com.ruoyi.qt.mapper.QtMemberProfileMapper;
 import com.ruoyi.qt.mapper.QtPageSiteMapper;
 import com.ruoyi.qt.pages.QtPagesRuntime;
 import com.ruoyi.qt.service.IQtPagesOpenService;
@@ -52,6 +55,9 @@ public class QtPagesOpenServiceImpl implements IQtPagesOpenService
 
     @Autowired
     private QtForumCommentMapper commentMapper;
+
+    @Autowired
+    private QtMemberProfileMapper memberProfileMapper;
 
     @Autowired
     private QtPagesProperties properties;
@@ -91,6 +97,65 @@ public class QtPagesOpenServiceImpl implements IQtPagesOpenService
         List<QtForumComment> comments = commentMapper.selectCommentList(query);
         List<PublicComment> items = comments.stream().map(this::toPublicComment).toList();
         return new PageResult<>(items, totalOf(comments, items.size()), number, size);
+    }
+
+    @Override
+    public PublicProfile getProfile(String slug)
+    {
+        QtPageSite site = requireSite(slug);
+        QtPagesPublicProfile profile = memberProfileMapper.selectPublicProfileByUserId(site.getUserId());
+        if (profile == null)
+        {
+            throw new ServiceException("站点不存在", HttpStatus.NOT_FOUND);
+        }
+        return new PublicProfile(site.getSlug(),
+                nullToEmpty(profile.getCommunityNickname()),
+                QtPagesAssetUrl.toPublicUrl(profile.getAvatar(), properties.getAssetBaseUrl()),
+                nullToEmpty(profile.getHeadline()),
+                nullToEmpty(profile.getBio()),
+                parseSkills(profile.getSkills()),
+                nullToEmpty(profile.getGithubUrl()),
+                nullToEmpty(profile.getWebsiteUrl()),
+                publicContactEmail(profile));
+    }
+
+    /**
+     * 只展示成员主动填写的技能标签，最多 5 个；脏数据不影响资料接口。
+     */
+    static List<String> parseSkills(String raw)
+    {
+        if (raw == null || raw.isBlank())
+        {
+            return List.of();
+        }
+        try
+        {
+            List<String> skills = JSON.parseArray(raw, String.class);
+            if (skills == null)
+            {
+                return List.of();
+            }
+            return skills.stream()
+                    .filter(skill -> skill != null && !skill.isBlank())
+                    .limit(5)
+                    .toList();
+        }
+        catch (RuntimeException e)
+        {
+            return List.of();
+        }
+    }
+
+    /**
+     * 联系邮箱必须同时满足「已填写」与「本人勾选公开」；两者缺一都返回空串。
+     */
+    static String publicContactEmail(QtPagesPublicProfile profile)
+    {
+        if (!"1".equals(profile.getShowContactEmail()) || profile.getContactEmail() == null)
+        {
+            return "";
+        }
+        return profile.getContactEmail().trim();
     }
 
     /**

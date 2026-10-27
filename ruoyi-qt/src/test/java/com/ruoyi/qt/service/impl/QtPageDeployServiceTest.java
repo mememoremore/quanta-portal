@@ -288,6 +288,73 @@ class QtPageDeployServiceTest
         assertFalse(Files.exists(tempDir.resolve("octo-lab/.staging/20")));
     }
 
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    void nestedPublishDirPublishesOnlySelectedTemplateAndCleansStaging()
+    throws Exception
+    {
+        QtPageSite site = site(9L, 7L, 1L, 1L);
+        site.setPublishDir("/templates/classic");
+        when(siteMapper.selectById(9L)).thenReturn(site);
+        when(siteMapper.selectForUpdate(9L)).thenReturn(site);
+        QtPageDeployment deployment = deployment(21L, 9L, 1L, 1L);
+        deployment.setPublishDir("/templates/classic");
+        deployment.setStatus(QtPageDeployment.STATUS_PENDING);
+        when(deploymentMapper.selectForUpdate(21L)).thenReturn(deployment);
+        doAnswer(invocation -> {
+            QtPageDeployment d = invocation.getArgument(0);
+            d.setDeploymentId(21L);
+            return 1;
+        }).when(deploymentMapper).insertDeployment(any());
+
+        Path fixture = tempDir.resolve("monorepo.tar.gz");
+        writeMonorepoFixture(fixture);
+        doAnswer(invocation -> {
+            Path destination = invocation.getArgument(2);
+            Files.copy(fixture, destination, StandardCopyOption.REPLACE_EXISTING);
+            return null;
+        }).when(gitHubClient).downloadArchive(any(), eq(SHA_A), any());
+        when(gitHubClient.getBranchHead(any(), isNull()))
+                .thenReturn(new QtGitHubClient.Head(SHA_A, "W/\"e2\"", false));
+
+        service.runDeployment(21L);
+
+        assertEquals(QtPageDeployment.STATUS_SUCCESS, deployment.getStatus());
+        assertEquals(Integer.valueOf(1), deployment.getFileCount());
+        assertTrue(Files.exists(tempDir.resolve("octo-lab/releases/21/index.html")));
+        assertFalse(Files.exists(tempDir.resolve("octo-lab/releases/21/paper/index.html")));
+        assertFalse(Files.exists(tempDir.resolve("octo-lab/releases/21/README.md")));
+        assertFalse(Files.exists(tempDir.resolve("octo-lab/.staging/21")));
+        assertFalse(Files.exists(tempDir.resolve("octo-lab/.staging/21/README.md")));
+        assertEquals(Long.valueOf(21L), site.getCurrentReleaseId());
+        assertEquals(SHA_A, site.getCurrentSha());
+    }
+
+    private static void writeMonorepoFixture(Path target) throws Exception
+    {
+        try (var out = new org.apache.commons.compress.archivers.tar.TarArchiveOutputStream(
+                new java.util.zip.GZIPOutputStream(Files.newOutputStream(target)), "UTF-8"))
+        {
+            var dir = new org.apache.commons.compress.archivers.tar.TarArchiveEntry("root/");
+            out.putArchiveEntry(dir);
+            out.closeArchiveEntry();
+            writeEntry(out, "root/README.md", "# templates");
+            writeEntry(out, "root/templates/classic/index.html", "<h1>classic</h1>");
+            writeEntry(out, "root/templates/paper/index.html", "<h1>paper</h1>");
+        }
+    }
+
+    private static void writeEntry(org.apache.commons.compress.archivers.tar.TarArchiveOutputStream out,
+            String name, String content) throws Exception
+    {
+        byte[] bytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        var entry = new org.apache.commons.compress.archivers.tar.TarArchiveEntry(name);
+        entry.setSize(bytes.length);
+        out.putArchiveEntry(entry);
+        out.write(bytes);
+        out.closeArchiveEntry();
+    }
+
     private static void writeTarFixture(Path target) throws Exception
     {
         try (var out = new org.apache.commons.compress.archivers.tar.TarArchiveOutputStream(

@@ -348,6 +348,9 @@ public class QtPageDeployServiceImpl implements IQtPageDeployService
         // 5. 固化为实体 release（普通部署 release_id = 自身 deployment_id）
         long releaseId = deployment.getReleaseId() != null ? deployment.getReleaseId() : deployment.getDeploymentId();
         store.prepare(site, releaseId, artifact);
+        // 嵌套 publishDir（如 /templates/classic）只移走目标子树，staging 根下仍会残留
+        // 其他模板与仓库根文件；统一清掉，避免计入站点磁盘配额。
+        cleanupStaging(store, site, deployment.getDeploymentId());
         logText.append("prepared release " + releaseId);
 
         // 6. PUBLISHING 阶段一：行锁下持久化发布边界，此后进程退出也可由恢复协议对账

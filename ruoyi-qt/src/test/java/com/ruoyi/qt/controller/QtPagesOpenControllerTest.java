@@ -87,6 +87,22 @@ class QtPagesOpenControllerTest
     }
 
     @Test
+    void profileReturnsPublicFieldsOnly() throws Exception
+    {
+        when(openService.getProfile("demo-lab")).thenReturn(new IQtPagesOpenService.PublicProfile(
+                "demo-lab", "苏秉铂", "https://www.quantacenter.com/profile/avatar/2026/10/17/abc.jpg",
+                "Java 后端 / 并发", "写代码，也写下为什么。", java.util.List.of("Java", "MySQL"),
+                "https://github.com/subingbo", "", ""));
+
+        mockMvc.perform(get("/open/pages/demo-lab/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayName").value("苏秉铂"))
+                .andExpect(jsonPath("$.data.skills[0]").value("Java"))
+                .andExpect(jsonPath("$.data.realName").doesNotExist())
+                .andExpect(jsonPath("$.data.userId").doesNotExist());
+    }
+
+    @Test
     void missingSiteOrPostMapsToRealHttp404() throws Exception
     {
         when(openService.listPosts(eq("ghost"), eq(null), eq(null)))

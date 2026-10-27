@@ -8,6 +8,95 @@
 .pages-guide h2 { margin: 0 0 8px; }
 .pages-guide > p { margin: 0 0 18px; color: var(--portal-muted); line-height: 1.8; }
 .pages-guide code { padding: 2px 6px; border-radius: 6px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
+.pages-guide__divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; color: var(--portal-muted); font-size: 12px; }
+.pages-guide__divider::before,
+.pages-guide__divider::after { content: ''; flex: 1; height: 1px; background: var(--portal-line); }
+
+.pages-template {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #f6d9c2;
+  border-radius: 16px;
+  background: #fffaf6;
+}
+.pages-template__head p { margin: 0 0 4px; color: var(--portal-orange-strong); font-size: 10px; font-weight: 850; letter-spacing: .14em; }
+.pages-template__head h3 { margin: 0 0 6px; font-size: 20px; letter-spacing: -.02em; }
+.pages-template__head span { color: var(--portal-muted); line-height: 1.8; }
+.pages-template__hint { margin: 0; color: var(--portal-muted); font-size: 12px; line-height: 1.8; }
+.pages-template__hint a { color: var(--portal-orange-strong); }
+
+.pages-template__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.pages-template__option {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--portal-line);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.pages-template__option:hover { border-color: var(--portal-orange); }
+.pages-template__option.is-selected { border-color: var(--portal-orange); box-shadow: 0 0 0 3px var(--portal-orange-soft); }
+.pages-template__preview {
+  position: relative;
+  display: block;
+  height: 58px;
+  padding: 12px;
+  border: 1px solid var(--portal-line);
+  border-radius: 8px;
+  background: #f7f7f8;
+  overflow: hidden;
+}
+.pages-template__preview i {
+  display: block;
+  height: 4px;
+  margin-bottom: 5px;
+  border-radius: 2px;
+  background: var(--template-accent);
+  opacity: .55;
+}
+.pages-template__preview i:nth-child(1) { width: 42%; height: 8px; opacity: .9; }
+.pages-template__preview i:nth-child(2) { width: 86%; }
+.pages-template__preview i:nth-child(3) { width: 64%; }
+.pages-template__preview[data-preview="lines"] { background: #fbf8f1; }
+.pages-template__preview[data-preview="lines"] i { height: 2px; }
+.pages-template__preview[data-preview="grid"] { background: #f7f2e8; }
+.pages-template__preview[data-preview="grid"] i:nth-child(2) { width: 46%; }
+.pages-template__preview[data-preview="grid"] i:nth-child(3) { width: 46%; margin-top: -9px; margin-left: 50%; background: var(--template-accent); }
+.pages-template__preview[data-preview="terminal"] { background: #0b0f14; border-color: #22303a; }
+.pages-template__preview[data-preview="terminal"] i { height: 2px; }
+.pages-template__option-name { font-size: 13px; font-weight: 800; }
+.pages-template__option-desc { color: var(--portal-muted); font-size: 11px; line-height: 1.6; }
+.pages-form__hint { margin: 0; color: var(--portal-muted); font-size: 12px; line-height: 1.7; }
+.pages-form__hint code { padding: 1px 5px; border-radius: 5px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
+.pages-template-badge code { padding: 1px 5px; border-radius: 5px; background: #fff; color: var(--portal-orange-strong); }
+
+.pages-template-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--portal-orange-soft);
+}
+.pages-template-badge span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--portal-orange);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.pages-template-badge p { margin: 0; color: var(--portal-ink-soft); font-size: 12px; line-height: 1.7; }
+.pages-template-badge a { color: var(--portal-orange-strong); }
 
 .pages-form { display: grid; gap: 14px; max-width: 620px; }
 .pages-form__field { display: grid; gap: 6px; }
@@ -56,5 +145,6 @@
 @media (max-width: 640px) {
   .pages-heading { align-items: flex-start; flex-direction: column; }
   .pages-form__row { grid-template-columns: 1fr; }
+  .pages-template__options { grid-template-columns: 1fr; }
   .pages-history__list li { flex-direction: column; }
 }

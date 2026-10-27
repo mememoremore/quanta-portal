@@ -25,6 +25,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where user_id = #{userId}
     </select>
 
+    <select id="selectPublicProfileByUserId" parameterType="Long" resultType="QtPagesPublicProfile">
+        select u.user_id as userId,
+               u.avatar as avatar,
+               p.community_nickname as communityNickname,
+               p.headline as headline,
+               p.bio as bio,
+               p.skills as skills,
+               p.github_url as githubUrl,
+               p.website_url as websiteUrl,
+               p.contact_email as contactEmail,
+               p.show_contact_email as showContactEmail
+        from sys_user u
+        left join qt_member_profile p on p.user_id = u.user_id
+        where u.user_id = #{userId}
+    </select>
+
     <insert id="upsert" parameterType="QtMemberProfile">
         insert into qt_member_profile
         (user_id, community_nickname, headline, bio, skills, github_url, website_url, contact_email, show_contact_email, update_time)

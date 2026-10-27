@@ -7,12 +7,19 @@ vi.mock('@/utils/request', () => ({
 import { request } from '@/utils/request'
 import {
   createPageSite,
+  DEFAULT_TEMPLATE_KEY,
   deployPageSite,
+  findTemplateByPublishDir,
   getMyPageSite,
   getPageDeployment,
   getPageDeployments,
   isDeploymentActive,
+  isTemplateRepo,
+  PAGE_TEMPLATES,
   rollbackPageSite,
+  TEMPLATE_BRANCH,
+  TEMPLATE_REPO_URL,
+  templateSiteOf,
   updatePageSite,
 } from '../pages'
 
@@ -23,6 +30,30 @@ function mockedResponse(payload) {
 describe('portal pages api', () => {
   beforeEach(() => {
     request.mockReset()
+  })
+
+  it('recognizes the official template repository', () => {
+    expect(TEMPLATE_BRANCH).toBe('main')
+    expect(isTemplateRepo(TEMPLATE_REPO_URL)).toBe(true)
+    expect(isTemplateRepo(TEMPLATE_REPO_URL + '.git')).toBe(true)
+    expect(isTemplateRepo(TEMPLATE_REPO_URL + '/')).toBe(true)
+    expect(isTemplateRepo('https://github.com/octo/site')).toBe(false)
+    expect(isTemplateRepo('')).toBe(false)
+  })
+
+  it('exposes four unique selectable templates and maps publish dirs', () => {
+    expect(PAGE_TEMPLATES).toHaveLength(4)
+    expect(DEFAULT_TEMPLATE_KEY).toBe('classic')
+    expect(new Set(PAGE_TEMPLATES.map((template) => template.key)).size).toBe(4)
+    expect(new Set(PAGE_TEMPLATES.map((template) => template.publishDir)).size).toBe(4)
+
+    expect(findTemplateByPublishDir('/templates/paper').name).toBe('纸感文字')
+    expect(findTemplateByPublishDir('templates/terminal/').key).toBe('terminal')
+    expect(findTemplateByPublishDir('/').legacy).toBe(true)
+    expect(findTemplateByPublishDir('/templates/unknown')).toBeNull()
+
+    expect(templateSiteOf({ repoUrl: TEMPLATE_REPO_URL, publishDir: '/templates/magazine' }).key).toBe('magazine')
+    expect(templateSiteOf({ repoUrl: 'https://github.com/octo/site', publishDir: '/' })).toBeNull()
   })
 
   it('getMyPageSite returns null for the empty state', async () => {

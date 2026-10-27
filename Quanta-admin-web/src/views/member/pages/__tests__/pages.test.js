@@ -6,16 +6,47 @@ vi.mock('element-plus', () => ({
   ElMessageBox: { confirm: vi.fn() },
 }))
 
-vi.mock('@/api/portal/pages', () => ({
-  getMyPageSite: vi.fn(),
-  createPageSite: vi.fn(),
-  updatePageSite: vi.fn(),
-  deployPageSite: vi.fn(),
-  getPageDeployments: vi.fn(),
-  getPageDeployment: vi.fn(),
-  rollbackPageSite: vi.fn(),
-  isDeploymentActive: (status) => ['PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING', 'PUBLISHING'].includes(status),
-}))
+vi.mock('@/api/portal/pages', () => {
+  const repoUrl = 'https://github.com/subingbo/quanta-pages-template'
+  const templates = [
+    { key: 'classic', name: '经典浅色', description: '白底、橙色强调', publishDir: '/templates/classic', accent: '#f97316', preview: 'cards' },
+    { key: 'paper', name: '纸感文字', description: '衬线标题、窄栏', publishDir: '/templates/paper', accent: '#9a3b2c', preview: 'lines' },
+    { key: 'magazine', name: '杂志作品集', description: '大标题、卡片网格', publishDir: '/templates/magazine', accent: '#e11d48', preview: 'grid' },
+    { key: 'terminal', name: '终端深色', description: '等宽字体、深色', publishDir: '/templates/terminal', accent: '#3ddc84', preview: 'terminal' },
+  ]
+  const normalize = (value) => {
+    const raw = String(value || '').trim()
+    if (!raw || raw === '/') return '/'
+    return (raw.startsWith('/') ? raw : '/' + raw).replace(/\/+$/, '') || '/'
+  }
+  const findTemplate = (publishDir) => {
+    const normalized = normalize(publishDir)
+    const matched = templates.find((template) => template.publishDir === normalized)
+    if (matched) return matched
+    if (normalized === '/') return { ...templates[0], publishDir: '/', legacy: true }
+    return null
+  }
+  return {
+    getMyPageSite: vi.fn(),
+    createPageSite: vi.fn(),
+    updatePageSite: vi.fn(),
+    deployPageSite: vi.fn(),
+    getPageDeployments: vi.fn(),
+    getPageDeployment: vi.fn(),
+    rollbackPageSite: vi.fn(),
+    isDeploymentActive: (status) => ['PENDING', 'RESOLVING', 'DOWNLOADING', 'VALIDATING', 'PUBLISHING'].includes(status),
+    TEMPLATE_REPO_URL: repoUrl,
+    TEMPLATE_BRANCH: 'main',
+    PAGE_TEMPLATES: templates,
+    DEFAULT_TEMPLATE_KEY: 'classic',
+    isTemplateRepo: (url) => String(url || '').replace(/\/$/, '').replace(/\.git$/, '') === repoUrl,
+    findTemplateByPublishDir: findTemplate,
+    templateSiteOf: (site) => {
+      const normalized = String(site?.repoUrl || '').replace(/\/$/, '').replace(/\.git$/, '')
+      return normalized === repoUrl ? findTemplate(site.publishDir) : null
+    },
+  }
+})
 
 import * as pagesApi from '@/api/portal/pages'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -69,8 +100,74 @@ describe('member pages console', () => {
     pagesApi.getMyPageSite.mockResolvedValueOnce(null)
     const wrapper = await mountIndex()
     expect(wrapper.find('[data-testid="pages-guide"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pages-template-form"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-testid^="pages-template-option-"]')).toHaveLength(4)
+    expect(wrapper.find('[data-testid="pages-template-option-classic"]').classes()).toContain('is-selected')
     expect(wrapper.findComponent(SiteConfigForm).exists()).toBe(true)
     expect(wrapper.text()).toContain('还没有个人网站')
+  })
+
+  it('creates a template site with the selected template', async () => {
+    pagesApi.getMyPageSite.mockResolvedValueOnce(null)
+    pagesApi.getMyPageSite.mockResolvedValueOnce({
+      ...ownedSite,
+      repoUrl: 'https://github.com/subingbo/quanta-pages-template',
+      branch: 'main',
+      publishDir: '/templates/paper',
+    })
+    pagesApi.createPageSite.mockResolvedValueOnce({
+      site: {
+        ...ownedSite,
+        repoUrl: 'https://github.com/subingbo/quanta-pages-template',
+        branch: 'main',
+        publishDir: '/templates/paper',
+      },
+      deployment: successDeployment(),
+    })
+    const wrapper = await mountIndex()
+
+    await wrapper.find('[data-testid="pages-template-option-paper"]').trigger('click')
+    await wrapper.find('[data-testid="pages-template-slug"]').setValue('my-space')
+    await wrapper.find('[data-testid="pages-template-submit"]').trigger('submit')
+    await flushPromises()
+
+    expect(pagesApi.createPageSite).toHaveBeenCalledWith({
+      slug: 'my-space',
+      repoUrl: 'https://github.com/subingbo/quanta-pages-template',
+      branch: 'main',
+      publishDir: '/templates/paper',
+    })
+    expect(ElMessage.success).toHaveBeenCalledWith('已用「纸感文字」创建站点，部署已排队')
+  })
+
+  it('marks a site that uses a specific official template', async () => {
+    pagesApi.getMyPageSite.mockResolvedValueOnce({
+      ...ownedSite,
+      repoUrl: 'https://github.com/subingbo/quanta-pages-template',
+      branch: 'main',
+      publishDir: '/templates/terminal',
+    })
+    const wrapper = await mountIndex()
+
+    expect(wrapper.find('[data-testid="pages-template-badge"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pages-template-badge"]').text()).toContain('终端深色')
+    expect(wrapper.find('[data-testid="pages-repo-url"]').exists()).toBe(true)
+  })
+
+  it('resets the template publish dir when switching to an own repository', async () => {
+    pagesApi.getMyPageSite.mockResolvedValueOnce({
+      ...ownedSite,
+      repoUrl: 'https://github.com/subingbo/quanta-pages-template',
+      branch: 'main',
+      publishDir: '/templates/classic',
+    })
+    const wrapper = await mountIndex()
+
+    await wrapper.find('[data-testid="pages-repo-url"]').setValue('https://github.com/octo/my-site')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="pages-publish-dir"]').element.value).toBe('/')
+    expect(wrapper.find('[data-testid="pages-publish-dir-hint"]').text()).toContain('已把发布目录重置')
   })
 
   it('surfaces backend conflict messages instead of faking success', async () => {
@@ -259,12 +356,14 @@ describe('site api guide', () => {
 
     const guide = wrapper.find('[data-testid="pages-api-guide"]')
     expect(guide.exists()).toBe(true)
+    expect(guide.text()).toContain('/open/pages/octo-lab/profile')
     expect(guide.text()).toContain('/open/pages/octo-lab/posts')
     expect(guide.text()).toContain('/open/pages/octo-lab/posts/{postId}/comments')
     expect(guide.text()).toContain('社区昵称')
     expect(guide.text()).toContain('头像')
+    expect(guide.text()).toContain('公开资料')
     expect(guide.text()).toContain('图片在公网页面无法加载')
-    expect(wrapper.findAll('[data-testid="pages-api-endpoint"]')).toHaveLength(3)
+    expect(wrapper.findAll('[data-testid="pages-api-endpoint"]')).toHaveLength(4)
   })
 
   it('copies the fetch snippet to the clipboard', async () => {

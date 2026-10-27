@@ -69,7 +69,11 @@ function respond(state, request, url) {
     if (state.mode === 'conflict') return { code: 409, msg: '该站点标识已被使用' }
     const body = request.postDataJSON()
     state.site = siteRow({
-      slug: body.slug || 'octo-lab', repoUrl: body.repoUrl, currentSha: '', currentDeploymentId: null, currentReleaseId: null,
+      slug: body.slug || 'octo-lab',
+      repoUrl: body.repoUrl,
+      branch: body.branch || 'pages',
+      publishDir: body.publishDir || '/',
+      currentSha: '', currentDeploymentId: null, currentReleaseId: null,
     })
     state.deployments = [deploymentRow(20, { triggerType: 'CREATE', status: 'PENDING', commitSha: '', requestVersion: 1 })]
     return { code: 200, data: { site: state.site, deployment: state.deployments[0] } }
@@ -163,6 +167,22 @@ test.describe('member pages console', () => {
     await page.getByTestId('pages-repo-url').fill('https://github.com/octo/hello')
     await page.getByTestId('pages-form-submit').click()
     await expect(page.getByTestId('pages-visit-link')).toContainText('octo-lab.page.quantacenter.com')
+  })
+
+  test('one-click template creates a site without GitHub', async ({ page }) => {
+    state.site = null
+    await loginAsMember(page, state)
+    await page.goto('/member/pages')
+    await expect(page.getByTestId('pages-template-form')).toBeVisible()
+    await expect(page.locator('[data-testid^="pages-template-option-"]')).toHaveCount(4)
+    await page.getByTestId('pages-template-option-paper').click()
+    await page.getByTestId('pages-template-slug').fill('my-space')
+    await page.getByTestId('pages-template-submit').click()
+    await expect(page.getByTestId('pages-visit-link')).toContainText('my-space.page.quantacenter.com')
+    await expect(page.getByTestId('pages-template-badge')).toContainText('纸感文字')
+    expect(state.site.repoUrl).toBe('https://github.com/subingbo/quanta-pages-template')
+    expect(state.site.branch).toBe('main')
+    expect(state.site.publishDir).toBe('/templates/paper')
   })
 
   test('creation conflict surfaces the backend message', async ({ page }) => {

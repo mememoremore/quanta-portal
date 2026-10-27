@@ -67,4 +67,14 @@ public class QtPagesOpenController
     {
         return AjaxResult.success(openService.listComments(slug, postId, pageNum, pageSize));
     }
+
+    /**
+     * 站主公开资料（社区昵称、头像、简介、技能与公开链接）。
+     */
+    @RateLimiter(time = RATE_LIMIT_SECONDS, count = RATE_LIMIT_COUNT, limitType = LimitType.IP, key = RATE_LIMIT_KEY)
+    @GetMapping("/{slug}/profile")
+    public AjaxResult profile(@PathVariable("slug") String slug)
+    {
+        return AjaxResult.success(openService.getProfile(slug));
+    }
 }

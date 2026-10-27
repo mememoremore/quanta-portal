@@ -99,6 +99,12 @@ class QtPageSiteServiceTest
         assertBadRequest(body("https://github.com/octo/hello", null, "a//b", null));
         assertBadRequest(body("https://github.com/octo/hello", null, null, "../etc"));
         assertBadRequest(body("https://github.com/octo/hello", null, null, ".hidden"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "templates/classic"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "/templates/../classic"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "/templates//classic"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "/.git"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "/a/.hidden"));
+        assertBadRequest(body("https://github.com/octo/hello", null, null, "/templates\\classic"));
 
         assertBadRequest(body("http://github.com/octo/hello", null, null, null));
         assertBadRequest(body("https://gitlab.com/octo/hello", null, null, null));
@@ -108,6 +114,23 @@ class QtPageSiteServiceTest
         assertBadRequest(body("https://github.com/octo", null, null, null));
         assertBadRequest(body("https://github.com/octo/hello/extra", null, null, null));
         assertBadRequest(body("", null, null, null));
+    }
+
+    @Test
+    void acceptsNestedTemplatePublishDir()
+    {
+        when(access.requireCurrentMemberId()).thenReturn(7L);
+        when(siteMapper.selectByUserId(7L)).thenReturn(null);
+        when(siteMapper.insertSite(any())).thenReturn(1);
+        when(deployService.enqueueLocked(any(), eq(QtPageDeployment.TRIGGER_CREATE)))
+                .thenAnswer(invocation -> new QtPageDeployment());
+
+        service.create(body("https://github.com/octo/hello", "my-space", "main", "/templates/classic/"));
+
+        ArgumentCaptor<QtPageSite> site = ArgumentCaptor.forClass(QtPageSite.class);
+        verify(siteMapper).insertSite(site.capture());
+        assertEquals("/templates/classic", site.getValue().getPublishDir());
+        assertEquals("main", site.getValue().getBranch());
     }
 
     @Test

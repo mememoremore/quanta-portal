@@ -7,8 +7,18 @@
 
 - 路由：`/member/pages`（name=`MemberPages`，meta `{ title: '个人网站', portalAudience: 'member' }`，在 `src/router/portal-routes.js`）
 - 入口：塔员首页快捷入口「个人网站」、「我的服务」页头「个人网站 →」链接
-- 视图：`src/views/member/pages/index.vue` + `components/{SiteConfigForm,DeploymentHistory,DeploymentLogDialog}.vue`
+- 视图：`src/views/member/pages/index.vue` + `components/{TemplateSiteForm,SiteConfigForm,DeploymentHistory,DeploymentLogDialog}.vue`
 - API 适配：`src/api/portal/pages.js`（全部走既有 `request`，前端不传 userId）
+
+## 一键模板建站（2026-10-27 多模板）
+
+- 官方模板仓库：`https://github.com/subingbo/quanta-pages-template`（公开、启用 GitHub Template），采用 monorepo：`templates/{classic,paper,magazine,terminal}`。
+- 门户目录：`pages.js` 的 `PAGE_TEMPLATES` 维护 key/名称/描述/`publishDir`/主题色，`classic` 为默认；**目录 key 必须与仓库模板目录一致**。
+- 空状态先展示 `TemplateSiteForm.vue`：4 张模板卡片可选，固定提交 `{repoUrl: TEMPLATE_REPO_URL, branch: 'main', publishDir: 所选模板目录}`，复用现有 `POST /qt/pages/sites`，**后端没有新增契约**。
+- 模板站与 GitHub 站共用站点表、一人一站限制、部署队列与回滚；`templateSiteOf(site)` 通过 `repoUrl + publishDir` 识别具体模板，徽标显示模板名。
+- 兼容：迁移前 `publishDir='/'` 的旧模板站会被识别为 `classic`（`legacy: true`）；模板仓库根 `index.html` 会跳转到 `/templates/classic/`。
+- 切换自己的仓库：`SiteConfigForm` 检测到 repoUrl 离开模板仓库时，若 `publishDir` 仍是 `/templates/...` 会自动重置为 `/`，并提示用户按仓库结构调整。
+- 模板页面从 `location.hostname` 解析 slug，调用 `/open/pages/{slug}/profile` 展示资料，文章/留言走原有接口。
 
 ## API 契约（前缀 `/qt/pages/sites`，全部要求塔员登录）
 
@@ -72,10 +82,12 @@
 
 后端在 `ruoyi-qt`：`QtPagesOpenController`（`/open/pages`，类级 `@Anonymous`）+ `QtPagesOpenServiceImpl`；
 控制台说明组件是 `components/SiteApiGuide.vue`。这些接口**匿名只读**，按站点 slug 解析站主，
-仅返回站主本人「塔员可见(MEMBERS)」的文章与这些文章的留言，`MANAGERS` 文章永远 404。
+仅返回站主本人「塔员可见(MEMBERS)」的文章与这些文章的留言，`MANAGERS` 文章永远 404；
+`/profile` 只返回可公开展示的资料字段。
 
 | 方法 | 路径 | data |
 | --- | --- | --- |
+| GET | `/open/pages/{slug}/profile` | `{slug,displayName,avatar,headline,bio,skills:[],githubUrl,websiteUrl,contactEmail}` |
 | GET | `/open/pages/{slug}/posts?pageNum&pageSize` | `{items:[{postId,title,category,excerpt,commentCount,createdAt}], total, pageNum, pageSize}` |
 | GET | `/open/pages/{slug}/posts/{postId}` | `{postId,title,category,content(Markdown),commentCount,createdAt,authorNickname}` |
 | GET | `/open/pages/{slug}/posts/{postId}/comments?pageNum&pageSize` | `{items:[{commentId,parentId,content,authorNickname,authorAvatar,replyToNickname,createdAt}], total, pageNum, pageSize}` |
@@ -83,7 +95,9 @@
 - 错误：未知 slug / 非法 slug / 文章不属于站主或为 MANAGERS → 真实 HTTP 404；参数错误 400；限流 429（每 IP 60 秒 120 次）；`qt.pages.enabled=false` → 404。
 - CORS：后端 `ResourcesConfig` 仅为 `/open/pages/**` 注册 Pages 子域来源（`https://*.{qt.pages.base-domain}`），
   `allowCredentials=false`；**不要**把 Pages 子域加进 `ruoyi.cors.allowed-origins`（那会削弱门户凭据隔离）。
-- 隐私：评论只返回社区昵称与门户域名下的公开头像 URL（无头像为空串），不含真实姓名/部门/userId；文章正文为 Markdown 原文，
+- 隐私：评论只返回社区昵称与门户域名下的公开头像 URL（无头像为空串），不含真实姓名/部门/userId；
+  资料接口只返回社区昵称、公开头像、headline、bio、技能、GitHub/网站链接与「勾选公开」的联系邮箱，
+  **不返回实名、学号、班级、专业、部门、职位、届次、登录邮箱或 userId**；文章正文为 Markdown 原文，
   论坛上传的图片是登录保护资源，公网页面无法加载（文档与控制台均已提示）。
 - 限流/分页：`pageSize` 默认 20、最大 50；不递增论坛浏览量。
 - 测试：后端 `QtPagesOpenServiceTest` / `QtPagesOpenControllerTest` / `QtPagesOpenMapperMySqlTest`（`QUANTA_PAGES_MYSQL_TEST=true`）；

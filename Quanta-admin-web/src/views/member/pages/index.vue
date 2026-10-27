@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { getMyPageSite, getPageDeployments, isDeploymentActive } from '@/api/portal/pages'
+import { getMyPageSite, getPageDeployments, isDeploymentActive, templateSiteOf, TEMPLATE_REPO_URL } from '@/api/portal/pages'
 import SiteConfigForm from './components/SiteConfigForm.vue'
+import TemplateSiteForm from './components/TemplateSiteForm.vue'
 import DeploymentHistory from './components/DeploymentHistory.vue'
 import DeploymentLogDialog from './components/DeploymentLogDialog.vue'
 import SiteApiGuide from './components/SiteApiGuide.vue'
@@ -18,6 +19,7 @@ const logDeployment = ref(null)
 const logOpen = ref(false)
 
 const siteUrl = computed(() => (site.value?.slug ? `https://${site.value.slug}.page.quantacenter.com` : ''))
+const templateSite = computed(() => templateSiteOf(site.value))
 const hasActiveDeployment = computed(() => deployments.value.some((row) => isDeploymentActive(row.status)))
 
 async function refresh({ silent = false } = {}) {
@@ -95,7 +97,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="member-page pages-page">
     <header class="pages-heading">
-      <div><p>MY PAGES</p><h1>个人网站</h1><span>绑定 GitHub 公开仓库，推送即自动发布到独立子域名。</span></div>
+      <div><p>MY PAGES</p><h1>个人网站</h1><span>选一套模板一键上线，或绑定自己的 GitHub 公开仓库。</span></div>
       <a v-if="siteUrl" class="member-secondary-button pages-heading__link" :href="siteUrl" target="_blank" rel="noopener" data-testid="pages-visit-link">
         访问 {{ siteUrl.replace('https://', '') }}
       </a>
@@ -113,6 +115,8 @@ onBeforeUnmount(() => {
     <template v-else>
       <div v-if="!site" class="pages-guide portal-card" data-testid="pages-guide">
         <h2>还没有个人网站</h2>
+        <TemplateSiteForm @saved="onSaved" />
+        <div class="pages-guide__divider"><span>或者使用自己的 GitHub 仓库</span></div>
         <p>
           创建后会得到 <code>https://你的标识.page.quantacenter.com</code>。
           平台只发布指定分支里<b>已经构建好的静态文件</b>，不执行任何构建脚本；
@@ -134,6 +138,13 @@ onBeforeUnmount(() => {
               <span v-if="site.lastCheckedTime" data-testid="pages-last-checked">最近检查 {{ site.lastCheckedTime }}</span>
             </div>
           </header>
+          <div v-if="templateSite" class="pages-template-badge" data-testid="pages-template-badge">
+            <span>{{ templateSite.name }}</span>
+            <p>
+              当前使用「{{ templateSite.name }}」模板。想改版式？<a :href="TEMPLATE_REPO_URL" target="_blank" rel="noopener">复制模板仓库</a>，
+              然后把下面的仓库地址换成你的仓库，并把发布目录改为 <code>/</code>。
+            </p>
+          </div>
           <p v-if="site.lastCheckError" class="member-feedback is-error" data-testid="pages-check-error">
             最近一次分支检查失败：{{ site.lastCheckError }}（在线版本不受影响）
           </p>

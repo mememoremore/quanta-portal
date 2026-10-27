@@ -103,6 +103,47 @@ class QtStaticArchiveValidatorTest
     }
 
     @Test
+    void nestedPublishDirSelectsOnlySelectedTemplate()
+    throws Exception
+    {
+        Path archive = tar(builder -> {
+            builder.dir("root/");
+            builder.bytes("root/README.md", "templates");
+            builder.bytes("root/templates/classic/index.html", "<h1>classic</h1>");
+            builder.bytes("root/templates/classic/assets/app.js", "console.log('classic')");
+            builder.bytes("root/templates/paper/index.html", "<h1>paper</h1>");
+        });
+        Path staging = tempDir.resolve("staging");
+
+        QtStaticArchiveValidator.ValidatedArtifact artifact =
+                validator.extract(archive, "/templates/classic", staging);
+
+        assertTrue(artifact.root().endsWith("templates/classic"));
+        assertTrue(Files.exists(artifact.root().resolve("index.html")));
+        assertTrue(Files.exists(artifact.root().resolve("assets/app.js")));
+        assertFalse(Files.exists(artifact.root().resolve("paper/index.html")));
+        // 整份归档仍被解包，兄弟模板留在 staging，但不会进入发布统计
+        assertTrue(Files.exists(staging.resolve("templates/paper/index.html")));
+        assertEquals(2, artifact.fileCount());
+        assertEquals(Files.size(artifact.root().resolve("index.html"))
+                + Files.size(artifact.root().resolve("assets/app.js")), artifact.totalBytes());
+    }
+
+    @Test
+    void nestedPublishDirWithoutIndexIsRejected()
+    throws Exception
+    {
+        Path archive = tar(builder -> {
+            builder.dir("root/");
+            builder.bytes("root/templates/classic/about.html", "no index");
+        });
+        QtStaticArchiveValidator.ArchiveValidationException exception = assertThrows(
+                QtStaticArchiveValidator.ArchiveValidationException.class,
+                () -> validator.extract(archive, "/templates/classic", tempDir.resolve("staging")));
+        assertEquals("INDEX_MISSING", exception.getErrorCode());
+    }
+
+    @Test
     void missingPublishDirIsRejected()
     throws Exception
     {
