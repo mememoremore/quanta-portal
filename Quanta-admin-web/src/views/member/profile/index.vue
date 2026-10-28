@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Camera, ArrowRight, Star } from '@element-plus/icons-vue'
 import ThumbIcon from '../community/ThumbIcon.vue'
 import { getCurrentProfile, getOwnMemberProfile, saveMemberProfile, uploadMemberAvatar } from '@/api/portal/members'
+import { getMyPageSite } from '@/api/portal/pages'
 import { useUserStore } from '@/stores/user'
 import { setMemberAvatar } from '@/utils/member-avatars'
 import { normalizeProfile, validateProfile } from '@/utils/member-profile'
@@ -17,6 +18,7 @@ import './profile.css'
 const userStore = useUserStore()
 const profile = ref(null), draft = ref(normalizeProfile()), saved = ref(normalizeProfile())
 const loading = ref(true), saving = ref(false), cloudReady = ref(false), errorMessage = ref(''), cloudError = ref('')
+const siteUrl = ref('')
 const avatarOpen = ref(false), uploading = ref(false), avatarError = ref('')
 let generation = 0, active = true
 const dirty = computed(() => JSON.stringify(normalizeProfile(draft.value)) !== JSON.stringify(saved.value))
@@ -41,6 +43,11 @@ async function load() {
     }
   } catch (error) { if (current === generation) errorMessage.value = error.message || '个人资料加载失败' }
   finally { if (current === generation) loading.value = false }
+  // 个人网站网址独立加载，失败静默：无站点或接口异常都不影响名片主内容
+  try {
+    const site = await getMyPageSite()
+    if (current === generation && site?.slug) siteUrl.value = `https://${site.slug}.page.quantacenter.com`
+  } catch { /* 忽略 */ }
 }
 async function save() {
   if (!cloudReady.value || saving.value) return
@@ -91,7 +98,7 @@ onBeforeUnmount(() => { active = false; generation++ })
         </div>
       </section>
       <p v-if="cloudError" class="member-feedback is-error" role="alert">{{ cloudError }} <button type="button" @click="load">重新加载</button></p>
-      <div class="member-profile-columns"><article class="member-profile-editor portal-card"><header><h2>个人档案</h2><span>{{ cloudReady ? '云端同步' : '尚未连接' }}</span></header><MemberProfileEditor v-model="draft" :disabled="!cloudReady" :saving="saving" :dirty="dirty" @save="save" @cancel="resetDraft" /></article><aside class="member-profile-aside"><div class="member-profile-preview-heading"><strong>塔员名片</strong><span>预览</span></div><ProfilePreviewCard :profile="preview" /><RouterLink class="member-secondary-button" :to="{ path:'/member/people/' + profile.id, state:{ memberReturn:'/member/profile' } }">预览已保存的成员主页</RouterLink><p class="member-profile-note"><strong>同一份档案，同一个你</strong>头像用于顶部菜单、首页、通讯录、帖子和评论。成员主页仅向已登录塔员开放。</p><p class="member-profile-note portal-card"><strong>身份资料保持真实</strong>姓名、部门、角色和届数由社团维护，不能通过名片编辑改变。手机号与登录邮箱不会展示。</p></aside></div>
+      <div class="member-profile-columns"><article class="member-profile-editor portal-card"><header><h2>个人档案</h2><span>{{ cloudReady ? '云端同步' : '尚未连接' }}</span></header><MemberProfileEditor v-model="draft" :disabled="!cloudReady" :saving="saving" :dirty="dirty" @save="save" @cancel="resetDraft" /></article><aside class="member-profile-aside"><div class="member-profile-preview-heading"><strong>塔员名片</strong><span>预览</span></div><ProfilePreviewCard :profile="preview" :site-url="siteUrl" /><RouterLink class="member-secondary-button" :to="{ path:'/member/people/' + profile.id, state:{ memberReturn:'/member/profile' } }">预览已保存的成员主页</RouterLink><p class="member-profile-note"><strong>同一份档案，同一个你</strong>头像用于顶部菜单、首页、通讯录、帖子和评论。成员主页仅向已登录塔员开放。</p><p class="member-profile-note portal-card"><strong>身份资料保持真实</strong>姓名、部门、角色和届数由社团维护，不能通过名片编辑改变。手机号与登录邮箱不会展示。</p></aside></div>
     </template>
     <AvatarUploadDialog v-model="avatarOpen" :uploading="uploading" :error="avatarError" @confirm="upload" />
   </section>

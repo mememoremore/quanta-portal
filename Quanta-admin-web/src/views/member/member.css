@@ -8,6 +8,8 @@
 .member-secondary-button { padding: 10px 15px; border: 1px solid var(--portal-line); border-radius: 11px; background: #fff; color: var(--portal-ink-soft); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .member-feedback { margin: 0; padding: 13px 16px; border-radius: 12px; background: #f4f5f6; color: var(--portal-muted); }
 .member-feedback.is-error { background: #fff0ee; color: #b42318; }
+.member-feedback button { margin-left: 8px; padding: 4px 12px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.member-feedback button:hover { opacity: .75; }
 .member-loading { padding: 38px; color: var(--portal-muted); text-align: center; }
 .member-empty { padding: 44px 24px; color: var(--portal-muted); text-align: center; }
 @media (max-width: 700px) {

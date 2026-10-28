@@ -161,4 +161,5 @@ onBeforeUnmount(() => {
   </section>
 </template>
 
+<style src="../member.css"></style>
 <style src="./pages.css"></style>

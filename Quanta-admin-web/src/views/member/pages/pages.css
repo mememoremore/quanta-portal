@@ -5,6 +5,7 @@
 .pages-heading span { color: var(--portal-muted); }
 .pages-heading__link { text-decoration: none; }
 .pages-state { padding: 25px; color: var(--portal-muted); }
+.pages-guide { padding: 25px; display: grid; gap: 14px; }
 .pages-guide h2 { margin: 0 0 8px; }
 .pages-guide > p { margin: 0 0 18px; color: var(--portal-muted); line-height: 1.8; }
 .pages-guide code { padding: 2px 6px; border-radius: 6px; background: var(--portal-orange-soft); color: var(--portal-orange-strong); }
@@ -29,7 +30,7 @@
 .pages-template__options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
 .pages-template__option {
   display: grid;
@@ -98,7 +99,7 @@
 .pages-template-badge p { margin: 0; color: var(--portal-ink-soft); font-size: 12px; line-height: 1.7; }
 .pages-template-badge a { color: var(--portal-orange-strong); }
 
-.pages-form { display: grid; gap: 14px; max-width: 620px; }
+.pages-form { display: grid; gap: 14px; }
 .pages-form__field { display: grid; gap: 6px; }
 .pages-form__field span { color: var(--portal-muted); font-size: 12px; font-weight: 700; }
 .pages-form__field input { padding: 11px 13px; border: 1px solid var(--portal-line); border-radius: 12px; font: inherit; background: #fff; }
@@ -144,6 +145,7 @@
 
 @media (max-width: 640px) {
   .pages-heading { align-items: flex-start; flex-direction: column; }
+  .pages-guide { padding: 20px 18px; }
   .pages-form__row { grid-template-columns: 1fr; }
   .pages-template__options { grid-template-columns: 1fr; }
   .pages-history__list li { flex-direction: column; }

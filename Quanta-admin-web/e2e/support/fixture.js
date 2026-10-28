@@ -294,6 +294,8 @@ function responseFor(request, state) {
     const pageSize = Number(url.searchParams.get('pageSize') || 10)
     return { code: 200, rows: rows.slice((page - 1) * pageSize, page * pageSize), total: rows.length }
   }
+  // 个人中心名片读取本人站点：默认无站点（null），不触发 unexpected
+  if (method === 'GET' && path === '/qt/pages/sites/me') return { code: 200, data: null }
   return null
 }
 
