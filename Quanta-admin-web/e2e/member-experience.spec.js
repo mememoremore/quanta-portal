@@ -7,7 +7,7 @@ for (const width of [390,1440]) {
     const card=page.locator('.community-editor__card')
     await expect(card).toBeVisible()
     await expect(page.locator('.community-editor__toolbar')).toContainText('代码块')
-    await expect(page.locator('.portal-header__brand')).toHaveAttribute('href',width<700?'/member/home':'/')
+    await expect(page.locator('.portal-header__brand')).toHaveAttribute('href','/member/home')
     if(width<700) await expect(card).toHaveCSS('padding','0px')
     else {
       await expect(card).toHaveCSS('padding','36px')

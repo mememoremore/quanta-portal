@@ -30,12 +30,30 @@ describe('member API adapter', () => {
     ).toMatchObject({
       id: 7,
       name: '测试成员',
-      department: 'BACKEND',
+      department: '后端',
       roleCode: 'MANAGER',
       roleLabel: '经理层',
       cohort: '第21届',
       status: 'active',
     })
+  })
+
+  it('normalizes member departments to Chinese labels', () => {
+    expect(mapMember({ memberDepartment: 'BACKEND' }).department).toBe('后端')
+    expect(mapMember({ memberDepartment: 'FRONTEND' }).department).toBe('前端')
+    expect(mapMember({ memberDepartment: 'PRODUCT' }).department).toBe('产品')
+    expect(mapMember({ memberDepartment: 'DESIGN' }).department).toBe('设计')
+    // 历史数据直接存中文时原样透传，不被吞掉
+    expect(mapMember({ memberDepartment: '后端部' }).department).toBe('后端部')
+    expect(mapMember({ memberDepartment: '' }).department).toBe('-')
+  })
+
+  it('treats the legacy MEMBER role as an intern', () => {
+    expect(mapMember({ roleCategory: 'MEMBER' }).roleCode).toBe('INTERN')
+    expect(mapMember({ roleCategory: 'INTERN' }).roleCode).toBe('INTERN')
+    expect(mapMember({ roleCategory: 'member' }).roleCode).toBe('INTERN')
+    expect(mapMember({ roleCategory: 'MGMT' }).roleCode).toBe('MGMT')
+    expect(mapMember({ roleCategory: 'MANAGER' }).roleCode).toBe('MANAGER')
   })
 
   it('prefers the cohort name and falls back to a numeric member cohort label', () => {

@@ -8,6 +8,7 @@ import { safeInternalRedirect } from '@/utils/redirect'
 import { isDualTokenEnabled } from '@/utils/request'
 import {
   audienceForPath,
+  entryPathFor,
   getAudience,
   homePathFor,
   loginPathFor,
@@ -68,20 +69,16 @@ export function setupRouterGuard(router) {
       if (targetAudience && userStore.token) {
         try {
           if (!userStore.user) await userStore.fetchUserInfo()
-          if (targetAudience === 'admin' && userStore.canAccessAdmin) {
-            return homePathFor('admin')
-          }
-          if (targetAudience === 'admin') {
-            await userStore.logout().catch(() => {})
-            permissionStore.resetRoutes()
-            return { path: '/admin/login', query: { ...to.query, denied: '1' } }
-          }
-          if (targetAudience === userStore.serverAudience) {
-            return homePathFor(targetAudience)
-          }
-          await userStore.logout().catch(() => {})
-          permissionStore.resetRoutes()
-          return true
+          // 已登录时按“入口归属”一次性算出落点：同域回该端首页、管理员进后台，
+          // 其余情况留在登录页。跨入口访问不等于要求退出，所以这里不做任何登出：
+          // 登出只能由用户显式触发（用户菜单），否则点错一次卡片就会丢掉整个会话。
+          const entryPath = entryPathFor({
+            audience: targetAudience,
+            serverAudience: userStore.serverAudience,
+            canAccessAdmin: userStore.canAccessAdmin,
+          })
+          // 落点与当前地址相同时直接放行，避免守卫返回同一地址造成无限重定向。
+          return to.path === entryPath ? true : entryPath
         } catch {
           userStore.reset()
           permissionStore.resetRoutes()

@@ -51,7 +51,7 @@ test('手机成员卡片完整显示字段，筛选、搜索、分页和桌面�
   await expect(cards).toHaveCount(10)
   const first = cards.first()
   await expect(first).toContainText('测试成员1')
-  for (const text of ['PRODUCT', '经理', '第21届', '138****0000', '2026-09-23 18:30:00', '在职']) {
+  for (const text of ['产品', '经理', '第21届', '138****0000', '2026-09-23 18:30:00', '在职']) {
     await expect(first).toContainText(text)
   }
   await expect(first.getByRole('button', { name: '删除', exact: true })).toBeVisible()
@@ -68,9 +68,9 @@ test('手机成员卡片完整显示字段，筛选、搜索、分页和桌面�
   expect(footer.y + footer.height).toBeLessThanOrEqual(main.y + main.height + 1)
 
   await page.locator('.member-mobile__filters .el-select').first().click()
-  await page.getByRole('option', { name: '后端部', exact: true }).click()
+  await page.getByRole('option', { name: '后端', exact: true }).click()
   await expect(cards.first()).toContainText('测试成员2')
-  await expect(cards.first()).toContainText('BACKEND')
+  await expect(cards.first()).toContainText('后端')
   await expect(page.locator('.members-card__mobile-total')).toContainText('11')
 
   await page.getByRole('textbox', { name: '搜索成员姓名' }).fill('测试成员22')

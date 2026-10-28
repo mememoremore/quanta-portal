@@ -98,7 +98,7 @@ describe('global route guard', () => {
     expect(router.currentRoute.value.path).toBe('/freshman/home')
   })
 
-  it('clears a member session when opening the freshman login entry', async () => {
+  it('keeps the member session when opening a different portal entry', async () => {
     const router = createTestRouter()
     setAudience('member')
     setToken('test-token')
@@ -108,8 +108,9 @@ describe('global route guard', () => {
     await router.push('/login/freshman')
 
     expect(router.currentRoute.value.path).toBe('/login/freshman')
-    expect(userStore.token).toBe('')
-    expect(userStore.user).toBeNull()
+    // 打开别的入口只说明用户想看看那道门，不等于要求退出当前账号。
+    expect(userStore.token).toBe('test-token')
+    expect(userStore.user).not.toBeNull()
   })
 
   it('keeps an unconfirmed admin identity at member login instead of falling back to admin', async () => {
@@ -153,7 +154,7 @@ describe('global route guard', () => {
     expect(userStore.user).toBeNull()
   })
 
-  it('shows the admin denial when a signed-in regular member opens admin login', async () => {
+  it('keeps the member session when opening admin login without permission', async () => {
     const router = createTestRouter()
     setAudience('member')
     setToken('member-token')
@@ -163,8 +164,10 @@ describe('global route guard', () => {
 
     await router.push('/admin/login')
 
+    // 停在管理端登录页由页面自己说明，但会话必须保留：
+    // 无后台权限只意味着不能进后台，不意味着要退出塔员账号。
     expect(router.currentRoute.value.path).toBe('/admin/login')
-    expect(router.currentRoute.value.query.denied).toBe('1')
-    expect(userStore.token).toBe('')
+    expect(router.currentRoute.value.query.denied).toBeUndefined()
+    expect(userStore.token).toBe('member-token')
   })
 })

@@ -7,6 +7,7 @@ import 'element-plus/theme-chalk/base.css'
 import 'element-plus/theme-chalk/el-drawer.css'
 import 'element-plus/theme-chalk/el-overlay.css'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { homePathFor } from '@/utils/session-audience'
 const quantaLogoUrl = '/quanta-logo-small.jpg'
 
 const props = defineProps({
@@ -17,7 +18,8 @@ const route = useRoute()
 const mobileOpen = ref(false)
 const isMobile = useMediaQuery('(max-width: 760px)')
 const portalName = computed(() => (props.audience === 'freshman' ? '新生门户' : '塔员门户'))
-const brandTarget = computed(() => isMobile.value ? (props.audience === 'freshman' ? '/freshman/home' : '/member/home') : '/')
+// Logo 指向当前门户首页，与设备无关：它是“回本端首页”，不是“离开门户”。
+const brandTarget = computed(() => homePathFor(props.audience))
 const navigation = computed(() => props.audience === 'freshman'
   ? [
       { label: '新生首页', to: '/freshman/home' },
@@ -46,7 +48,7 @@ watch(isMobile, (value) => { if (!value) mobileOpen.value = false })
 <template>
   <header class="portal-header">
     <div class="portal-header__inner">
-      <RouterLink class="portal-header__brand" :to="brandTarget" :aria-label="isMobile ? `返回${portalName}首页` : '返回 Quanta 门户入口'">
+      <RouterLink class="portal-header__brand" :to="brandTarget" :aria-label="`返回${portalName}首页`">
         <img :src="quantaLogoUrl" alt="Quanta 社团 Logo" />
         <span><strong>Quanta</strong><small>{{ portalName }}</small></span>
       </RouterLink>

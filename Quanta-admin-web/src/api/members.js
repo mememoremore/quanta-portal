@@ -2,11 +2,22 @@ import { request } from '@/utils/request'
 import { requestBlob } from '@/utils/download'
 import { displayPersonName } from '@/utils/person-name'
 
+// 角色类别。后端 qt_member_record.role_category 的取值之一。
+// 普通塔员在业务上统一叫「实习生」，因此筛选里不出现独立的「成员」项：
+// 历史上存的 MEMBER 会被归并成 INTERN 展示与筛选。
 const roleLabels = {
   MGMT: '管理层',
   MANAGER: '经理层',
   INTERN: '实习生',
-  MEMBER: '成员',
+}
+
+// 部门中文映射。sys_user.member_department 历史数据混存过英文代码，
+// 展示与筛选统一按这四类归一为中文。
+const departmentLabels = {
+  FRONTEND: '前端',
+  BACKEND: '后端',
+  PRODUCT: '产品',
+  DESIGN: '设计',
 }
 
 function normalizeRoleCategory(code) {
@@ -14,9 +25,18 @@ function normalizeRoleCategory(code) {
   const upper = raw.toUpperCase()
   if (upper === 'MGMT' || raw === 'management' || upper === 'CEO') return 'MGMT'
   if (upper === 'MANAGER' || raw === 'manager') return 'MANAGER'
-  if (upper === 'INTERN' || raw === 'intern') return 'INTERN'
-  if (upper === 'MEMBER') return 'MEMBER'
+  // INTERN 与历史 MEMBER 同义，统一归为实习生
+  if (upper === 'INTERN' || raw === 'intern' || upper === 'MEMBER') return 'INTERN'
   return upper || 'INTERN'
+}
+
+function normalizeDepartment(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return '-'
+  const code = raw.toUpperCase()
+  if (departmentLabels[code]) return departmentLabels[code]
+  // 历史数据可能直接存了中文，原样透传，避免「后端部」等中文被吞掉
+  return raw
 }
 
 // 真正的届在 qt_member_record.cohort_id，历史账号的 member_cohort 可能是编号或届次名称。
@@ -34,7 +54,7 @@ export function mapMember(user = {}) {
   return {
     id: user.userId,
     name: displayPersonName(user, '-'),
-    department: user.memberDepartment || user.dept?.deptName || '-',
+    department: normalizeDepartment(user.memberDepartment || user.dept?.deptName),
     roleCode,
     roleLabel: roleLabels[roleCode] || user.memberTitle || '-',
     title: user.memberTitle || roleLabels[roleCode] || '-',

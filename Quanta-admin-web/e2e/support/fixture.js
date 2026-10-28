@@ -271,7 +271,7 @@ function responseFor(request, state) {
     return { code: 200, data: [21, 20, 19, 18, 17, 16].map((value) => ({ value, label: `第${value}届`, isCurrent: value === 21 })) }
   }
   if (method === 'GET' && path === '/qt/member/list') {
-    const departments = [{ value: 'PRODUCT', label: '产品部' }, { value: 'BACKEND', label: '后端部' }]
+    const departments = [{ value: 'PRODUCT', label: '产品' }, { value: 'BACKEND', label: '后端' }]
     const rows = Array.from({ length: 22 }, (_, index) => ({
       userId: index + 1, nickName: `测试成员${index + 1}`, memberDepartment: index % 2 ? 'BACKEND' : 'PRODUCT',
       memberTitle: '经理', roleCategory: 'MANAGER', memberCohort: String(parseInt(url.searchParams.get('memberCohort') || '21', 10)),

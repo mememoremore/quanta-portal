@@ -1,5 +1,14 @@
 <script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { audienceForPath, entryPathFor } from '@/utils/session-audience'
+
 const quantaLogoUrl = '/quanta-logo-small.jpg'
+const router = useRouter()
+const userStore = useUserStore()
+// 已登录时判断落点要先拿服务端身份，这里挡住弱网下的重复点击
+const pending = ref('')
 
 const entries = [
   {
@@ -24,6 +33,39 @@ const entries = [
     to: '/admin/login',
   },
 ]
+
+/** 只接管普通左键单击，中键与组合键仍按 href 由浏览器新开标签页 */
+function isPlainLeftClick(event) {
+  return event.button === 0
+    && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+}
+
+async function openEntry(event, entry) {
+  if (!isPlainLeftClick(event)) return
+  event.preventDefault()
+  if (pending.value) return
+  const audience = audienceForPath(entry.to)
+  if (!audience) return
+
+  if (userStore.token && !userStore.user) {
+    pending.value = entry.code
+    try {
+      await userStore.fetchUserInfo()
+    } catch {
+      // 拿不到服务端身份就按未登录处理回到登录页，绝不凭本地缓存的域放行
+      userStore.reset()
+    } finally {
+      pending.value = ''
+    }
+  }
+
+  // 一次算出落点后只导航一次，避免"先进登录页再被守卫重定向"造成的闪跳
+  await router.push(entryPathFor({
+    audience,
+    serverAudience: userStore.serverAudience,
+    canAccessAdmin: userStore.canAccessAdmin,
+  }))
+}
 </script>
 
 <template>
@@ -43,11 +85,17 @@ const entries = [
         <p class="entry-page__intro">连接招新、成员服务与社团管理，在同一个 Quanta 门户自然协作。</p>
       </div>
       <div class="entry-page__grid" aria-label="选择登录身份">
-        <RouterLink v-for="entry in entries" :key="entry.to" class="entry-card" :to="entry.to">
+        <a
+          v-for="entry in entries"
+          :key="entry.to"
+          class="entry-card"
+          :href="entry.to"
+          @click="openEntry($event, entry)"
+        >
           <span class="entry-card__code">{{ entry.code }}</span>
           <div><h2>{{ entry.title }}</h2><p>{{ entry.description }}</p></div>
           <strong>{{ entry.action }} <span aria-hidden="true">↗</span></strong>
-        </RouterLink>
+        </a>
       </div>
     </section>
     <footer class="entry-page__footer portal-container">
