@@ -62,11 +62,11 @@ test.describe('官网全站触摸反馈', () => {
     await members.tap()
     await expect(page).toHaveURL(/\/admin\/members$/)
     await page.locator('.member-mobile__filters .el-select').first().tap()
-    const option = page.getByRole('option', { name: '后端部', exact: true })
+    const option = page.getByRole('option', { name: '后端', exact: true })
     await expect(option).toBeVisible()
     await expect(option).toHaveCSS('-webkit-tap-highlight-color', tapColor)
     await option.tap()
-    await expect(page.locator('.member-mobile__card').first()).toContainText('BACKEND')
+    await expect(page.locator('.member-mobile__card').first()).toContainText('后端')
     expect(api.requests).toContain('GET /qt/member/list')
   })
 
