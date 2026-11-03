@@ -71,6 +71,9 @@ body.portal-scroll-active {
 .portal-user-menu__chevron { display: inline-flex; width: 14px; height: 14px; align-items: center; justify-content: center; flex: 0 0 14px; color: var(--portal-muted); line-height: 1; }
 .portal-user-menu__chevron svg { display: block; width: 14px; height: 14px; }
 @media (min-width: 761px) {
+  .portal-user-menu__trigger--member { border-color: transparent; border-radius: 12px; background: transparent; }
+  .portal-user-menu__trigger--member:hover { background: var(--portal-orange-soft); }
+  .portal-user-menu__trigger--member:focus-visible { outline: 2px solid var(--portal-orange-strong); outline-offset: 3px; }
   .portal-user-menu__trigger[aria-expanded="false"] .portal-user-menu__chevron svg { transform: rotate(-90deg); }
   .portal-user-menu__trigger[aria-expanded="true"] .portal-user-menu__chevron svg { transform: rotate(0deg); }
 }

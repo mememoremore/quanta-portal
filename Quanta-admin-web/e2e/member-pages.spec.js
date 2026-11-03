@@ -159,11 +159,56 @@ test.describe('member pages console', () => {
     await expect(page.getByTestId('pages-history')).toContainText('发布失败')
   })
 
+  for (const width of [1440, 390]) {
+    test(`website guide, new tab and account menu at ${width}px`, async ({ page, context }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 })
+      await loginAsMember(page, state)
+      await page.goto('/member/pages')
+      const entry = page.getByTestId('pages-guide-entry')
+      await expect(entry).toBeVisible()
+      const main = await page.locator('.pages-workspace__main').boundingBox()
+      const sidebar = await entry.boundingBox()
+      if (width > 1100) expect(sidebar.x).toBeGreaterThan(main.x + main.width)
+      else expect(sidebar.y + sidebar.height).toBeLessThanOrEqual(main.y)
+      const trigger = page.locator('.portal-user-menu__trigger--member')
+      await expect(trigger).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      if (width > 760) {
+        await expect(trigger).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)')
+        await trigger.focus()
+        await expect(trigger).toHaveCSS('outline-style', 'solid')
+      }
+      await trigger.click()
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      await expect(page.getByRole('menuitem', { name: '个人中心', exact: true })).toBeVisible()
+      await trigger.press('Escape')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+      await page.getByRole('heading', { name: '个人网站', exact: true }).click()
+      await page.screenshot({ path: testInfo.outputPath(`pages-sidebar-${width}.png`), fullPage: true })
+      const newTab = context.waitForEvent('page')
+      await entry.getByRole('link').click()
+      const guide = await newTab
+      await guide.setViewportSize({ width, height: 900 })
+      await expect(guide).toHaveURL(/\/member\/pages\/guide\?slug=octo-lab$/)
+      await expect(guide.getByRole('heading', { name: '个人网站使用指南', exact: true })).toBeVisible()
+      await expect(guide.locator('article')).toContainText("const SLUG = 'octo-lab'")
+      expect(await guide.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await guide.getByRole('navigation', { name: '指南章节' }).getByRole('link', { name: '6. 遇到问题怎么办', exact: true }).click()
+      await expect(guide.getByRole('heading', { name: '6. 遇到问题怎么办', exact: true })).toBeInViewport()
+      const download = guide.waitForEvent('download')
+      await guide.getByRole('button', { name: '下载 Markdown 指南' }).click()
+      expect((await download).suggestedFilename()).toBe('Quanta个人网站使用指南.md')
+      await guide.evaluate(() => scrollTo(0, 0))
+      await guide.screenshot({ path: testInfo.outputPath(`website-guide-${width}.png`) })
+      await guide.close()
+    })
+  }
+
   test('creation guide posts and switches to the owned view', async ({ page }) => {
     state.site = null
     await loginAsMember(page, state)
     await page.goto('/member/pages')
     await expect(page.getByTestId('pages-guide')).toBeVisible()
+    await expect(page.getByTestId('pages-guide-entry').getByRole('link')).toHaveAttribute('href', '/member/pages/guide')
     await page.getByTestId('pages-repo-url').fill('https://github.com/octo/hello')
     await page.getByTestId('pages-form-submit').click()
     await expect(page.getByTestId('pages-visit-link')).toContainText('octo-lab.page.quantacenter.com')

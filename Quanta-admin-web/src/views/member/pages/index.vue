@@ -6,6 +6,7 @@ import TemplateSiteForm from './components/TemplateSiteForm.vue'
 import DeploymentHistory from './components/DeploymentHistory.vue'
 import DeploymentLogDialog from './components/DeploymentLogDialog.vue'
 import SiteApiGuide from './components/SiteApiGuide.vue'
+import GuideEntry from './components/GuideEntry.vue'
 
 const POLL_INTERVAL = 5000
 
@@ -110,53 +111,57 @@ onBeforeUnmount(() => {
       状态刷新失败：{{ pollError }} <button type="button" @click="refresh({ silent: true })">重试</button>
     </p>
 
-    <div v-if="loading" class="pages-state portal-card">正在加载站点信息…</div>
+    <div class="pages-workspace">
+      <GuideEntry :slug="site?.slug || ''" />
+      <div class="pages-workspace__main">
+        <div v-if="loading" class="pages-state portal-card">正在加载站点信息…</div>
 
-    <template v-else>
-      <div v-if="!site" class="pages-guide portal-card" data-testid="pages-guide">
-        <h2>还没有个人网站</h2>
-        <TemplateSiteForm @saved="onSaved" />
-        <div class="pages-guide__divider"><span>或者使用自己的 GitHub 仓库</span></div>
-        <p>
-          创建后会得到 <code>https://你的标识.page.quantacenter.com</code>。
-          平台只发布指定分支里<b>已经构建好的静态文件</b>，不执行任何构建脚本；
-          分支默认 <code>pages</code>，发布目录默认仓库根目录。
-        </p>
-        <SiteConfigForm :site="null" @saved="onSaved" />
-      </div>
-
-      <template v-else>
-        <article class="pages-site portal-card">
-          <header>
-            <div>
-              <p>SITE</p>
-              <h2>{{ siteUrl.replace('https://', '') }}</h2>
-            </div>
-            <div class="pages-site__meta">
-              <span v-if="site.currentSha" data-testid="pages-current-sha">在线版本 {{ site.currentSha.slice(0, 7) }}</span>
-              <span v-else data-testid="pages-never-published">尚未发布首个版本</span>
-              <span v-if="site.lastCheckedTime" data-testid="pages-last-checked">最近检查 {{ site.lastCheckedTime }}</span>
-            </div>
-          </header>
-          <div v-if="templateSite" class="pages-template-badge" data-testid="pages-template-badge">
-            <span>{{ templateSite.name }}</span>
+        <template v-else>
+          <div v-if="!site" class="pages-guide portal-card" data-testid="pages-guide">
+            <h2>还没有个人网站</h2>
+            <TemplateSiteForm @saved="onSaved" />
+            <div class="pages-guide__divider"><span>或者使用自己的 GitHub 仓库</span></div>
             <p>
-              当前使用「{{ templateSite.name }}」模板。想改版式？<a :href="TEMPLATE_REPO_URL" target="_blank" rel="noopener">复制模板仓库</a>，
-              然后把下面的仓库地址换成你的仓库，并把发布目录改为 <code>/</code>。
+              创建后会得到 <code>https://你的标识.page.quantacenter.com</code>。
+              平台只发布指定分支里<b>已经构建好的静态文件</b>，不执行任何构建脚本；
+              分支默认 <code>pages</code>，发布目录默认仓库根目录。
             </p>
+            <SiteConfigForm :site="null" @saved="onSaved" />
           </div>
-          <p v-if="site.lastCheckError" class="member-feedback is-error" data-testid="pages-check-error">
-            最近一次分支检查失败：{{ site.lastCheckError }}（在线版本不受影响）
-          </p>
-          <SiteConfigForm :key="site.siteId" :site="site" @saved="onSaved" />
-        </article>
 
-        <DeploymentHistory :site="site" :rows="deployments" :total="total" @changed="refresh()" @view-log="openLog" />
+          <template v-else>
+            <article class="pages-site portal-card">
+              <header>
+                <div>
+                  <p>SITE</p>
+                  <h2>{{ siteUrl.replace('https://', '') }}</h2>
+                </div>
+                <div class="pages-site__meta">
+                  <span v-if="site.currentSha" data-testid="pages-current-sha">在线版本 {{ site.currentSha.slice(0, 7) }}</span>
+                  <span v-else data-testid="pages-never-published">尚未发布首个版本</span>
+                  <span v-if="site.lastCheckedTime" data-testid="pages-last-checked">最近检查 {{ site.lastCheckedTime }}</span>
+                </div>
+              </header>
+              <div v-if="templateSite" class="pages-template-badge" data-testid="pages-template-badge">
+                <span>{{ templateSite.name }}</span>
+                <p>
+                  当前使用「{{ templateSite.name }}」模板。想改版式？<a :href="TEMPLATE_REPO_URL" target="_blank" rel="noopener">复制模板仓库</a>，
+                  然后把下面的仓库地址换成你的仓库，并把发布目录改为 <code>/</code>。
+                </p>
+              </div>
+              <p v-if="site.lastCheckError" class="member-feedback is-error" data-testid="pages-check-error">
+                最近一次分支检查失败：{{ site.lastCheckError }}（在线版本不受影响）
+              </p>
+              <SiteConfigForm :key="site.siteId" :site="site" @saved="onSaved" />
+            </article>
 
-        <SiteApiGuide :site="site" />
-      </template>
-    </template>
+            <DeploymentHistory :site="site" :rows="deployments" :total="total" @changed="refresh()" @view-log="openLog" />
 
+            <SiteApiGuide :site="site" />
+          </template>
+        </template>
+      </div>
+    </div>
     <DeploymentLogDialog :open="logOpen" :deployment="logDeployment" @close="logOpen = false" />
   </section>
 </template>

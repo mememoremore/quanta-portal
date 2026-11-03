@@ -17,12 +17,17 @@ const endpoints = computed(() => [
 
 const snippet = computed(() => `// 在你的站点页面里直接 fetch（服务端已允许 ${props.site.slug}.page.quantacenter.com 跨域读取）
 fetch('${baseUrl.value}/posts?pageNum=1&pageSize=20')
-  .then((response) => response.json())
+  .then(async (response) => {
+    const body = await response.json()
+    if (!response.ok) throw new Error(body.msg || \`请求失败（HTTP \${response.status}）\`)
+    return body
+  })
   .then(({ data }) => {
     data.items.forEach((post) => {
       console.log(post.title, post.createdAt, post.excerpt)
     })
-  })`)
+  })
+  .catch((error) => console.error('文章加载失败：', error.message))`)
 
 const copied = ref(false)
 
